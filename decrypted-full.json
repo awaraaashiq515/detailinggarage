@@ -1,0 +1,137 @@
+{
+  "data": {
+    "webSections": [
+      {
+        "text": {
+          "title": "RTO Details"
+        },
+        "imageUrl": "https://d289c58yi26upx.cloudfront.net/March27th2020/Car.png",
+        "messages": [
+          {
+            "title": "Number",
+            "subtitle": "HR-55"
+          },
+          {
+            "title": "Registered RTO",
+            "subtitle": "Gurgaon, Haryana - 122001"
+          },
+          {
+            "title": "State",
+            "subtitle": "Haryana"
+          },
+          {
+            "title": "RTO Phone number",
+            "subtitle": ""
+          },
+          {
+            "title": "Website",
+            "subtitle": "https://haryanatransport.gov.in/"
+          }
+        ],
+        "message": {
+          "title": "E*T R**T A C*R P*****E L*****D",
+          "subtitle": "TOUR H3 CNG"
+        }
+      },
+      {
+        "title": "Insurance Expiring Soon ⚠️",
+        "subtitle": "<p>Renew at best rates and drive worry-free!</p>",
+        "textColor": "#D48806",
+        "backgroundColor": "#FFFBE6",
+        "imageUrl": "https://d289c58yi26upx.cloudfront.net/February21st2025/expiring_car.png",
+        "actions": [
+          {
+            "type": "CAR_INSURANCE",
+            "url": "https://www.carinfo.app/car-insurance/HR55AP0244",
+            "imageUrl": "https://d289c58yi26upx.cloudfront.net/February21st2025/chevron_icon_yellow.png"
+          }
+        ]
+      },
+      {
+        "title": "View Pending Challans on this Vehicle",
+        "subtitle": "<p>Check & pay challans instantly</p>",
+        "textColor": "#5A7C9E",
+        "backgroundColor": "#ECF6FE",
+        "imageUrl": "https://d289c58yi26upx.cloudfront.net/February17th2025/challanbanner.png",
+        "actions": [
+          {
+            "type": "CHALLAN_DETAILS",
+            "url": "https://www.carinfo.app/challan-details/HR55AP0244",
+            "imageUrl": "https://d289c58yi26upx.cloudfront.net/February17th2025/challanchevronbutton.png"
+          }
+        ]
+      },
+      {
+        "text": {
+          "title": "RC Details"
+        },
+        "elements": [
+          {
+            "heading": {
+              "title": "Ownership Details"
+            }
+          },
+          {
+            "heading": {
+              "title": "Important Dates"
+            }
+          },
+          {
+            "heading": {
+              "title": "Other Info"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Insurance Expiring Soon ⚠️",
+        "subtitle": "Renew at best rates and drive worry-free!",
+        "textColor": "#D48806",
+        "backgroundColor": "#FFFBE6",
+        "imageUrl": "https://d289c58yi26upx.cloudfront.net/February17th2025/Insuranceexpiringcarouselcar.png",
+        "messages": [
+          {
+            "title": "Cover Repair Costs:",
+            "subtitle": "Protection for damage if your car is in an accident.",
+            "titleColor": "#D48806"
+          },
+          {
+            "title": "Up to ₹15 Lakh Accident Cover:",
+            "subtitle": "Comprehensive protection for you and third parties.",
+            "titleColor": "#D48806"
+          },
+          {
+            "title": "Third-Party Property Protection:",
+            "subtitle": "Stay covered for accidental damage to property.",
+            "titleColor": "#D48806"
+          },
+          {
+            "title": "Cashless Repairs at 10,000+ Garages:",
+            "subtitle": "Hassle-free service and quick repairs",
+            "titleColor": "#D48806"
+          },
+          {
+            "title": "Parts & Accessories Coverage:",
+            "subtitle": "Protection for both electrical and non-electrical car parts.",
+            "titleColor": "#D48806"
+          }
+        ],
+        "actions": [
+          {
+            "type": "CAR_INSURANCE",
+            "url": "https://www.carinfo.app/car-insurance/HR55AP0244",
+            "imageUrl": "https://d289c58yi26upx.cloudfront.net/February21st2025/chevron_icon_yellow.png"
+          }
+        ]
+      }
+    ],
+    "meta": {
+      "twoWheeler": "false",
+      "insuranceExpired": "false",
+      "insuranceExpiring": "true",
+      "isInsuranceODEligible": "false",
+      "isPollutionExpired": "false",
+      "insuranceExpireDate": "27-Feb-2026"
+    }
+  }
+}

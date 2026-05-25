@@ -1,0 +1,120 @@
+{
+  "about": {
+    "title": "About Detailing Garage",
+    "description": "We provide the most comprehensive Pre-Delivery Inspection and premium detailing services for your luxury and everyday vehicles. Ensure your peace of mind before taking delivery with our 50+ point inspection process.",
+    "image": "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&w=1200&q=80",
+    "stats": [
+      {
+        "label": "Inspections",
+        "value": "1,000+"
+      },
+      {
+        "label": "Happy Clients",
+        "value": "99%"
+      },
+      {
+        "label": "Expert Engineers",
+        "value": "15+"
+      }
+    ]
+  },
+  "services": [
+    {
+      "id": "1",
+      "title": "Pre-Delivery Inspection (PDI)",
+      "description": "Comprehensive 50+ point check before you accept delivery of your new car.",
+      "icon": "Search",
+      "isActive": true
+    },
+    {
+      "id": "2",
+      "title": "Paint Protection Film (PPF)",
+      "description": "Keep your car's paint looking brand new with our self-healing invisible shield.",
+      "icon": "Shield",
+      "isActive": true
+    },
+    {
+      "id": "3",
+      "title": "Ceramic Coating",
+      "description": "Long-lasting gloss and hydrophobic protection for your vehicle's exterior.",
+      "icon": "Sparkles",
+      "isActive": true
+    }
+  ],
+  "gallery": [
+    {
+      "id": "1",
+      "url": "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80",
+      "category": "Detailing",
+      "title": "Exterior Polish",
+      "isActive": true
+    },
+    {
+      "id": "2",
+      "url": "https://images.unsplash.com/photo-1600705722908-bab1e61c0b4d?auto=format&fit=crop&w=800&q=80",
+      "category": "PPF",
+      "title": "Film Application",
+      "isActive": true
+    },
+    {
+      "id": "3",
+      "url": "https://images.unsplash.com/photo-1550524514-ee100e48737c?auto=format&fit=crop&w=800&q=80",
+      "category": "PDI",
+      "title": "Paint Thickness Check",
+      "isActive": true
+    },
+    {
+      "id": "4",
+      "url": "https://images.unsplash.com/photo-1604261895646-9d3b4b57cc90?auto=format&fit=crop&w=800&q=80",
+      "category": "Ceramic",
+      "title": "Coating Finish",
+      "isActive": true
+    },
+    {
+      "id": "5",
+      "url": "https://images.unsplash.com/photo-1620921575027-14fa156aa417?auto=format&fit=crop&w=800&q=80",
+      "category": "Interior",
+      "title": "Deep Clean",
+      "isActive": true
+    },
+    {
+      "id": "6",
+      "url": "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80",
+      "category": "Detailing",
+      "title": "Final Inspection",
+      "isActive": true
+    }
+  ],
+  "testimonials": [
+    {
+      "id": "1",
+      "name": "Rahul Sharma",
+      "role": "BMW Owner",
+      "content": "The PDI service saved me from buying a car with a repainted door. Highly professional and thorough!",
+      "rating": 5,
+      "avatarUrl": "https://i.pravatar.cc/150?u=rahul",
+      "isActive": true
+    },
+    {
+      "id": "2",
+      "name": "Priya Patel",
+      "role": "Hyundai Creta Owner",
+      "content": "Excellent service. The engineers were on time at the showroom and explained every point in the report.",
+      "rating": 5,
+      "avatarUrl": "https://i.pravatar.cc/150?u=priya",
+      "isActive": true
+    }
+  ],
+  "social": {
+    "instagramUrl": "https://instagram.com/detailinggarage",
+    "facebookUrl": "https://facebook.com/detailinggarage",
+    "widgetType": "elfsight",
+    "widgetId": "YOUR_ELFSIGHT_WIDGET_ID"
+  },
+  "contact": {
+    "address": "Auto Hub, Mandi, Himachal Pradesh",
+    "phone": "+91 98765 43210",
+    "email": "info@detailinggarage.com",
+    "mapUrl": "https://maps.google.com/..."
+  }
+}

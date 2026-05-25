@@ -1,0 +1,96 @@
+{
+  "data": {
+    "webSections": [
+      {
+        "text": {
+          "title": "RTO Details"
+        },
+        "imageUrl": "https://files.carinfo.app/September22nd2025/tmpg59glwvu.jpg",
+        "messages": [
+          {
+            "title": "Number",
+            "subtitle": "HP-78"
+          },
+          {
+            "title": "Registered RTO",
+            "subtitle": "Una, Himachal Pradesh - 174304"
+          },
+          {
+            "title": "State",
+            "subtitle": "Himachal Pradesh"
+          },
+          {
+            "title": "RTO Phone number",
+            "subtitle": "+91-1975-263060"
+          },
+          {
+            "title": "Website",
+            "subtitle": "https://himachal.nic.in/index.php?lang=1&dpt_id=23"
+          }
+        ],
+        "message": {
+          "title": "S***L G****R ",
+          "subtitle": "THAR LX D MT 4WD 4S HT"
+        }
+      },
+      {
+        "title": "Thinking of Buying this Vehicle?",
+        "subtitle": "<p>Get the <span>Complete service History</span> <span>@219</span></p>",
+        "textColor": "#D96625",
+        "backgroundColor": "#FFF1E9",
+        "imageUrl": "https://d289c58yi26upx.cloudfront.net/February17th2025/SHbanner.png",
+        "actions": [
+          {
+            "type": "SERVICE_HISTORY",
+            "url": "https://www.carinfo.app/service-history?vehicleNumber=HP78B7878",
+            "imageUrl": "https://d289c58yi26upx.cloudfront.net/February17th2025/SHchevron button.png"
+          }
+        ]
+      },
+      {
+        "title": "View Pending Challans on this Vehicle",
+        "subtitle": "<p>Check & pay challans instantly</p>",
+        "textColor": "#5A7C9E",
+        "backgroundColor": "#ECF6FE",
+        "imageUrl": "https://d289c58yi26upx.cloudfront.net/February17th2025/challanbanner.png",
+        "actions": [
+          {
+            "type": "CHALLAN_DETAILS",
+            "url": "https://www.carinfo.app/challan-details/HP78B7878",
+            "imageUrl": "https://d289c58yi26upx.cloudfront.net/February17th2025/challanchevronbutton.png"
+          }
+        ]
+      },
+      {
+        "text": {
+          "title": "RC Details"
+        },
+        "elements": [
+          {
+            "heading": {
+              "title": "Ownership Details"
+            }
+          },
+          {
+            "heading": {
+              "title": "Important Dates"
+            }
+          },
+          {
+            "heading": {
+              "title": "Other Info"
+            }
+          }
+        ]
+      }
+    ],
+    "meta": {
+      "twoWheeler": "false",
+      "insuranceExpired": "false",
+      "insuranceExpiring": "false",
+      "isInsuranceODEligible": "false",
+      "isPollutionExpired": "false",
+      "insuranceExpireDate": "02-Jun-2026"
+    }
+  }
+}

@@ -1,0 +1,50 @@
+[
+    {
+        "vehicle_number": "HR55AP0244",
+        "owner_name": "ROHIT SHARMA",
+        "model": "MARUTI SUZUKI SWIFT VXI",
+        "fuel_type": "PETROL",
+        "registration_date": "12-OCT-2019",
+        "fitness_validity": "11-OCT-2034",
+        "insurance_validity": "10-OCT-2025",
+        "puc_validity": "05-SEP-2024",
+        "chassis_number": "MA3EKB1S00J123456",
+        "engine_number": "K12MN6789012",
+        "color": "SILKY SILVER",
+        "registration_authority": "GURGAON NORTH, HARYANA",
+        "vehicle_class": "MOTOR CAR (LMV)",
+        "status": "ACTIVE"
+    },
+    {
+        "vehicle_number": "DL3CAN1234",
+        "owner_name": "ANJALI VERMA",
+        "model": "HYUNDAI CRETA SX 1.5",
+        "fuel_type": "DIESEL",
+        "registration_date": "20-JAN-2021",
+        "fitness_validity": "19-JAN-2036",
+        "insurance_validity": "18-JAN-2026",
+        "puc_validity": "15-MAR-2024",
+        "chassis_number": "MALB51CLRM123456",
+        "engine_number": "D4FB123456",
+        "color": "POLAR WHITE",
+        "registration_authority": "DELHI WEST, RAJA GARDEN",
+        "vehicle_class": "MOTOR CAR (LMV)",
+        "status": "ACTIVE"
+    },
+    {
+        "vehicle_number": "MH01AB1234",
+        "owner_name": "AMITABH BACHCHAN",
+        "model": "RANGE ROVER AUTOBIOGRAPHY",
+        "fuel_type": "PETROL",
+        "registration_date": "05-MAY-2022",
+        "fitness_validity": "04-MAY-2037",
+        "insurance_validity": "03-MAY-2025",
+        "puc_validity": "10-DEC-2024",
+        "chassis_number": "SALWR2RE6KA654321",
+        "engine_number": "508PS12345",
+        "color": "SANTORINI BLACK",
+        "registration_authority": "MUMBAI CENTRAL, MAHARASHTRA",
+        "vehicle_class": "LUXURY MOTOR CAR",
+        "status": "ACTIVE"
+    }
+]

@@ -1,0 +1,57 @@
+{
+  "data": {
+    "myOrderBtn": {
+      "label": "My Orders",
+      "actionUrl": "/challan/orders"
+    },
+    "topCard": {
+      "vehicleNum": "HR55AP0244",
+      "model": "TOUR H3 CNG",
+      "ownerdetails": {
+        "label": "Owner",
+        "name": "******************************"
+      },
+      "imgUrl": "https://d289c58yi26upx.cloudfront.net/March27th2020/Car.png"
+    },
+    "tabs": [
+      {
+        "title": "Pending",
+        "message": {
+          "imageUrl": "https://d289c58yi26upx.cloudfront.net/February26th2025/is_not_loggin.png",
+          "title": "<span>Challans on your vehicle?</span><br/> Login to view and pay them instantly"
+        }
+      },
+      {
+        "title": "Paid",
+        "message": {
+          "imageUrl": "https://d289c58yi26upx.cloudfront.net/February26th2025/is_not_loggin.png",
+          "title": "<span>Challans on your vehicle?</span><br/> Login to view and pay them instantly"
+        }
+      }
+    ],
+    "stateCourt": {
+      "imageUrl": "",
+      "bgColor": "#D1EBEB",
+      "title": "Missing a challan?",
+      "subTitle": "Tap to explore two additional sources for your challan.",
+      "stateDropDownData": [
+        {
+          "icon": "https://d289c58yi26upx.cloudfront.net/February25th2025/state.png",
+          "title": "State Court",
+          "arrowIcon": "https://d289c58yi26upx.cloudfront.net/February25th2025/arrow_icon.png",
+          "popupId": "STATE_COURT"
+        },
+        {
+          "icon": "https://d289c58yi26upx.cloudfront.net/February25th2025/virtual_court.png",
+          "title": "Virtual Court",
+          "arrowIcon": "https://d289c58yi26upx.cloudfront.net/February25th2025/arrow_icon.png",
+          "popupId": "VIRTUAL_COURT"
+        }
+      ]
+    },
+    "error": {
+      "errorCode": 1010,
+      "message": "Please login to view your Challans"
+    }
+  }
+}
