@@ -2,14 +2,17 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { jwtVerify } from "jose"
 
-// SECURITY: JWT_SECRET must be set in .env — no fallback allowed in production
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
-    throw new Error("FATAL: JWT_SECRET environment variable is not set. App cannot start.")
+// Helper to get JWT_SECRET dynamically at runtime
+function getJwtSecret(): Uint8Array {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        if (process.env.NODE_ENV === "production") {
+            throw new Error("FATAL: JWT_SECRET environment variable is not set. App cannot start.");
+        }
+        return new TextEncoder().encode("car-service-project-2026-secret-key");
+    }
+    return new TextEncoder().encode(secret);
 }
-
-const JWT_SECRET = new TextEncoder().encode(
-    process.env.JWT_SECRET || "car-service-project-2026-secret-key"
-)
 
 // Routes that require authentication
 const protectedRoutes = ["/admin"]
@@ -40,7 +43,7 @@ export async function middleware(request: NextRequest) {
 
     try {
         // Verify token
-        const { payload } = await jwtVerify(token, JWT_SECRET)
+        const { payload } = await jwtVerify(token, getJwtSecret())
 
         // Check admin role for admin routes
         if (isAdminRoute && payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") {

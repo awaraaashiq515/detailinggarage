@@ -1,15 +1,17 @@
 import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
 
-// SECURITY: JWT_SECRET must always come from environment variable
-// Never use a hardcoded fallback in production
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
-    throw new Error("FATAL: JWT_SECRET environment variable is not set.")
+// Helper to get JWT_SECRET dynamically at runtime
+function getJwtSecret(): Uint8Array {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        if (process.env.NODE_ENV === "production") {
+            throw new Error("FATAL: JWT_SECRET environment variable is not set.")
+        }
+        return new TextEncoder().encode("car-service-project-2026-secret-key");
+    }
+    return new TextEncoder().encode(secret);
 }
-
-const JWT_SECRET = new TextEncoder().encode(
-    process.env.JWT_SECRET || "car-service-project-2026-secret-key"
-)
 
 // Valid roles in the system
 export type Role = "SUPER_ADMIN" | "ADMIN" | "CLIENT" | "DEALER" | "AGENT" | "COMPANY" | "ENTERPRISE"
@@ -28,7 +30,7 @@ export async function signToken(payload: JWTPayload): Promise<string> {
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
         .setExpirationTime("24h")
-        .sign(JWT_SECRET)
+        .sign(getJwtSecret())
 
     return token
 }
@@ -36,7 +38,7 @@ export async function signToken(payload: JWTPayload): Promise<string> {
 // Verify and decode JWT token — returns null on failure
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
     try {
-        const { payload } = await jwtVerify(token, JWT_SECRET)
+        const { payload } = await jwtVerify(token, getJwtSecret())
         return payload as unknown as JWTPayload
     } catch {
         return null
