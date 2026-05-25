@@ -26,3 +26,4 @@ tsc_out.txt
 # OS metadata
 .DS_Store
 Thumbs.db
+tsconfig.tsbuildinfo
