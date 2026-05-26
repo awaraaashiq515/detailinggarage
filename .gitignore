@@ -27,3 +27,7 @@ tsc_out.txt
 .DS_Store
 Thumbs.db
 tsconfig.tsbuildinfo
+
+# Uploads and reports
+/public/uploads/
+/public/pdi/reports/

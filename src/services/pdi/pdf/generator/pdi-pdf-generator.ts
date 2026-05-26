@@ -146,6 +146,7 @@ export async function generatePDIPDF(inspectionId: string): Promise<string> {
         // Format filename as PDI-{Make}-{Model}-{Date}.pdf
         const filename = `PDI-${inspection.vehicleMake}-${inspection.vehicleModel}-${dateStr}.pdf`
             .replace(/\s+/g, '-') // Replace spaces with hyphens
+            .replace(/[^a-zA-Z0-9\-_.]/g, '') // Remove invalid chars
         const filepath = join(reportsDir, filename)
 
         writeFileSync(filepath, pdfBuffer)
