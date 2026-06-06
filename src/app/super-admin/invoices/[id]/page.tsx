@@ -18,6 +18,7 @@ type Invoice = {
     status: string; subTotal: number; cgstTotal: number; sgstTotal: number
     igstTotal: number; taxTotal: number; discount: number; grandTotal: number; amountPaid: number
     notes: string | null; terms: string | null
+    vehicleName: string | null; vehicleRegNo: string | null; vehicleChassis: string | null; odometer: string | null
     client: {
         name: string; phone: string | null; email: string | null
         gstin: string | null; address: string | null; state: string | null; city: string | null
@@ -211,17 +212,50 @@ export default function SuperAdminInvoiceViewPage({ params }: { params: Promise<
                     </div>
                 </div>
 
-                {/* ── BILL TO ─────────────────────────────────────────────── */}
-                <div style={section}>
-                    <div style={sectionHdr}>BILL TO</div>
-                    <div style={{ padding: "8px 12px" }}>
-                        <div style={{ fontWeight: "bold", fontSize: "13px" }}>{invoice.client.name}</div>
-                        {invoice.client.address && <div style={{ fontSize: "11px", color: "#444", marginTop: "2px" }}>{invoice.client.address}</div>}
-                        <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "4px" }}>
-                            {invoice.client.city && <span style={{ fontSize: "11px", color: "#555" }}>📍 {invoice.client.city}{invoice.client.state ? `, ${invoice.client.state}` : ""}</span>}
-                            {invoice.client.phone && <span style={{ fontSize: "11px", color: "#555" }}>📞 {invoice.client.phone}</span>}
-                            {invoice.client.email && <span style={{ fontSize: "11px", color: "#555" }}>✉ {invoice.client.email}</span>}
-                            {invoice.client.gstin && <span style={{ fontSize: "11px", color: "#333" }}>GSTIN: <strong style={{ fontFamily: "monospace" }}>{invoice.client.gstin}</strong></span>}
+                {/* ── BILL TO & VEHICLE DETAILS ─────────────────────────────── */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "6px" }}>
+                    <div style={section}>
+                        <div style={sectionHdr}>BILL TO</div>
+                        <div style={{ padding: "8px 12px", minHeight: "80px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                            <div>
+                                <div style={{ fontWeight: "bold", fontSize: "13px" }}>{invoice.client.name}</div>
+                                {invoice.client.address && <div style={{ fontSize: "11px", color: "#444", marginTop: "2px" }}>{invoice.client.address}</div>}
+                            </div>
+                            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "8px", paddingTop: "6px", borderTop: "1px solid #e0eaf6" }}>
+                                {invoice.client.city && <span style={{ fontSize: "11px", color: "#555" }}>📍 {invoice.client.city}{invoice.client.state ? `, ${invoice.client.state}` : ""}</span>}
+                                {invoice.client.phone && <span style={{ fontSize: "11px", color: "#555" }}>📞 {invoice.client.phone}</span>}
+                                {invoice.client.email && <span style={{ fontSize: "11px", color: "#555" }}>✉ {invoice.client.email}</span>}
+                                {invoice.client.gstin && <span style={{ fontSize: "11px", color: "#333" }}>GSTIN: <strong style={{ fontFamily: "monospace" }}>{invoice.client.gstin}</strong></span>}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={section}>
+                        <div style={sectionHdr}>VEHICLE DETAILS</div>
+                        <div style={{ padding: "8px 12px", minHeight: "80px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                            <div>
+                                <div style={{ fontWeight: "bold", fontSize: "13px" }}>{invoice.vehicleName || <span style={{ color: "#888", fontStyle: "italic" }}>No Vehicle Details</span>}</div>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "4px" }}>
+                                    {invoice.vehicleRegNo && (
+                                        <div>
+                                            <span style={{ fontSize: "10px", color: "#666", display: "block", fontWeight: "bold" }}>REG NO:</span>
+                                            <span style={{ fontSize: "11px", fontFamily: "monospace" }}>{invoice.vehicleRegNo}</span>
+                                        </div>
+                                    )}
+                                    {invoice.odometer && (
+                                        <div>
+                                            <span style={{ fontSize: "10px", color: "#666", display: "block", fontWeight: "bold" }}>ODOMETER:</span>
+                                            <span style={{ fontSize: "11px" }}>{invoice.odometer}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            {invoice.vehicleChassis && (
+                                <div style={{ marginTop: "8px", paddingTop: "6px", borderTop: "1px solid #e0eaf6" }}>
+                                    <span style={{ fontSize: "10px", color: "#666", fontWeight: "bold" }}>CHASSIS / VIN: </span>
+                                    <strong style={{ fontFamily: "monospace", fontSize: "11px" }}>{invoice.vehicleChassis}</strong>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

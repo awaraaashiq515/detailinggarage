@@ -8,12 +8,17 @@ type InvoiceItem = {
     id?: string; tempId?: number; name: string; hsnSacCode: string
     quantity: number; rate: number; taxRate: number; discount: number
 }
-type Client = { id: string; name: string; phone: string | null; email: string | null; gstin: string | null; state: string | null }
+type Client = {
+    id: string; name: string; phone: string | null; email: string | null; gstin: string | null; state: string | null; address?: string | null
+    vehicleName?: string | null; vehicleRegNo?: string | null; vehicleChassis?: string | null; odometer?: string | null
+    invoices?: { vehicleName: string | null; vehicleRegNo: string | null; vehicleChassis: string | null; odometer: string | null }[]
+}
 type Invoice = {
     id: string; invoiceNumber: string; type: string; date: string; dueDate: string | null
     status: string; discount: number; notes: string | null; terms: string | null
     clientId: string
     client: Client
+    vehicleName: string | null; vehicleRegNo: string | null; vehicleChassis: string | null; odometer: string | null
     items: { id: string; name: string; hsnSacCode: string | null; quantity: number; rate: number; taxRate: number; cgst: number; sgst: number; igst: number; total: number }[]
 }
 
@@ -43,6 +48,10 @@ export default function SuperAdminInvoiceEditPage({ params }: { params: Promise<
     const [notes, setNotes] = useState("")
     const [terms, setTerms] = useState("")
     const [lineItems, setLineItems] = useState<InvoiceItem[]>([])
+    const [vehicleName, setVehicleName] = useState("")
+    const [vehicleRegNo, setVehicleRegNo] = useState("")
+    const [vehicleChassis, setVehicleChassis] = useState("")
+    const [odometer, setOdometer] = useState("")
 
     // Add line form
     const [lineDesc, setLineDesc] = useState("")
@@ -71,6 +80,10 @@ export default function SuperAdminInvoiceEditPage({ params }: { params: Promise<
                     setDiscountAmt(inv.discount || 0)
                     setNotes(inv.notes || "")
                     setTerms(inv.terms || "")
+                    setVehicleName(inv.vehicleName || "")
+                    setVehicleRegNo(inv.vehicleRegNo || "")
+                    setVehicleChassis(inv.vehicleChassis || "")
+                    setOdometer(inv.odometer || "")
                     setLineItems(inv.items.map((item: any) => ({
                         id: item.id,
                         tempId: Date.now() + Math.random(),
@@ -125,22 +138,32 @@ export default function SuperAdminInvoiceEditPage({ params }: { params: Promise<
         if (!clientId) { alert("Please select a client"); return }
         if (lineItems.length === 0) { alert("Add at least one item"); return }
         setSaving(true)
-        // Delete old invoice and create new one (simplest approach for now)
         const res = await fetch("/api/admin/billing/invoices", {
-            method: "PATCH",
+            method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, status }),
+            body: JSON.stringify({
+                id,
+                clientId,
+                type,
+                date,
+                dueDate: dueDate || null,
+                status,
+                items: lineItems,
+                discount: discountAmt,
+                notes,
+                terms,
+                vehicleName,
+                vehicleRegNo,
+                vehicleChassis,
+                odometer
+            }),
         })
-        // Also save full invoice by re-creating (update notes/terms/discount/status)
-        // For a full re-save, call a dedicated update endpoint if available
-        // For now, update what PATCH supports + notify user
         setSaving(false)
         const data = await res.json()
         if (data.success) {
-            alert("Invoice status updated! Full item editing requires an extended API.")
             router.push(`/super-admin/invoices/${id}`)
         } else {
-            alert(data.error || "Failed to save")
+            alert(data.error || "Failed to save changes")
         }
     }
 
@@ -226,12 +249,47 @@ export default function SuperAdminInvoiceEditPage({ params }: { params: Promise<
                             <label style={lbl}>Overall Discount (₹)</label>
                             <input type="number" value={discountAmt} onChange={e => setDiscountAmt(parseFloat(e.target.value) || 0)} style={inp} />
                         </div>
-                        <div style={{ gridColumn: "1 / -1" }}>
+                        <div style={{ gridColumn: "span 2" }}>
                             <label style={lbl}>Client</label>
-                            <select value={clientId} onChange={e => setClientId(e.target.value)} style={inp}>
+                            <select value={clientId} onChange={e => {
+                                const val = e.target.value
+                                setClientId(val)
+                                const c = clients.find(x => x.id === val)
+                                const vName = c?.vehicleName || c?.invoices?.[0]?.vehicleName
+                                const vReg = c?.vehicleRegNo || c?.invoices?.[0]?.vehicleRegNo
+                                const vChassis = c?.vehicleChassis || c?.invoices?.[0]?.vehicleChassis
+                                const vOdo = c?.odometer || c?.invoices?.[0]?.odometer
+                                if (c) {
+                                    setVehicleName(vName || "")
+                                    setVehicleRegNo(vReg || "")
+                                    setVehicleChassis(vChassis || "")
+                                    setOdometer(vOdo || "")
+                                }
+                            }} style={inp}>
                                 <option value="">Select client...</option>
-                                {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` — ${c.phone}` : ""}</option>)}
+                                {clients.map(c => {
+                                    const vName = c.vehicleName || c.invoices?.[0]?.vehicleName
+                                    const vReg = c.vehicleRegNo || c.invoices?.[0]?.vehicleRegNo
+                                    const label = c.name + (c.phone ? ` — ${c.phone}` : "") + (vReg ? ` (${vName || "Vehicle"} - ${vReg})` : "")
+                                    return <option key={c.id} value={c.id}>{label}</option>
+                                })}
                             </select>
+                            {clientId && (() => {
+                                const c = clients.find(x => x.id === clientId)
+                                const vName = c?.vehicleName || c?.invoices?.[0]?.vehicleName
+                                const vReg = c?.vehicleRegNo || c?.invoices?.[0]?.vehicleRegNo
+                                return c ? (
+                                    <div style={{ marginTop: "4px", fontSize: "10px", color: "#555", background: "#f0f6ff", border: "1px solid #c0d0e8", padding: "4px" }}>
+                                        {c.phone && <div>📞 {c.phone}</div>}
+                                        {c.email && <div>✉️ {c.email}</div>}
+                                        {c.gstin && <div>🏛 GSTIN: {c.gstin}</div>}
+                                        {c.address && <div>📍 {c.address}</div>}
+                                        {vReg && (
+                                            <div style={{ color: "#2a6fbd", fontWeight: "bold", marginTop: "2px" }}>🚗 Vehicle: {vName} ({vReg})</div>
+                                        )}
+                                    </div>
+                                ) : null
+                            })()}
                         </div>
                     </div>
                 </div>

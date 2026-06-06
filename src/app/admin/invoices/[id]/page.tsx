@@ -2,13 +2,14 @@
 
 import { useState, useEffect, use } from "react"
 import Link from "next/link"
-import { ArrowLeft, Check, IndianRupee, Printer, X } from "lucide-react"
+import { ArrowLeft, Check, IndianRupee, Printer, X, Pencil } from "lucide-react"
 
 type Invoice = {
     id: string; invoiceNumber: string; type: string; date: string; dueDate: string | null
     status: string; subTotal: number; cgstTotal: number; sgstTotal: number; igstTotal: number
     taxTotal: number; discount: number; grandTotal: number; amountPaid: number
     notes: string | null; terms: string | null
+    vehicleName: string | null; vehicleRegNo: string | null; vehicleChassis: string | null; odometer: string | null
     client: { name: string; phone: string | null; email: string | null; gstin: string | null; address: string | null; state: string | null }
     items: { id: string; name: string; hsnSacCode: string | null; quantity: number; rate: number; taxRate: number; cgst: number; sgst: number; igst: number; total: number }[]
     payments: { id: string; amount: number; paymentMethod: string; reference: string | null; paymentDate: string; notes: string | null }[]
@@ -38,11 +39,10 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     const [paying, setPaying] = useState(false)
 
     const fetchInvoice = async () => {
-        const res = await fetch(`/api/admin/billing/invoices?search=${id}`)
+        const res = await fetch(`/api/admin/billing/invoices?id=${id}`)
         const data = await res.json()
         if (data.success) {
-            const found = data.invoices.find((i: Invoice) => i.id === id)
-            setInvoice(found || null)
+            setInvoice(data.invoice || null)
         }
         setLoading(false)
     }
@@ -99,6 +99,9 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                             <IndianRupee className="w-4 h-4" /> Record Payment
                         </button>
                     )}
+                    <Link href={`/admin/invoices/${id}/edit`} className="flex items-center gap-2 px-4 py-2 bg-[#121214] border border-white/10 text-white font-bold text-xs uppercase hover:bg-white/5 transition-colors">
+                        <Pencil className="w-4 h-4" /> Edit
+                    </Link>
                     <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-[#121214] border border-white/10 text-white font-bold text-xs uppercase hover:bg-white/5 transition-colors">
                         <Printer className="w-4 h-4" /> Print
                     </button>
@@ -126,15 +129,52 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                 </div>
 
-                {/* Bill To */}
-                <div className="bg-[#121214] border border-white/5 p-5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Bill To</p>
-                    <p className="font-bold text-white text-lg">{invoice.client.name}</p>
-                    {invoice.client.address && <p className="text-xs text-zinc-400 mt-1">{invoice.client.address}</p>}
-                    <div className="flex gap-4 mt-2 flex-wrap">
-                        {invoice.client.phone && <p className="text-xs text-zinc-400">📞 {invoice.client.phone}</p>}
-                        {invoice.client.email && <p className="text-xs text-zinc-400">✉️ {invoice.client.email}</p>}
-                        {invoice.client.gstin && <p className="text-xs text-zinc-400">GSTIN: <span className="font-mono text-white">{invoice.client.gstin}</span></p>}
+                {/* Client & Vehicle Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Bill To */}
+                    <div className="bg-[#121214] border border-white/5 p-5 flex flex-col justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-[#16acd4] mb-3">Bill To</p>
+                            <p className="font-bold text-white text-lg">{invoice.client.name}</p>
+                            {invoice.client.address && <p className="text-xs text-zinc-400 mt-1">{invoice.client.address}</p>}
+                        </div>
+                        <div className="flex gap-4 mt-4 flex-wrap border-t border-white/5 pt-3">
+                            {invoice.client.phone && <p className="text-xs text-zinc-400">📞 {invoice.client.phone}</p>}
+                            {invoice.client.email && <p className="text-xs text-zinc-400">✉️ {invoice.client.email}</p>}
+                            {invoice.client.gstin && <p className="text-xs text-zinc-400">GSTIN: <span className="font-mono text-white">{invoice.client.gstin}</span></p>}
+                        </div>
+                    </div>
+
+                    {/* Vehicle Details */}
+                    <div className="bg-[#121214] border border-white/5 p-5 flex flex-col justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-[#16acd4] mb-3">Vehicle Details</p>
+                            {invoice.vehicleName ? (
+                                <p className="font-bold text-white text-lg">{invoice.vehicleName}</p>
+                            ) : (
+                                <p className="text-sm text-zinc-500 italic">No vehicle details provided</p>
+                            )}
+                            <div className="grid grid-cols-2 gap-4 mt-3">
+                                {invoice.vehicleRegNo && (
+                                    <div>
+                                        <p className="text-[10px] text-zinc-500 uppercase font-semibold">Reg No</p>
+                                        <p className="text-xs text-white font-mono">{invoice.vehicleRegNo}</p>
+                                    </div>
+                                )}
+                                {invoice.odometer && (
+                                    <div>
+                                        <p className="text-[10px] text-zinc-500 uppercase font-semibold">Odometer</p>
+                                        <p className="text-xs text-white">{invoice.odometer}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        {invoice.vehicleChassis && (
+                            <div className="border-t border-white/5 pt-3 mt-4">
+                                <p className="text-[10px] text-zinc-500 uppercase font-semibold">Chassis / VIN No</p>
+                                <p className="text-xs text-zinc-400 font-mono">{invoice.vehicleChassis}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

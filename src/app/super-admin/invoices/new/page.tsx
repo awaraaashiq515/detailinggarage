@@ -5,7 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import InvoiceScanner, { ScannedData } from "../_components/InvoiceScanner"
 
-type BillingClient = { id: string; name: string; phone: string | null; email: string | null; gstin: string | null; state: string | null; address: string | null }
+type BillingClient = {
+    id: string; name: string; phone: string | null; email: string | null; gstin: string | null; state: string | null; address: string | null
+    vehicleName?: string | null; vehicleRegNo?: string | null; vehicleChassis?: string | null; odometer?: string | null
+    invoices?: { vehicleName: string | null; vehicleRegNo: string | null; vehicleChassis: string | null; odometer: string | null }[]
+}
 type BillingItem = { id: string; name: string; price: number; hsnSacCode: string | null; taxRate: number; type: string }
 type LineItem = { tempId: number; name: string; hsnSacCode: string; quantity: number; rate: number; taxRate: number; discount: number }
 
@@ -42,6 +46,10 @@ export function SuperAdminInvoiceForm({
     const [discount, setDiscount] = useState(0)
     const [notes, setNotes] = useState("WE SHALL NOT BE RESPONSIBLE FOR THE REPLACED PARTS IF NOT COLLECTED AT THE TIME OF DELIVERY.")
     const [lineItems, setLineItems] = useState<LineItem[]>([])
+    const [vehicleName, setVehicleName] = useState("")
+    const [vehicleRegNo, setVehicleRegNo] = useState("")
+    const [vehicleChassis, setVehicleChassis] = useState("")
+    const [odometer, setOdometer] = useState("")
     const [selItemId, setSelItemId] = useState("")
     const [lineDesc, setLineDesc] = useState("")
     const [lineHsn, setLineHsn] = useState("")
@@ -63,7 +71,8 @@ export function SuperAdminInvoiceForm({
         name: "", contactName: "", phone: "", email: "",
         gstin: "", tin: "", pan: "", vat: "",
         address: "", city: "", state: "", pin: "", country: "India",
-        privateDetails: "", otherDetails: ""
+        privateDetails: "", otherDetails: "",
+        vehicleName: "", vehicleRegNo: "", vehicleChassis: "", odometer: ""
     })
     const [showOtherDetails, setShowOtherDetails] = useState(false)
     const [showScanner, setShowScanner] = useState(false)
@@ -214,7 +223,7 @@ export function SuperAdminInvoiceForm({
         const res = await fetch("/api/admin/billing/invoices", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ clientId, type: invType, date, dueDate: dueDate || null, items: lineItems, discount, notes }),
+            body: JSON.stringify({ clientId, type: invType, date, dueDate: dueDate || null, items: lineItems, discount, notes, vehicleName, vehicleRegNo, vehicleChassis, odometer }),
         })
         const data = await res.json()
         setSaving(false)
@@ -259,20 +268,44 @@ export function SuperAdminInvoiceForm({
                         <div>
                             <label style={lbl}>Client *</label>
                             <div style={{ display: "flex", gap: "4px" }}>
-                                <select value={clientId} onChange={e => setClientId(e.target.value)} style={{ ...inp, flex: 1 }}>
+                                <select value={clientId} onChange={e => {
+                                    const val = e.target.value
+                                    setClientId(val)
+                                    const c = clients.find(x => x.id === val)
+                                    const vName = c?.vehicleName || c?.invoices?.[0]?.vehicleName
+                                    const vReg = c?.vehicleRegNo || c?.invoices?.[0]?.vehicleRegNo
+                                    const vChassis = c?.vehicleChassis || c?.invoices?.[0]?.vehicleChassis
+                                    const vOdo = c?.odometer || c?.invoices?.[0]?.odometer
+                                    if (c) {
+                                        setVehicleName(vName || "")
+                                        setVehicleRegNo(vReg || "")
+                                        setVehicleChassis(vChassis || "")
+                                        setOdometer(vOdo || "")
+                                    }
+                                }} style={{ ...inp, flex: 1 }}>
                                     <option value="">Select client...</option>
-                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    {clients.map(c => {
+                                        const vName = c.vehicleName || c.invoices?.[0]?.vehicleName
+                                        const vReg = c.vehicleRegNo || c.invoices?.[0]?.vehicleRegNo
+                                        const label = c.name + (vReg ? ` (${vName || "Vehicle"} - ${vReg})` : "")
+                                        return <option key={c.id} value={c.id}>{label}</option>
+                                    })}
                                 </select>
                                 <button onClick={() => setShowAddClient(true)} title="Add New Client"
                                     style={{ background: accentColor, color: "white", padding: "2px 8px", fontSize: "11px", border: `1px solid ${accentColor}`, borderRadius: "2px", cursor: "pointer" }}>+</button>
                             </div>
                             {clientId && (() => {
                                 const c = clients.find(x => x.id === clientId)
+                                const vName = c?.vehicleName || c?.invoices?.[0]?.vehicleName
+                                const vReg = c?.vehicleRegNo || c?.invoices?.[0]?.vehicleRegNo
                                 return c ? (
                                     <div style={{ marginTop: "4px", fontSize: "10px", color: "#555", background: "#f0f6ff", border: "1px solid #c0d0e8", padding: "4px" }}>
                                         {c.phone && <div>📞 {c.phone}</div>}
                                         {c.gstin && <div>🏛 GSTIN: {c.gstin}</div>}
                                         {c.address && <div>📍 {c.address}</div>}
+                                        {vReg && (
+                                            <div style={{ color: "#2a6fbd", fontWeight: "bold", marginTop: "2px" }}>🚗 Vehicle: {vName} ({vReg})</div>
+                                        )}
                                     </div>
                                 ) : null
                             })()}
@@ -665,6 +698,27 @@ export function SuperAdminInvoiceForm({
                                 </div>
                             </div>
 
+                            {/* Section: Vehicle Details */}
+                            <div style={{ background: "#2a6fbd", color: "white", padding: "2px 8px", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.5px", marginBottom: "6px" }}>VEHICLE DETAILS</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "8px" }}>
+                                <div>
+                                    <label style={lbl}>Vehicle Name</label>
+                                    <input value={newClient.vehicleName} onChange={e => setNewClient(p => ({ ...p, vehicleName: e.target.value }))} style={inp} placeholder="e.g. Swift" />
+                                </div>
+                                <div>
+                                    <label style={lbl}>Reg Number</label>
+                                    <input value={newClient.vehicleRegNo} onChange={e => setNewClient(p => ({ ...p, vehicleRegNo: e.target.value }))} style={inp} placeholder="e.g. DL 1C A 1234" />
+                                </div>
+                                <div>
+                                    <label style={lbl}>Odometer (KM)</label>
+                                    <input value={newClient.odometer} onChange={e => setNewClient(p => ({ ...p, odometer: e.target.value }))} style={inp} placeholder="e.g. 15,200" />
+                                </div>
+                                <div>
+                                    <label style={lbl}>Chassis / VIN</label>
+                                    <input value={newClient.vehicleChassis} onChange={e => setNewClient(p => ({ ...p, vehicleChassis: e.target.value }))} style={inp} placeholder="e.g. VIN12345" />
+                                </div>
+                            </div>
+
                             {/* Section: Other Details (collapsible) */}
                             <div
                                 onClick={() => setShowOtherDetails(v => !v)}
@@ -703,8 +757,12 @@ export function SuperAdminInvoiceForm({
                                 if (data.success) {
                                     setClients(prev => [data.client, ...prev])
                                     setClientId(data.client.id)
+                                    if (data.client.vehicleName) setVehicleName(data.client.vehicleName)
+                                    if (data.client.vehicleRegNo) setVehicleRegNo(data.client.vehicleRegNo)
+                                    if (data.client.vehicleChassis) setVehicleChassis(data.client.vehicleChassis)
+                                    if (data.client.odometer) setOdometer(data.client.odometer)
                                     setShowAddClient(false)
-                                    setNewClient({ name: "", contactName: "", phone: "", email: "", gstin: "", tin: "", pan: "", vat: "", address: "", city: "", state: "", pin: "", country: "India", privateDetails: "", otherDetails: "" })
+                                    setNewClient({ name: "", contactName: "", phone: "", email: "", gstin: "", tin: "", pan: "", vat: "", address: "", city: "", state: "", pin: "", country: "India", privateDetails: "", otherDetails: "", vehicleName: "", vehicleRegNo: "", vehicleChassis: "", odometer: "" })
                                     setShowOtherDetails(false)
                                 } else alert(data.error || "Failed to save client")
                             }} style={{ background: "#2a6fbd", color: "white", padding: "5px 18px", fontSize: "11px", border: "1px solid #1a4f9a", borderRadius: "2px", cursor: "pointer", fontWeight: "bold" }}>

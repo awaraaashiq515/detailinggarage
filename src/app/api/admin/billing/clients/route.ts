@@ -27,7 +27,19 @@ export async function GET(request: Request) {
                 ]
             } : undefined,
             include: {
-                _count: { select: { invoices: true } }
+                _count: { select: { invoices: true } },
+                invoices: {
+                    select: {
+                        vehicleName: true,
+                        vehicleRegNo: true,
+                        vehicleChassis: true,
+                        odometer: true,
+                    },
+                    orderBy: {
+                        date: "desc"
+                    },
+                    take: 1
+                }
             },
             orderBy: { createdAt: "desc" },
         })
@@ -47,14 +59,14 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json()
-        const { name, phone, email, address, gstin, state } = body
+        const { name, phone, email, address, gstin, state, vehicleName, vehicleRegNo, vehicleChassis, odometer } = body
 
         if (!name) {
             return NextResponse.json({ error: "Client name is required" }, { status: 400 })
         }
 
         const client = await db.billingClient.create({
-            data: { name, phone, email, address, gstin, state }
+            data: { name, phone, email, address, gstin, state, vehicleName, vehicleRegNo, vehicleChassis, odometer }
         })
 
         return NextResponse.json({ success: true, client })
