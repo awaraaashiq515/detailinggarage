@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect, use, Suspense } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Plus, Trash2, Check, ArrowLeft, X } from "lucide-react"
+import { Plus, Trash2, Check, ArrowLeft, X, Edit2 } from "lucide-react"
 
 type BillingClient = {
     id: string; name: string; phone: string | null; email: string | null; gstin: string | null; state: string | null; address: string | null
@@ -11,42 +11,30 @@ type BillingClient = {
     invoices?: { vehicleName: string | null; vehicleRegNo: string | null; vehicleChassis: string | null; odometer: string | null }[]
 }
 type BillingItem = { id: string; name: string; price: number; hsnSacCode: string | null; taxRate: number; type: string }
-type LineItem = { tempId: number; name: string; hsnSacCode: string; quantity: number; rate: number; taxRate: number; discount: number }
+type LineItem = { tempId: number; id?: string; name: string; hsnSacCode: string; quantity: number; rate: number; taxRate: number; discount: number }
 
 const INDIAN_STATES = ["01-Jammu & Kashmir","02-Himachal Pradesh","03-Punjab","04-Chandigarh","05-Uttarakhand","06-Haryana","07-Delhi","08-Rajasthan","09-Uttar Pradesh","10-Bihar","11-Sikkim","12-Arunachal Pradesh","13-Nagaland","14-Manipur","15-Mizoram","16-Tripura","17-Meghalaya","18-Assam","19-West Bengal","20-Jharkhand","21-Odisha","22-Chhattisgarh","23-Madhya Pradesh","24-Gujarat","25-Daman & Diu","26-Dadra & Nagar Haveli","27-Maharashtra","28-Andhra Pradesh","29-Karnataka","30-Goa","31-Lakshadweep","32-Kerala","33-Tamil Nadu","34-Puducherry","35-Andaman & Nicobar","36-Telangana","37-Andhra Pradesh (New)"]
 
-const TYPE_PREFIX: Record<string, string> = { INVOICE: "DG", QUOTATION: "QT", PROFORMA: "PF" }
-const TYPE_LABELS: Record<string, string> = { INVOICE: "Tax Invoice", QUOTATION: "Quotation", PROFORMA: "Proforma Invoice" }
+const TYPE_LABELS: Record<string, string> = { INVOICE: "Tax Invoice", QUOTATION: "Quotation", PROFORMA: "Proforma Invoice", ESTIMATE: "Estimate" }
 
-export function AdminInvoiceForm({ 
-    defaultType, 
-    defaultBackUrl, 
-    defaultLockType 
-}: { 
-    defaultType?: string, 
-    defaultBackUrl?: string, 
-    defaultLockType?: boolean 
-}) {
+function EditInvoiceForm({ id }: { id: string }) {
     const router = useRouter()
-    const searchParams = useSearchParams()
-    const urlType = defaultType || searchParams.get("type") || "INVOICE"
-    const lockType = defaultLockType !== undefined ? defaultLockType : searchParams.get("lockType") === "true"
-    const backUrl = defaultBackUrl || searchParams.get("back") || "/admin/invoices"
-
     const [clients, setClients] = useState<BillingClient[]>([])
     const [catalogItems, setCatalogItems] = useState<BillingItem[]>([])
+    const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [showAddClient, setShowAddClient] = useState(false)
     const [addingClient, setAddingClient] = useState(false)
 
     // Invoice form state
     const [clientId, setClientId] = useState("")
-    const [invType, setInvType] = useState(urlType)
-    const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+    const [invType, setInvType] = useState("INVOICE")
+    const [date, setDate] = useState("")
     const [dueDate, setDueDate] = useState("")
-    const [docPrefix, setDocPrefix] = useState(TYPE_PREFIX[urlType] || "DG")
+    const [invoiceNumber, setInvoiceNumber] = useState("")
+    const [status, setStatus] = useState("DRAFT")
     const [discount, setDiscount] = useState(0)
-    const [notes, setNotes] = useState("WE SHALL NOT BE RESPONSIBLE FOR THE REPLACED PARTS IF NOT COLLECTED AT THE TIME OF DELIVERY.")
+    const [notes, setNotes] = useState("")
     const [terms, setTerms] = useState("")
     const [lineItems, setLineItems] = useState<LineItem[]>([])
     const [vehicleName, setVehicleName] = useState("")
@@ -54,7 +42,7 @@ export function AdminInvoiceForm({
     const [vehicleChassis, setVehicleChassis] = useState("")
     const [odometer, setOdometer] = useState("")
 
-    // New line item inputs
+    // New/Edit line item inputs
     const [selItemId, setSelItemId] = useState("")
     const [lineDesc, setLineDesc] = useState("")
     const [lineHsn, setLineHsn] = useState("")
@@ -62,14 +50,51 @@ export function AdminInvoiceForm({
     const [lineRate, setLineRate] = useState(0)
     const [lineTax, setLineTax] = useState(18)
     const [lineDisc, setLineDisc] = useState(0)
+    const [editingTempId, setEditingTempId] = useState<number | null>(null)
 
     // New client form
     const [newClient, setNewClient] = useState({ name: "", phone: "", email: "", address: "", gstin: "", state: "", city: "", pin: "", vehicleName: "", vehicleRegNo: "", vehicleChassis: "", odometer: "" })
 
     useEffect(() => {
-        fetch("/api/admin/billing/clients").then(r => r.json()).then(d => d.success && setClients(d.clients))
-        fetch("/api/admin/billing/items").then(r => r.json()).then(d => d.success && setCatalogItems(d.items))
-    }, [])
+        Promise.all([
+            fetch("/api/admin/billing/clients").then(r => r.json()),
+            fetch("/api/admin/billing/items").then(r => r.json()),
+            fetch(`/api/admin/billing/invoices?id=${id}`).then(r => r.json())
+        ]).then(([cData, iData, invData]) => {
+            if (cData.success) setClients(cData.clients)
+            if (iData.success) setCatalogItems(iData.items)
+            if (invData.success && invData.invoice) {
+                const inv = invData.invoice
+                setClientId(inv.clientId)
+                setInvType(inv.type)
+                setDate(inv.date.split("T")[0])
+                setDueDate(inv.dueDate ? inv.dueDate.split("T")[0] : "")
+                setInvoiceNumber(inv.invoiceNumber)
+                setStatus(inv.status)
+                setDiscount(inv.discount || 0)
+                setNotes(inv.notes || "")
+                setTerms(inv.terms || "")
+                setVehicleName(inv.vehicleName || "")
+                setVehicleRegNo(inv.vehicleRegNo || "")
+                setVehicleChassis(inv.vehicleChassis || "")
+                setOdometer(inv.odometer || "")
+                setLineItems(inv.items.map((item: any) => ({
+                    tempId: Date.now() + Math.random(),
+                    id: item.id,
+                    name: item.name,
+                    hsnSacCode: item.hsnSacCode || "",
+                    quantity: item.quantity,
+                    rate: item.rate,
+                    taxRate: item.taxRate,
+                    discount: 0 // existing items saved total
+                })))
+            }
+            setLoading(false)
+        }).catch(err => {
+            console.error("Error loading invoice:", err)
+            setLoading(false)
+        })
+    }, [id])
 
     // When catalog item is selected, auto-fill
     useEffect(() => {
@@ -82,21 +107,54 @@ export function AdminInvoiceForm({
         setLineTax(item.taxRate)
     }, [selItemId, catalogItems])
 
-    const addLine = () => {
+    const addOrUpdateLine = () => {
         if (!lineDesc || lineRate <= 0) return
-        setLineItems(prev => [...prev, {
-            tempId: Date.now(),
-            name: lineDesc,
-            hsnSacCode: lineHsn,
-            quantity: lineQty,
-            rate: lineRate,
-            taxRate: lineTax,
-            discount: lineDisc,
-        }])
+
+        if (editingTempId !== null) {
+            // Update existing line
+            setLineItems(prev => prev.map(l => l.tempId === editingTempId ? {
+                ...l,
+                name: lineDesc,
+                hsnSacCode: lineHsn,
+                quantity: lineQty,
+                rate: lineRate,
+                taxRate: lineTax,
+                discount: lineDisc
+            } : l))
+            setEditingTempId(null)
+        } else {
+            // Add new line
+            setLineItems(prev => [...prev, {
+                tempId: Date.now() + Math.random(),
+                name: lineDesc,
+                hsnSacCode: lineHsn,
+                quantity: lineQty,
+                rate: lineRate,
+                taxRate: lineTax,
+                discount: lineDisc,
+            }])
+        }
+
         setSelItemId(""); setLineDesc(""); setLineHsn(""); setLineQty(1); setLineRate(0); setLineTax(18); setLineDisc(0)
     }
 
-    const removeLine = (id: number) => setLineItems(prev => prev.filter(l => l.tempId !== id))
+    const editLine = (item: LineItem) => {
+        setEditingTempId(item.tempId)
+        setLineDesc(item.name)
+        setLineHsn(item.hsnSacCode)
+        setLineQty(item.quantity)
+        setLineRate(item.rate)
+        setLineTax(item.taxRate)
+        setLineDisc(item.discount || 0)
+    }
+
+    const removeLine = (tempId: number) => {
+        setLineItems(prev => prev.filter(l => l.tempId !== tempId))
+        if (editingTempId === tempId) {
+            setEditingTempId(null)
+            setSelItemId(""); setLineDesc(""); setLineHsn(""); setLineQty(1); setLineRate(0); setLineTax(18); setLineDisc(0)
+        }
+    }
 
     // Compute totals
     const computed = lineItems.map(l => {
@@ -115,14 +173,32 @@ export function AdminInvoiceForm({
         if (lineItems.length === 0) { alert("Add at least one item"); return }
         setSaving(true)
         const res = await fetch("/api/admin/billing/invoices", {
-            method: "POST",
+            method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ clientId, type: invType, date, dueDate: dueDate || null, items: lineItems, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer }),
+            body: JSON.stringify({
+                id,
+                clientId,
+                type: invType,
+                date,
+                dueDate: dueDate || null,
+                status,
+                items: lineItems,
+                discount,
+                notes,
+                terms,
+                vehicleName,
+                vehicleRegNo,
+                vehicleChassis,
+                odometer
+            }),
         })
         const data = await res.json()
         setSaving(false)
-        if (data.success) router.push(backUrl)
-        else alert(data.error || "Failed to create invoice")
+        if (data.success) {
+            router.push(`/admin/invoices/${id}`)
+        } else {
+            alert(data.error || "Failed to save invoice changes")
+        }
     }
 
     const handleAddClient = async () => {
@@ -147,24 +223,34 @@ export function AdminInvoiceForm({
         } else alert(data.error || "Failed to add client")
     }
 
+    if (loading) {
+        return <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-zinc-500 text-sm">Loading invoice data...</div>
+    }
+
     return (
         <div className="min-h-screen bg-[#09090b] text-white flex flex-col">
             {/* Top Bar */}
             <div className="sticky top-0 z-20 bg-[#121214] border-b border-white/10 px-6 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <Link href={backUrl} className="text-zinc-500 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
-                    <h1 className="text-base font-bold font-display">New {TYPE_LABELS[invType] || "Invoice"}</h1>
+                    <Link href={`/admin/invoices/${id}`} className="text-zinc-500 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
+                    <h1 className="text-base font-bold font-display">Edit {TYPE_LABELS[invType] || "Invoice"}: <span className="text-[#16acd4] font-mono">{invoiceNumber}</span></h1>
                 </div>
                 <div className="flex gap-2">
-                    {!lockType && (
-                        <select value={invType} onChange={e => { setInvType(e.target.value); setDocPrefix(TYPE_PREFIX[e.target.value] || "DG") }} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none">
-                            <option value="INVOICE">Tax Invoice</option>
-                            <option value="QUOTATION">Quotation</option>
-                            <option value="PROFORMA">Proforma Invoice</option>
-                        </select>
-                    )}
+                    <select value={invType} onChange={e => setInvType(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none">
+                        <option value="INVOICE">Tax Invoice</option>
+                        <option value="QUOTATION">Quotation</option>
+                        <option value="PROFORMA">Proforma Invoice</option>
+                    </select>
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none">
+                        <option value="DRAFT">Draft</option>
+                        <option value="UNPAID">Unpaid</option>
+                        <option value="PAID">Paid</option>
+                        <option value="PARTIALLY_PAID">Partially Paid</option>
+                        <option value="OVERDUE">Overdue</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
                     <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-5 py-2 bg-[#16acd4] hover:bg-white text-black font-bold text-xs uppercase transition-colors disabled:opacity-50">
-                        <Check className="w-4 h-4" /> {saving ? "Saving..." : `Save ${TYPE_LABELS[invType] || "Document"}`}
+                        <Check className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
                     </button>
                 </div>
             </div>
@@ -172,7 +258,6 @@ export function AdminInvoiceForm({
             <div className="flex-1 p-4 md:p-6 w-full max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-6">
                 {/* Left Pane: Document info, item inputs, items list */}
                 <div className="flex-1 flex flex-col gap-6 min-w-0">
-                    {/* Document Info */}
                     {/* Document Info */}
                     <div className="bg-[#121214] border border-white/5 p-5 grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Client */}
@@ -224,12 +309,12 @@ export function AdminInvoiceForm({
                             })()}
                         </div>
 
-                        {/* Doc Number */}
+                        {/* Doc Number & Discount */}
                         <div className="space-y-3">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Document Info</p>
                             <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                                <label className="text-xs text-zinc-500">Prefix</label>
-                                <input value={docPrefix} onChange={e => setDocPrefix(e.target.value)} className="bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50 w-20" />
+                                <label className="text-xs text-zinc-500">Number</label>
+                                <input value={invoiceNumber} readOnly className="bg-[#09090b] border border-white/10 text-zinc-500 text-xs px-3 py-2 outline-none cursor-not-allowed font-mono" />
                             </div>
                             <div className="grid grid-cols-[80px_1fr] items-center gap-2">
                                 <label className="text-xs text-zinc-500">Discount ₹</label>
@@ -253,7 +338,7 @@ export function AdminInvoiceForm({
 
                     {/* Add Item Row */}
                     <div className="bg-[#121214] border border-white/5 p-4">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Add Product / Service</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">{editingTempId !== null ? "✏ Edit Product / Service" : "Add Product / Service"}</p>
                         <div className="flex flex-wrap gap-2 items-end">
                             <div className="flex-1 min-w-[180px]">
                                 <label className="text-[10px] text-zinc-600 mb-1 block">From Catalog</label>
@@ -292,9 +377,19 @@ export function AdminInvoiceForm({
                                     <option value={28}>28%</option>
                                 </select>
                             </div>
-                            <button onClick={addLine} className="flex items-center gap-1.5 px-4 py-2 bg-[#16acd4] hover:bg-white text-black font-bold text-xs uppercase transition-colors">
-                                <Plus className="w-4 h-4" /> ADD
-                            </button>
+                            <div className="flex gap-1.5">
+                                <button onClick={addOrUpdateLine} className="flex items-center gap-1.5 px-4 py-2 bg-[#16acd4] hover:bg-white text-black font-bold text-xs uppercase transition-colors">
+                                    {editingTempId !== null ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {editingTempId !== null ? "UPDATE" : "ADD"}
+                                </button>
+                                {editingTempId !== null && (
+                                    <button onClick={() => {
+                                        setEditingTempId(null)
+                                        setSelItemId(""); setLineDesc(""); setLineHsn(""); setLineQty(1); setLineRate(0); setLineTax(18); setLineDisc(0)
+                                    }} className="bg-zinc-800 text-zinc-400 p-2 hover:text-white border border-white/10" title="Cancel Edit">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -313,14 +408,14 @@ export function AdminInvoiceForm({
                                     <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-right">CGST</th>
                                     <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-right">SGST</th>
                                     <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-right">Total</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-center">Del</th>
+                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {computed.length === 0 ? (
                                     <tr><td colSpan={11} className="p-10 text-center text-zinc-600">No items added yet. Add a product or service above.</td></tr>
                                 ) : computed.map((l, i) => (
-                                    <tr key={l.tempId} className="hover:bg-white/[0.02]">
+                                    <tr key={l.tempId} className={`hover:bg-white/[0.02] transition-colors ${editingTempId === l.tempId ? "bg-white/[0.04]" : ""}`}>
                                         <td className="p-3 text-zinc-600">{i + 1}</td>
                                         <td className="p-3 text-white font-medium">{l.name}</td>
                                         <td className="p-3 text-zinc-500">{l.hsnSacCode}</td>
@@ -332,7 +427,10 @@ export function AdminInvoiceForm({
                                         <td className="p-3 text-right font-mono text-zinc-400">₹{(l.tax / 2).toFixed(2)}</td>
                                         <td className="p-3 text-right font-mono font-bold text-[#16acd4]">₹{l.total.toFixed(2)}</td>
                                         <td className="p-3 text-center">
-                                            <button onClick={() => removeLine(l.tempId)} className="text-red-500 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                                            <div className="flex items-center justify-center gap-3">
+                                                <button onClick={() => editLine(l)} className="text-[#16acd4] hover:text-white" title="Edit row"><Edit2 className="w-3.5 h-3.5" /></button>
+                                                <button onClick={() => removeLine(l.tempId)} className="text-red-500 hover:text-red-400" title="Delete row"><Trash2 className="w-3.5 h-3.5" /></button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -358,7 +456,7 @@ export function AdminInvoiceForm({
                             <p className="text-[10px] text-zinc-600 text-right">* Inclusive of all taxes</p>
                         </div>
                         <button onClick={handleSave} disabled={saving} className="w-full py-3 bg-[#16acd4] hover:bg-white text-black font-bold uppercase tracking-widest text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                            <Check className="w-4 h-4" /> {saving ? "Saving..." : `Save ${TYPE_LABELS[invType] || "Invoice"}`}
+                            <Check className="w-4 h-4" /> {saving ? "Saving..." : "Save Invoice Changes"}
                         </button>
                     </div>
 
@@ -431,10 +529,11 @@ export function AdminInvoiceForm({
     )
 }
 
-export default function NewInvoicePage() {
+export default function EditInvoicePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params)
     return (
         <Suspense fallback={<div className="min-h-screen bg-[#09090b] flex items-center justify-center text-zinc-500 text-sm">Loading...</div>}>
-            <AdminInvoiceForm />
+            <EditInvoiceForm id={id} />
         </Suspense>
     )
 }

@@ -1482,6 +1482,12 @@ model BillingClient {
   gstin     String?   // GST Number
   state     String?   // For intra vs inter state calculation
   
+  // Vehicle details directly on client
+  vehicleName    String?
+  vehicleRegNo   String?
+  vehicleChassis String?
+  odometer       String?
+  
   // Optional link to system user
   userId    String?
   user      User?     @relation("UserBillingClient", fields: [userId], references: [id], onDelete: SetNull)
@@ -1529,6 +1535,12 @@ model Invoice {
   
   notes         String?
   terms         String?
+  
+  // Vehicle details
+  vehicleName   String?
+  vehicleRegNo  String?
+  vehicleChassis String?
+  odometer      String?
   
   items         InvoiceItem[]
   payments      InvoicePayment[]

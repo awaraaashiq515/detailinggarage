@@ -91,7 +91,7 @@ export default function InvoicesPage() {
     }
 
     return (
-        <div className="p-4 md:p-6 w-full min-h-screen bg-[#09090b] flex flex-col gap-4">
+        <div className="w-full flex flex-col gap-5">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -198,22 +198,22 @@ export default function InvoicesPage() {
             {/* Table */}
             <div className="bg-[#121214] border border-white/5 flex-1 flex flex-col overflow-hidden">
                 <div className="overflow-x-auto flex-1">
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full text-left border-collapse text-[11px]">
                         <thead className="sticky top-0 bg-[#1a1a1c] border-b border-white/10 z-10">
                             <tr>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">#</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Invoice No.</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Client</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Issue Date</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Due Date</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right">Amount</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right">Tax</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right">Total</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right">Paid</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right">Balance</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Status</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Type</th>
-                                <th className="p-3 font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-center">Actions</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap w-8">#</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Invoice No.</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Client</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap hidden sm:table-cell">Issue Date</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap hidden md:table-cell">Due Date</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right hidden 2xl:table-cell">Amount</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right hidden 2xl:table-cell">Tax</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right">Total</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right hidden sm:table-cell">Paid</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right hidden sm:table-cell">Balance</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Status</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap hidden md:table-cell">Type</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="text-zinc-300 divide-y divide-white/5">
@@ -236,26 +236,27 @@ export default function InvoicesPage() {
                                 const balance = inv.grandTotal - inv.amountPaid
                                 return (
                                     <tr key={inv.id} className="hover:bg-white/[0.02] transition-colors group">
-                                        <td className="p-3 text-zinc-600">{i + 1}</td>
-                                        <td className="p-3 font-mono font-bold text-[#16acd4]">{inv.invoiceNumber}</td>
-                                        <td className="p-3 font-medium text-white">{inv.client.name}</td>
-                                        <td className="p-3 text-zinc-400">{fmtDate(inv.date)}</td>
-                                        <td className="p-3 text-zinc-400">{fmtDate(inv.dueDate)}</td>
-                                        <td className="p-3 text-right font-mono">{fmt(inv.subTotal)}</td>
-                                        <td className="p-3 text-right font-mono text-zinc-500">{fmt(inv.taxTotal)}</td>
-                                        <td className="p-3 text-right font-mono font-bold text-white">{fmt(inv.grandTotal)}</td>
-                                        <td className="p-3 text-right font-mono text-green-400">{fmt(inv.amountPaid)}</td>
-                                        <td className="p-3 text-right font-mono text-amber-400">{fmt(Math.max(0, balance))}</td>
-                                        <td className="p-3">
+                                        <td className="px-3 py-3.5 text-zinc-600">{i + 1}</td>
+                                        <td className="px-3 py-3.5 font-mono font-bold text-[#16acd4]">{inv.invoiceNumber}</td>
+                                        <td className="px-3 py-3.5 font-medium text-white">{inv.client.name}</td>
+                                        <td className="px-3 py-3.5 text-zinc-400 hidden sm:table-cell">{fmtDate(inv.date)}</td>
+                                        <td className="px-3 py-3.5 text-zinc-400 hidden md:table-cell">{fmtDate(inv.dueDate)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono text-zinc-400 hidden 2xl:table-cell">{fmt(inv.subTotal)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono text-zinc-500 hidden 2xl:table-cell">{fmt(inv.taxTotal)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono font-bold text-white">{fmt(inv.grandTotal)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono text-green-400 hidden sm:table-cell">{fmt(inv.amountPaid)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono text-amber-400 hidden sm:table-cell">{fmt(Math.max(0, balance))}</td>
+                                        <td className="px-3 py-3.5">
                                             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${STATUS_COLORS[inv.status] || STATUS_COLORS.DRAFT}`}>
                                                 {inv.status.replace("_", " ")}
                                             </span>
                                         </td>
-                                        <td className="p-3 text-zinc-500">{inv.type}</td>
-                                        <td className="p-3 text-center">
-                                            <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Link href={`/admin/invoices/${inv.id}`} className="text-[10px] font-bold uppercase text-[#16acd4] hover:underline">View</Link>
-                                                <button onClick={() => handleDelete(inv.id)} className="text-[10px] font-bold uppercase text-red-500 hover:underline">Delete</button>
+                                        <td className="px-3 py-3.5 text-zinc-500 hidden md:table-cell">{inv.type}</td>
+                                        <td className="px-3 py-3.5 text-right">
+                                            <div className="flex items-center justify-end gap-3">
+                                                <Link href={`/admin/invoices/${inv.id}`} className="text-[10px] font-bold uppercase tracking-wider text-[#16acd4] hover:text-white transition-colors">View</Link>
+                                                <Link href={`/admin/invoices/${inv.id}/edit`} className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors">Edit</Link>
+                                                <button onClick={() => handleDelete(inv.id)} className="text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-400 transition-colors">Delete</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -263,15 +264,21 @@ export default function InvoicesPage() {
                             })}
                         </tbody>
                         {invoices.length > 0 && summary && (
-                            <tfoot className="border-t-2 border-white/10 bg-[#121214]">
-                                <tr className="font-bold text-white">
-                                    <td colSpan={5} className="p-3 text-right text-xs uppercase tracking-widest text-zinc-400">TOTAL</td>
-                                    <td className="p-3 text-right font-mono">{fmt(summary.subTotal)}</td>
-                                    <td className="p-3 text-right font-mono text-zinc-400">{fmt(summary.taxTotal)}</td>
-                                    <td className="p-3 text-right font-mono text-[#16acd4]">{fmt(summary.grandTotal)}</td>
-                                    <td className="p-3 text-right font-mono text-green-400">{fmt(summary.amountPaid)}</td>
-                                    <td className="p-3 text-right font-mono text-amber-400">{fmt(Math.max(0, summary.grandTotal - summary.amountPaid))}</td>
-                                    <td colSpan={3}></td>
+                            <tfoot className="border-t border-white/10 bg-[#121214] font-bold text-white">
+                                <tr>
+                                    <td className="px-3 py-3.5"></td>
+                                    <td className="px-3 py-3.5 text-zinc-400 text-[10px] font-bold uppercase tracking-widest">TOTAL</td>
+                                    <td className="px-3 py-3.5"></td>
+                                    <td className="px-3 py-3.5 hidden sm:table-cell"></td>
+                                    <td className="px-3 py-3.5 hidden md:table-cell"></td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-zinc-400 hidden 2xl:table-cell">{fmt(summary.subTotal)}</td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-zinc-500 hidden 2xl:table-cell">{fmt(summary.taxTotal)}</td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-[#16acd4]">{fmt(summary.grandTotal)}</td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-green-400 hidden sm:table-cell">{fmt(summary.amountPaid)}</td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-amber-400 hidden sm:table-cell">{fmt(Math.max(0, summary.grandTotal - summary.amountPaid))}</td>
+                                    <td className="px-3 py-3.5"></td>
+                                    <td className="px-3 py-3.5 hidden md:table-cell"></td>
+                                    <td className="px-3 py-3.5"></td>
                                 </tr>
                             </tfoot>
                         )}

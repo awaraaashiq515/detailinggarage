@@ -110,7 +110,7 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json()
-        const { clientId, type, date, dueDate, items, discount, notes, terms } = body
+        const { clientId, type, date, dueDate, items, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer } = body
 
         if (!clientId || !items || items.length === 0) {
             return NextResponse.json({ error: "Client and at least one item are required" }, { status: 400 })
@@ -203,6 +203,10 @@ export async function POST(request: Request) {
                 amountPaid: 0,
                 notes,
                 terms,
+                vehicleName: vehicleName || null,
+                vehicleRegNo: vehicleRegNo || null,
+                vehicleChassis: vehicleChassis || null,
+                odometer: odometer || null,
                 items: {
                     create: processedItems
                 }
@@ -237,6 +241,149 @@ export async function PATCH(request: Request) {
     } catch (error) {
         console.error("Error updating invoice:", error)
         return NextResponse.json({ error: "Failed to update invoice" }, { status: 500 })
+    }
+}
+
+// PUT update invoice details and items
+export async function PUT(request: Request) {
+    if (!await checkAdminAuth()) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    try {
+        const body = await request.json()
+        const { id, clientId, type, date, dueDate, status, items, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer } = body
+
+        if (!id) {
+            return NextResponse.json({ error: "Invoice ID required" }, { status: 400 })
+        }
+
+        if (!clientId || !items || items.length === 0) {
+            return NextResponse.json({ error: "Client and at least one item are required" }, { status: 400 })
+        }
+
+        // Get existing invoice to check payments and keep consistency
+        const existingInvoice = await db.invoice.findUnique({
+            where: { id },
+            include: { payments: true }
+        })
+
+        if (!existingInvoice) {
+            return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
+        }
+
+        // Get client to determine intra vs inter state
+        const client = await db.billingClient.findUnique({ where: { id: clientId } })
+        if (!client) {
+            return NextResponse.json({ error: "Client not found" }, { status: 404 })
+        }
+
+        // Calculate totals
+        const isInterState = client.state && !client.state.startsWith("07")
+
+        let subTotal = 0
+        let cgstTotal = 0
+        let sgstTotal = 0
+        let igstTotal = 0
+
+        const processedItems = items.map((item: any) => {
+            const qty = parseFloat(item.quantity) || 1
+            const rate = parseFloat(item.rate) || 0
+            const taxRate = parseFloat(item.taxRate) || 0
+            const discountPct = parseFloat(item.discount) || 0
+
+            const itemValue = qty * rate
+            const discountAmt = (itemValue * discountPct) / 100
+            const taxableValue = itemValue - discountAmt
+            const taxAmt = (taxableValue * taxRate) / 100
+
+            let cgst = 0, sgst = 0, igst = 0
+            if (isInterState) {
+                igst = taxAmt
+            } else {
+                cgst = taxAmt / 2
+                sgst = taxAmt / 2
+            }
+
+            const total = taxableValue + taxAmt
+            subTotal += taxableValue
+            cgstTotal += cgst
+            sgstTotal += sgst
+            igstTotal += igst
+
+            return {
+                name: item.name,
+                hsnSacCode: item.hsnSacCode || "",
+                quantity: qty,
+                rate,
+                taxRate,
+                cgst,
+                sgst,
+                igst,
+                total,
+            }
+        })
+
+        const discountAmt = parseFloat(discount) || 0
+        const taxTotal = cgstTotal + sgstTotal + igstTotal
+        const grandTotal = subTotal + taxTotal - discountAmt
+
+        // Recalculate amountPaid and status based on existing payments
+        const amountPaid = existingInvoice.payments.reduce((sum, p) => sum + p.amount, 0)
+        let calculatedStatus = status || existingInvoice.status
+
+        if (calculatedStatus !== "DRAFT" && calculatedStatus !== "CANCELLED") {
+            if (amountPaid >= grandTotal) {
+                calculatedStatus = "PAID"
+            } else if (amountPaid > 0) {
+                calculatedStatus = "PARTIALLY_PAID"
+            } else {
+                calculatedStatus = "UNPAID"
+            }
+        }
+
+        // Perform transactional update
+        const invoice = await db.$transaction(async (tx) => {
+            // Delete old items
+            await tx.invoiceItem.deleteMany({
+                where: { invoiceId: id }
+            })
+
+            // Update invoice details and insert new items
+            return await tx.invoice.update({
+                where: { id },
+                data: {
+                    type: type || existingInvoice.type,
+                    date: date ? new Date(date) : existingInvoice.date,
+                    dueDate: dueDate ? new Date(dueDate) : null,
+                    clientId,
+                    status: calculatedStatus,
+                    subTotal,
+                    cgstTotal,
+                    sgstTotal,
+                    igstTotal,
+                    taxTotal,
+                    discount: discountAmt,
+                    grandTotal,
+                    amountPaid,
+                    notes,
+                    terms,
+                    vehicleName: vehicleName !== undefined ? vehicleName : existingInvoice.vehicleName,
+                    vehicleRegNo: vehicleRegNo !== undefined ? vehicleRegNo : existingInvoice.vehicleRegNo,
+                    vehicleChassis: vehicleChassis !== undefined ? vehicleChassis : existingInvoice.vehicleChassis,
+                    odometer: odometer !== undefined ? odometer : existingInvoice.odometer,
+                    items: {
+                        create: processedItems
+                    }
+                },
+                include: { client: true, items: true }
+            })
+        })
+
+        return NextResponse.json({ success: true, invoice })
+    } catch (error) {
+        console.error("Error editing invoice:", error)
+        return NextResponse.json({ error: "Failed to edit invoice" }, { status: 500 })
     }
 }
 
