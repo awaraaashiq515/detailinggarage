@@ -28,6 +28,4 @@ tsc_out.txt
 Thumbs.db
 tsconfig.tsbuildinfo
 
-# Uploads and reports
-/public/uploads/
-/public/pdi/reports/
+
