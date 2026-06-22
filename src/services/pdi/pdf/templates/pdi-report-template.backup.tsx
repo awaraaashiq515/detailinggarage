@@ -363,6 +363,12 @@ function getVehicleImageBase64(filename: string): string {
     }
 }
 
+function cleanText(text: string | null | undefined): string {
+    if (!text) return ''
+    const r = /[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{2700}-\u{27BF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{25A0}-\u{25FF}\u{2B50}\u{2B06}\u{FE0F}\u{200D}]/gu;
+    return text.replace(r, '').trim()
+}
+
 export function PDIReportTemplate({ data }: { data: PDIReportData }) {
     const formatDate = (dateString: string) => {
         try {
@@ -619,7 +625,7 @@ export function PDIReportTemplate({ data }: { data: PDIReportData }) {
                     </View>
                     <View style={styles.commentsBody}>
                         <Text style={styles.commentsText}>
-                            {data.inspection.adminComments || 'No additional comments.'}
+                            {cleanText(data.inspection.adminComments) || 'No additional comments.'}
                         </Text>
                     </View>
                 </View>
