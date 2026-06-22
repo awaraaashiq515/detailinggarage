@@ -209,7 +209,7 @@ const normalizeSectionName = (name: string): string => name.trim().toLowerCase()
 
 function getVehicleImageBase64(filename: string): string {
     try {
-        const imagePath = join(process.cwd(), 'public', 'pdi', 'assets', 'vehicles', filename)
+        const imagePath = join(process.cwd(), 'public', 'uploads', 'pdi', 'assets', 'vehicles', filename)
         const imageBuffer = readFileSync(imagePath)
         const base64 = imageBuffer.toString('base64')
         const ext = filename.split('.').pop()?.toLowerCase()
@@ -223,7 +223,7 @@ function getVehicleImageBase64(filename: string): string {
 // Helper function to load branding images as base64
 function getBrandingImageBase64(filename: string): string {
     try {
-        const imagePath = join(process.cwd(), 'public', 'branding', filename)
+        const imagePath = join(process.cwd(), 'public', 'uploads', 'branding', filename)
         const imageBuffer = readFileSync(imagePath)
         const base64 = imageBuffer.toString('base64')
         const ext = filename.split('.').pop()?.toLowerCase()

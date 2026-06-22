@@ -147,7 +147,7 @@ export default function PDIViewPage({ params: paramsPromise }: { params: Promise
             {/* Branded Header */}
             <div className="w-full mb-8 flex justify-center pt-8">
                 <img
-                    src="/branding/pdi-header.jpg"
+                    src="/uploads/branding/pdi-header.jpg"
                     alt="Detailing Garage PDI Header"
                     className="w-full max-w-3xl h-auto object-contain rounded-xl opacity-90 invert hue-rotate-180"
                 />
@@ -341,7 +341,7 @@ export default function PDIViewPage({ params: paramsPromise }: { params: Promise
                 {/* Branded Footer */}
                 <div className="w-full mt-20 flex justify-center pb-8">
                     <img
-                        src="/branding/pdi-footer.jpg"
+                        src="/uploads/branding/pdi-footer.jpg"
                         alt="Detailing Garage PDI Footer"
                         className="w-full max-w-3xl h-auto object-contain rounded-xl opacity-90 invert hue-rotate-180"
                     />

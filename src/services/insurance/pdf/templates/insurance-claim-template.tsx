@@ -539,7 +539,7 @@ const s = StyleSheet.create({
 
 function getBrandingImageBase64(filename: string): string {
     try {
-        const imagePath = join(process.cwd(), 'public', 'branding', filename)
+        const imagePath = join(process.cwd(), 'public', 'uploads', 'branding', filename)
         const imageBuffer = readFileSync(imagePath)
         const base64 = imageBuffer.toString('base64')
         const ext = filename.split('.').pop()?.toLowerCase()

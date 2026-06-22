@@ -136,9 +136,9 @@ export async function generateInsuranceClaimPDF(claimId: string): Promise<string
         const pdfDocument = InsuranceClaimTemplate({ data: reportData })
         const pdfBuffer = await renderToBuffer(pdfDocument)
 
-        // 4. Save PDF to public/insurance/reports/{date}/ directory
+        // 4. Save PDF to public/uploads/insurance/reports/{date}/ directory
         const dateStr = new Date().toISOString().split('T')[0]
-        const reportsDir = join(process.cwd(), 'public', 'insurance', 'reports', dateStr)
+        const reportsDir = join(process.cwd(), 'public', 'uploads', 'insurance', 'reports', dateStr)
 
         // Create directory if it doesn't exist
         try {
@@ -156,7 +156,7 @@ export async function generateInsuranceClaimPDF(claimId: string): Promise<string
         writeFileSync(filepath, pdfBuffer)
 
         // 5. Update claim record with PDF URL
-        const pdfUrl = `/insurance/reports/${dateStr}/${filename}`
+        const pdfUrl = `/uploads/insurance/reports/${dateStr}/${filename}`
         await (prisma as any).insuranceClaim.update({
             where: { id: claimId },
             data: {

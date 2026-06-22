@@ -132,9 +132,9 @@ export async function generatePDIPDF(inspectionId: string): Promise<string> {
         const pdfDocument = PDIReportTemplate({ data: reportData })
         const pdfBuffer = await renderToBuffer(pdfDocument)
 
-        // 4. Save PDF to public/pdi/reports/{date}/ directory
+        // 4. Save PDF to public/uploads/pdi/reports/{date}/ directory
         const dateStr = new Date(inspection.inspectionDate).toISOString().split('T')[0]
-        const reportsDir = join(process.cwd(), 'public', 'pdi', 'reports', dateStr)
+        const reportsDir = join(process.cwd(), 'public', 'uploads', 'pdi', 'reports', dateStr)
 
         // Create directory if it doesn't exist
         try {
@@ -152,7 +152,7 @@ export async function generatePDIPDF(inspectionId: string): Promise<string> {
         writeFileSync(filepath, pdfBuffer)
 
         // 5. Update inspection record with PDF URL
-        const pdfUrl = `/pdi/reports/${dateStr}/${filename}`
+        const pdfUrl = `/uploads/pdi/reports/${dateStr}/${filename}`
         await (prisma as any).pDIInspection.update({
             where: { id: inspectionId },
             data: { pdfUrl }

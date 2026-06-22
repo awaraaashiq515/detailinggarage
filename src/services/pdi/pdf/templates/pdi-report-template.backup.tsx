@@ -351,7 +351,7 @@ const SECTION_ORDER = [
 // Helper function to load vehicle images as base64
 function getVehicleImageBase64(filename: string): string {
     try {
-        const imagePath = join(process.cwd(), 'public', 'pdi', 'assets', 'vehicles', filename)
+        const imagePath = join(process.cwd(), 'public', 'uploads', 'pdi', 'assets', 'vehicles', filename)
         const imageBuffer = readFileSync(imagePath)
         const base64 = imageBuffer.toString('base64')
         const ext = filename.split('.').pop()?.toLowerCase()
