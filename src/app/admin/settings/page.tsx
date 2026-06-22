@@ -341,7 +341,7 @@ function HeaderSettings() {
                                 <Input
                                     value={settings.logoImageUrl || ""}
                                     onChange={(e) => setSettings({ ...settings, logoImageUrl: e.target.value })}
-                                    placeholder="/branding/logo.png"
+                                    placeholder="/uploads/branding/logo.png"
                                     className="bg-slate-50 border-slate-200 text-slate-900 rounded-xl px-4 py-6 font-medium focus-visible:ring-accent/20 focus-visible:border-accent/40"
                                 />
                             </div>

@@ -322,7 +322,7 @@ export default function HeaderSettingsPage() {
                                     id="logoUrl"
                                     value={settings.logoImageUrl || ""}
                                     onChange={(e) => setSettings({ ...settings, logoImageUrl: e.target.value })}
-                                    placeholder="/branding/logo.png"
+                                    placeholder="/uploads/branding/logo.png"
                                     className="bg-[#08090c] border-white/10 text-white"
                                 />
                                 <p className="text-xs text-muted-foreground">

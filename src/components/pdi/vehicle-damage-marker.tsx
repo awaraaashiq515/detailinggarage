@@ -25,10 +25,10 @@ const damageTypes: { value: DamageType; label: string; color: string }[] = [
 ]
 
 const vehicleViews: { value: DamageView; label: string; aspectRatio: string; imagePath: string }[] = [
-    { value: 'top', label: 'Top View', aspectRatio: '3/5', imagePath: '/pdi/assets/vehicles/top-view.png' },
-    { value: 'side', label: 'Side View', aspectRatio: '2/1', imagePath: '/pdi/assets/vehicles/side-view.png' },
-    { value: 'interior', label: 'Interior View', aspectRatio: '1/1', imagePath: '/pdi/assets/vehicles/interior-view.jpg' },
-    { value: 'boot', label: 'Boot/Luggage', aspectRatio: '8/7', imagePath: '/pdi/assets/vehicles/boot-view.jpg' },
+    { value: 'top', label: 'Top View', aspectRatio: '3/5', imagePath: '/uploads/pdi/assets/vehicles/top-view.png' },
+    { value: 'side', label: 'Side View', aspectRatio: '2/1', imagePath: '/uploads/pdi/assets/vehicles/side-view.png' },
+    { value: 'interior', label: 'Interior View', aspectRatio: '1/1', imagePath: '/uploads/pdi/assets/vehicles/interior-view.jpg' },
+    { value: 'boot', label: 'Boot/Luggage', aspectRatio: '8/7', imagePath: '/uploads/pdi/assets/vehicles/boot-view.jpg' },
 ]
 
 export function VehicleDamageMarker({ damageData, onChange }: VehicleDamageMarkerProps) {

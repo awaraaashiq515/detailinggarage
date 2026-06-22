@@ -209,7 +209,7 @@ const normalizeSectionName = (name: string): string => name.trim().toLowerCase()
 
 function getVehicleImageBase64(filename: string): string {
     try {
-        const imagePath = join(process.cwd(), 'public', 'pdi', 'assets', 'vehicles', filename)
+        const imagePath = join(process.cwd(), 'public', 'uploads', 'pdi', 'assets', 'vehicles', filename)
         const imageBuffer = readFileSync(imagePath)
         const base64 = imageBuffer.toString('base64')
         const ext = filename.split('.').pop()?.toLowerCase()
@@ -223,7 +223,7 @@ function getVehicleImageBase64(filename: string): string {
 // Helper function to load branding images as base64
 function getBrandingImageBase64(filename: string): string {
     try {
-        const imagePath = join(process.cwd(), 'public', 'branding', filename)
+        const imagePath = join(process.cwd(), 'public', 'uploads', 'branding', filename)
         const imageBuffer = readFileSync(imagePath)
         const base64 = imageBuffer.toString('base64')
         const ext = filename.split('.').pop()?.toLowerCase()
@@ -233,6 +233,12 @@ function getBrandingImageBase64(filename: string): string {
         console.error(`Failed to load branding image ${filename}:`, error)
         return ''
     }
+}
+
+function cleanText(text: string | null | undefined): string {
+    if (!text) return ''
+    const r = /[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{2700}-\u{27BF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{25A0}-\u{25FF}\u{2B50}\u{2B06}\u{FE0F}\u{200D}]/gu;
+    return text.replace(r, '').trim()
 }
 
 export function PDIReportTemplate({ data }: { data: PDIReportData }) {
@@ -499,7 +505,7 @@ export function PDIReportTemplate({ data }: { data: PDIReportData }) {
                             <View key={i} style={{ padding: 3, borderBottomWidth: 0.5, borderColor: COLORS.border, flexDirection: 'row' }}>
                                 <Text style={{ fontSize: 8, width: 20 }}>{i + 1}.</Text>
                                 <Text style={{ fontSize: 8, flex: 1 }}>
-                                    {marker.code} ({marker.type}) on {marker.view} view - {marker.description || 'No description'}
+                                    {marker.code} ({marker.type}) on {marker.view} view - {cleanText(marker.description) || 'No description'}
                                 </Text>
                             </View>
                         ))}
@@ -517,7 +523,7 @@ export function PDIReportTemplate({ data }: { data: PDIReportData }) {
                             <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold' }}>RECOMMENDATIONS & NOTES</Text>
                         </View>
                         <View style={{ padding: 6 }}>
-                            <Text style={{ fontSize: 8, lineHeight: 1.4 }}>{data.inspection.adminComments}</Text>
+                            <Text style={{ fontSize: 8, lineHeight: 1.4 }}>{cleanText(data.inspection.adminComments)}</Text>
                         </View>
                     </View>
                 )}

@@ -539,7 +539,7 @@ const s = StyleSheet.create({
 
 function getBrandingImageBase64(filename: string): string {
     try {
-        const imagePath = join(process.cwd(), 'public', 'branding', filename)
+        const imagePath = join(process.cwd(), 'public', 'uploads', 'branding', filename)
         const imageBuffer = readFileSync(imagePath)
         const base64 = imageBuffer.toString('base64')
         const ext = filename.split('.').pop()?.toLowerCase()
@@ -549,6 +549,12 @@ function getBrandingImageBase64(filename: string): string {
         console.error(`Failed to load branding image ${filename}:`, error)
         return ''
     }
+}
+
+function cleanText(text: string | null | undefined): string {
+    if (!text) return ''
+    const r = /[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{2700}-\u{27BF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{25A0}-\u{25FF}\u{2B50}\u{2B06}\u{FE0F}\u{200D}]/gu;
+    return text.replace(r, '').trim()
 }
 
 function getStatusStyle(status: string) {
@@ -809,11 +815,11 @@ export function InsuranceClaimTemplate({ data }: { data: InsuranceClaimPDFData }
                         </View>
                         <View style={s.textAreaRow} wrap={false}>
                             <Text style={s.fieldLabel}>Incident Description</Text>
-                            <Text style={s.textAreaText}>{data.claim.incidentDescription}</Text>
+                            <Text style={s.textAreaText}>{cleanText(data.claim.incidentDescription)}</Text>
                         </View>
                         <View style={s.textAreaRowLast} wrap={false}>
                             <Text style={s.fieldLabel}>Damage Areas</Text>
-                            <Text style={s.textAreaText}>{data.claim.damageAreas || 'None specified'}</Text>
+                            <Text style={s.textAreaText}>{cleanText(data.claim.damageAreas) || 'None specified'}</Text>
                         </View>
                     </Section>
 
@@ -822,7 +828,7 @@ export function InsuranceClaimTemplate({ data }: { data: InsuranceClaimPDFData }
                     {data.claim.adminNotes && (
                         <Section title="Admin Recommendations">
                             <View style={s.adminNotesRow} wrap={false}>
-                                <Text style={s.textAreaText}>{data.claim.adminNotes}</Text>
+                                <Text style={s.textAreaText}>{cleanText(data.claim.adminNotes)}</Text>
                             </View>
                             {data.claim.reviewedBy && (
                                 <View style={{ padding: 6, borderTopWidth: 1, borderTopColor: C.borderLight }} wrap={false}>
