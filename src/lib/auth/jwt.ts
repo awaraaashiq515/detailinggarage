@@ -14,7 +14,7 @@ function getJwtSecret(): Uint8Array {
 }
 
 // Valid roles in the system
-export type Role = "SUPER_ADMIN" | "ADMIN" | "CLIENT" | "DEALER" | "AGENT" | "COMPANY" | "ENTERPRISE"
+export type Role = "SUPER_ADMIN" | "ADMIN" | "CLIENT" | "DEALER" | "AGENT" | "COMPANY" | "ENTERPRISE" | "SHOP_OWNER"
 
 export interface JWTPayload {
     userId: string
@@ -87,3 +87,7 @@ export async function hasRole(role: Role): Promise<boolean> {
     return user?.role === role
 }
 
+export async function isShopOwner(): Promise<boolean> {
+    const user = await getCurrentUser()
+    return user?.role === "SHOP_OWNER"
+}

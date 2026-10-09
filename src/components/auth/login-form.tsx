@@ -48,6 +48,13 @@ export function LoginForm() {
             const searchParams = new URLSearchParams(window.location.search)
             const callbackUrl = searchParams.get("callbackUrl")
 
+            // Role-based redirect
+            const role = result.user?.role
+            if (role === "SHOP_OWNER") {
+                router.push("/shop/billing")
+                return
+            }
+
             if (callbackUrl) {
                 router.push(callbackUrl)
                 return

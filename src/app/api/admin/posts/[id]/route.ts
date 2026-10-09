@@ -8,15 +8,24 @@ export async function PATCH(
 ) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
 
         const { id } = await params
         const body = await request.json()
-        const { isActive } = body
+        const { isActive, caption, url, type, link } = body
+
+        const updateData: any = {}
+        if (typeof isActive === "boolean") updateData.isActive = isActive
+        if (caption !== undefined) updateData.caption = caption
+        if (url !== undefined) updateData.url = url
+        if (type !== undefined) updateData.type = type
+        if (link !== undefined) updateData.link = link
 
         const post = await db.studioPost.update({
             where: { id },
-            data: { isActive }
+            data: updateData
         })
 
         return NextResponse.json({ success: true, post })
@@ -32,7 +41,9 @@ export async function DELETE(
 ) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
 
         const { id } = await params
 

@@ -57,7 +57,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             )
         }
 
-        if (user.role !== "ADMIN") {
+        if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
             return NextResponse.json(
                 { error: "Forbidden - Admin access required" },
                 { status: 403 }
@@ -122,7 +122,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             )
         }
 
-        if (user.role !== "ADMIN") {
+        if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
             return NextResponse.json(
                 { error: "Forbidden - Admin access required" },
                 { status: 403 }

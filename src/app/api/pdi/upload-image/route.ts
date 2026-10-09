@@ -10,8 +10,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Only ADMIN can upload PDI images
-        if (user.role !== 'ADMIN') {
+        // Only ADMIN / SUPER_ADMIN can upload PDI images
+        if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
         }
 

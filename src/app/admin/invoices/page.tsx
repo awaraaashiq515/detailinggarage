@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { Plus, Search, RefreshCcw, FileDown, Receipt, TrendingUp, AlertCircle, IndianRupee } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Plus, Search, RefreshCcw, FileDown, Receipt, TrendingUp, AlertCircle, IndianRupee, FileText, ArrowRightLeft } from "lucide-react"
 
 type Client = { name: string }
 type InvoiceItem = { id: string; name: string; total: number }
@@ -18,6 +19,8 @@ type Invoice = {
     taxTotal: number
     grandTotal: number
     amountPaid: number
+    vehicleName?: string | null
+    vehicleRegNo?: string | null
     client: Client
     items: InvoiceItem[]
     payments: Payment[]
@@ -57,6 +60,8 @@ export default function InvoicesPage() {
     const [search, setSearch] = useState("")
     const [status, setStatus] = useState("")
     const [type, setType] = useState("")
+    const [clientId, setClientId] = useState("")
+    const [clients, setClients] = useState<{ id: string; name: string }[]>([])
     const [fromDate, setFromDate] = useState("")
     const [toDate, setToDate] = useState("")
 
@@ -66,6 +71,7 @@ export default function InvoicesPage() {
         if (search) params.set("search", search)
         if (status) params.set("status", status)
         if (type) params.set("type", type)
+        if (clientId) params.set("clientId", clientId)
         if (fromDate) params.set("fromDate", fromDate)
         if (toDate) params.set("toDate", toDate)
 
@@ -76,9 +82,17 @@ export default function InvoicesPage() {
             setSummary(data.summary)
         }
         setLoading(false)
-    }, [search, status, type, fromDate, toDate])
+    }, [search, status, type, clientId, fromDate, toDate])
 
-    useEffect(() => { fetchInvoices() }, [])
+    useEffect(() => {
+        fetchInvoices()
+        fetch("/api/admin/billing/clients")
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) setClients(data.clients)
+            })
+            .catch(err => console.error("Error fetching clients:", err))
+    }, [])
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this invoice?")) return
@@ -86,8 +100,26 @@ export default function InvoicesPage() {
         fetchInvoices()
     }
 
+    const handleConvertToQuotation = async (inv: Invoice) => {
+        const label = inv.type === "QUOTATION" ? "Invoice" : "Quotation"
+        const targetType = inv.type === "QUOTATION" ? "INVOICE" : "QUOTATION"
+        if (!confirm(`Convert "${inv.invoiceNumber}" to a ${label}? A new copy will be created as DRAFT.`)) return
+        const res = await fetch("/api/admin/billing/invoices", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: inv.id, action: "convert", targetType }),
+        })
+        const data = await res.json()
+        if (data.success) {
+            alert(`✅ Created: ${data.invoice.invoiceNumber}`)
+            fetchInvoices()
+        } else {
+            alert(data.error || "Conversion failed")
+        }
+    }
+
     const handleReset = () => {
-        setSearch(""); setStatus(""); setType(""); setFromDate(""); setToDate("")
+        setSearch(""); setStatus(""); setType(""); setClientId(""); setFromDate(""); setToDate("")
     }
 
     return (
@@ -104,6 +136,12 @@ export default function InvoicesPage() {
                         className="flex items-center gap-2 px-4 py-2 bg-[#16acd4] hover:bg-white text-black font-bold uppercase tracking-widest text-xs transition-colors shadow-[0_0_20px_rgba(22, 172, 212,0.2)]"
                     >
                         <Plus className="w-4 h-4" /> New Invoice
+                    </Link>
+                    <Link
+                        href="/admin/invoices/new?type=QUOTATION"
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold uppercase tracking-widest text-xs transition-colors"
+                    >
+                        <FileText className="w-4 h-4" /> New Quotation
                     </Link>
                     <Link
                         href="/super-admin/invoices"
@@ -151,17 +189,23 @@ export default function InvoicesPage() {
 
             {/* Filters */}
             <div className="bg-[#121214] border border-white/5 p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-                    <div className="relative sm:col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-3">
+                    <div className="relative sm:col-span-2 lg:col-span-2">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
                         <input
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             type="text"
-                            placeholder="Search invoice # or client name..."
+                            placeholder="Search invoice #, client, or vehicle..."
                             className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 pl-9 outline-none focus:border-[#16acd4]/50 placeholder:text-zinc-600"
                         />
                     </div>
+                    <select value={clientId} onChange={e => setClientId(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50">
+                        <option value="">All Clients</option>
+                        {clients.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
                     <select value={status} onChange={e => setStatus(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50">
                         <option value="">All Statuses</option>
                         <option value="UNPAID">Unpaid</option>
@@ -174,7 +218,9 @@ export default function InvoicesPage() {
                     <select value={type} onChange={e => setType(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50">
                         <option value="">All Types</option>
                         <option value="INVOICE">Invoice</option>
+                        <option value="QUOTATION">Quotation</option>
                         <option value="ESTIMATE">Estimate</option>
+                        <option value="PROFORMA">Proforma</option>
                     </select>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -204,6 +250,7 @@ export default function InvoicesPage() {
                                 <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap w-8">#</th>
                                 <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Invoice No.</th>
                                 <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Client</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Vehicle</th>
                                 <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap hidden sm:table-cell">Issue Date</th>
                                 <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap hidden md:table-cell">Due Date</th>
                                 <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right hidden 2xl:table-cell">Amount</th>
@@ -219,11 +266,11 @@ export default function InvoicesPage() {
                         <tbody className="text-zinc-300 divide-y divide-white/5">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={13} className="p-12 text-center text-zinc-500">Loading invoices...</td>
+                                    <td colSpan={14} className="p-12 text-center text-zinc-500">Loading invoices...</td>
                                 </tr>
                             ) : invoices.length === 0 ? (
                                 <tr>
-                                    <td colSpan={13} className="p-16 text-center">
+                                    <td colSpan={14} className="p-16 text-center">
                                         <Receipt className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
                                         <p className="text-zinc-500 font-medium">No invoices found</p>
                                         <p className="text-zinc-600 text-[11px] mt-1">Create your first invoice to get started</p>
@@ -239,6 +286,16 @@ export default function InvoicesPage() {
                                         <td className="px-3 py-3.5 text-zinc-600">{i + 1}</td>
                                         <td className="px-3 py-3.5 font-mono font-bold text-[#16acd4]">{inv.invoiceNumber}</td>
                                         <td className="px-3 py-3.5 font-medium text-white">{inv.client.name}</td>
+                                        <td className="px-3 py-3.5 text-zinc-400">
+                                            {inv.vehicleRegNo ? (
+                                                <div>
+                                                    <p className="font-semibold text-white">{inv.vehicleName || "Vehicle"}</p>
+                                                    <p className="text-[10px] font-mono text-[#16acd4]">{inv.vehicleRegNo}</p>
+                                                </div>
+                                            ) : (
+                                                <span className="text-zinc-600">-</span>
+                                            )}
+                                        </td>
                                         <td className="px-3 py-3.5 text-zinc-400 hidden sm:table-cell">{fmtDate(inv.date)}</td>
                                         <td className="px-3 py-3.5 text-zinc-400 hidden md:table-cell">{fmtDate(inv.dueDate)}</td>
                                         <td className="px-3 py-3.5 text-right font-mono text-zinc-400 hidden 2xl:table-cell">{fmt(inv.subTotal)}</td>
@@ -247,16 +304,39 @@ export default function InvoicesPage() {
                                         <td className="px-3 py-3.5 text-right font-mono text-green-400 hidden sm:table-cell">{fmt(inv.amountPaid)}</td>
                                         <td className="px-3 py-3.5 text-right font-mono text-amber-400 hidden sm:table-cell">{fmt(Math.max(0, balance))}</td>
                                         <td className="px-3 py-3.5">
-                                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${STATUS_COLORS[inv.status] || STATUS_COLORS.DRAFT}`}>
-                                                {inv.status.replace("_", " ")}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${STATUS_COLORS[inv.status] || STATUS_COLORS.DRAFT}`}>
+                                                    {inv.status.replace("_", " ")}
+                                                </span>
+                                            </div>
                                         </td>
-                                        <td className="px-3 py-3.5 text-zinc-500 hidden md:table-cell">{inv.type}</td>
+                                        <td className="px-3 py-3.5 hidden md:table-cell">
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
+                                                inv.type === "QUOTATION" || inv.type === "ESTIMATE" ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" : "bg-[#16acd4]/10 text-[#16acd4] border border-[#16acd4]/20"
+                                            }`}>{inv.type}</span>
+                                        </td>
                                         <td className="px-3 py-3.5 text-right">
-                                            <div className="flex items-center justify-end gap-3">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <a
+                                                    href={`/api/admin/billing/invoices/${inv.id}/pdf`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/20 transition-colors"
+                                                    title="Download PDF"
+                                                >
+                                                    <FileDown className="w-3 h-3" /> PDF
+                                                </a>
                                                 <Link href={`/admin/invoices/${inv.id}`} className="text-[10px] font-bold uppercase tracking-wider text-[#16acd4] hover:text-white transition-colors">View</Link>
                                                 <Link href={`/admin/invoices/${inv.id}/edit`} className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors">Edit</Link>
-                                                <button onClick={() => handleDelete(inv.id)} className="text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-400 transition-colors">Delete</button>
+                                                <button
+                                                    onClick={() => handleConvertToQuotation(inv)}
+                                                    className="text-[10px] font-bold uppercase tracking-wider text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+                                                    title={inv.type === "QUOTATION" ? "Convert to Invoice" : "Convert to Quotation"}
+                                                >
+                                                    <ArrowRightLeft className="w-3 h-3" />
+                                                    {inv.type === "QUOTATION" ? "→ Inv" : "→ Qt"}
+                                                </button>
+                                                <button onClick={() => handleDelete(inv.id)} className="text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-400 transition-colors">Del</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -268,6 +348,7 @@ export default function InvoicesPage() {
                                 <tr>
                                     <td className="px-3 py-3.5"></td>
                                     <td className="px-3 py-3.5 text-zinc-400 text-[10px] font-bold uppercase tracking-widest">TOTAL</td>
+                                    <td className="px-3 py-3.5"></td>
                                     <td className="px-3 py-3.5"></td>
                                     <td className="px-3 py-3.5 hidden sm:table-cell"></td>
                                     <td className="px-3 py-3.5 hidden md:table-cell"></td>

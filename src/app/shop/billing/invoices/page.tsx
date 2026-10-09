@@ -1,0 +1,361 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
+import { Plus, Search, RefreshCcw, FileDown, Receipt, TrendingUp, AlertCircle, IndianRupee, FileText, ArrowRightLeft } from "lucide-react"
+
+type Client = { name: string }
+type InvoiceItem = { id: string; name: string; total: number }
+type Payment = { id: string; amount: number }
+type Invoice = {
+    id: string
+    invoiceNumber: string
+    type: string
+    date: string
+    dueDate: string | null
+    status: string
+    subTotal: number
+    taxTotal: number
+    grandTotal: number
+    amountPaid: number
+    vehicleName?: string | null
+    vehicleRegNo?: string | null
+    client: Client
+    items: InvoiceItem[]
+    payments: Payment[]
+}
+type Summary = {
+    totalInvoices: number
+    totalOutstanding: number
+    totalPaid: number
+    subTotal: number
+    taxTotal: number
+    grandTotal: number
+    amountPaid: number
+}
+
+const STATUS_COLORS: Record<string, string> = {
+    PAID: "bg-green-500/10 text-green-400 border border-green-500/20",
+    UNPAID: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+    PARTIALLY_PAID: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+    OVERDUE: "bg-red-500/10 text-red-400 border border-red-500/20",
+    DRAFT: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
+    CANCELLED: "bg-red-900/20 text-red-500 border border-red-900/20",
+}
+
+function fmt(n: number) {
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(n)
+}
+
+function fmtDate(d: string | null) {
+    if (!d) return "-"
+    return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
+export default function ShopInvoicesPage() {
+    const [invoices, setInvoices] = useState<Invoice[]>([])
+    const [summary, setSummary] = useState<Summary | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState("")
+    const [status, setStatus] = useState("")
+    const [type, setType] = useState("")
+    const [clientId, setClientId] = useState("")
+    const [clients, setClients] = useState<{ id: string; name: string }[]>([])
+    const [fromDate, setFromDate] = useState("")
+    const [toDate, setToDate] = useState("")
+
+    const fetchInvoices = useCallback(async () => {
+        setLoading(true)
+        const params = new URLSearchParams()
+        if (search) params.set("search", search)
+        if (status) params.set("status", status)
+        if (type) params.set("type", type)
+        if (clientId) params.set("clientId", clientId)
+        if (fromDate) params.set("fromDate", fromDate)
+        if (toDate) params.set("toDate", toDate)
+
+        const res = await fetch(`/api/admin/billing/invoices?${params.toString()}`)
+        const data = await res.json()
+        if (data.success) {
+            setInvoices(data.invoices)
+            setSummary(data.summary)
+        }
+        setLoading(false)
+    }, [search, status, type, clientId, fromDate, toDate])
+
+    useEffect(() => {
+        fetchInvoices()
+        fetch("/api/admin/billing/clients")
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) setClients(data.clients)
+            })
+            .catch(err => console.error("Error fetching clients:", err))
+    }, [])
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this invoice?")) return
+        await fetch(`/api/admin/billing/invoices?id=${id}`, { method: "DELETE" })
+        fetchInvoices()
+    }
+
+    const handleConvertToQuotation = async (inv: Invoice) => {
+        const label = inv.type === "QUOTATION" ? "Invoice" : "Quotation"
+        const targetType = inv.type === "QUOTATION" ? "INVOICE" : "QUOTATION"
+        if (!confirm(`Convert "${inv.invoiceNumber}" to a ${label}? A new copy will be created as DRAFT.`)) return
+        const res = await fetch("/api/admin/billing/invoices", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: inv.id, action: "convert", targetType }),
+        })
+        const data = await res.json()
+        if (data.success) {
+            alert(`✅ Created: ${data.invoice.invoiceNumber}`)
+            fetchInvoices()
+        } else {
+            alert(data.error || "Conversion failed")
+        }
+    }
+
+    const handleReset = () => {
+        setSearch(""); setStatus(""); setType(""); setClientId(""); setFromDate(""); setToDate("")
+    }
+
+    return (
+        <div className="w-full flex flex-col gap-5">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold font-display text-white">Invoices</h1>
+                    <p className="text-xs text-zinc-500 mt-0.5">Manage GST-compliant invoices & estimates</p>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                    <Link
+                        href="/shop/billing/invoices/new"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#16acd4] hover:bg-white text-black font-bold uppercase tracking-widest text-xs transition-colors shadow-[0_0_20px_rgba(22,172,212,0.2)]"
+                    >
+                        <Plus className="w-4 h-4" /> New Invoice
+                    </Link>
+                    <Link
+                        href="/shop/billing/quotations/new"
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold uppercase tracking-widest text-xs transition-colors"
+                    >
+                        <FileText className="w-4 h-4" /> New Quotation
+                    </Link>
+                </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-[#121214] border border-white/5 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Receipt className="w-4 h-4 text-zinc-500" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Invoices</p>
+                    </div>
+                    <p className="text-2xl font-bold text-white font-display">{summary?.totalInvoices ?? 0}</p>
+                </div>
+                <div className="bg-[#121214] border border-white/5 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <AlertCircle className="w-4 h-4 text-amber-500" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Outstanding</p>
+                    </div>
+                    <p className="text-2xl font-bold text-amber-400 font-display">{fmt(summary?.totalOutstanding ?? 0)}</p>
+                </div>
+                <div className="bg-[#121214] border border-white/5 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="w-4 h-4 text-green-500" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Paid</p>
+                    </div>
+                    <p className="text-2xl font-bold text-green-400 font-display">{fmt(summary?.totalPaid ?? 0)}</p>
+                </div>
+                <div className="bg-[#121214] border border-white/5 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <IndianRupee className="w-4 h-4 text-[#16acd4]" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Grand Total</p>
+                    </div>
+                    <p className="text-2xl font-bold text-[#16acd4] font-display">{fmt(summary?.grandTotal ?? 0)}</p>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-[#121214] border border-white/5 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-3">
+                    <div className="relative sm:col-span-2 lg:col-span-2">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                        <input
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            type="text"
+                            placeholder="Search invoice #, client, or vehicle..."
+                            className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 pl-9 outline-none focus:border-[#16acd4]/50 placeholder:text-zinc-600"
+                        />
+                    </div>
+                    <select value={clientId} onChange={e => setClientId(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50">
+                        <option value="">All Clients</option>
+                        {clients.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50">
+                        <option value="">All Statuses</option>
+                        <option value="UNPAID">Unpaid</option>
+                        <option value="PAID">Paid</option>
+                        <option value="PARTIALLY_PAID">Partially Paid</option>
+                        <option value="OVERDUE">Overdue</option>
+                        <option value="DRAFT">Draft</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
+                    <select value={type} onChange={e => setType(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50">
+                        <option value="">All Types</option>
+                        <option value="INVOICE">Invoice</option>
+                        <option value="QUOTATION">Quotation</option>
+                        <option value="ESTIMATE">Estimate</option>
+                        <option value="PROFORMA">Proforma</option>
+                    </select>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-500">From</span>
+                        <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-2 py-1.5 outline-none focus:border-[#16acd4]/50" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-500">To</span>
+                        <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-2 py-1.5 outline-none focus:border-[#16acd4]/50" />
+                    </div>
+                    <button onClick={fetchInvoices} className="flex items-center gap-1.5 text-xs bg-[#16acd4] text-black px-3 py-1.5 font-bold hover:bg-white transition-colors">
+                        <Search className="w-3 h-3" /> Search
+                    </button>
+                    <button onClick={handleReset} className="flex items-center gap-1.5 text-xs bg-[#09090b] border border-white/10 text-zinc-400 px-3 py-1.5 font-bold hover:border-white/30 hover:text-white transition-colors">
+                        <RefreshCcw className="w-3 h-3" /> Reset
+                    </button>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="bg-[#121214] border border-white/5 flex-1 flex flex-col overflow-hidden">
+                <div className="overflow-x-auto flex-1">
+                    <table className="w-full text-left border-collapse text-[11px]">
+                        <thead className="sticky top-0 bg-[#1a1a1c] border-b border-white/10 z-10">
+                            <tr>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap w-8">#</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Invoice No.</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Client</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Vehicle</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap hidden sm:table-cell">Issue Date</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap hidden md:table-cell">Due Date</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right hidden 2xl:table-cell">Amount</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right hidden 2xl:table-cell">Tax</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right">Total</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right hidden sm:table-cell">Paid</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right hidden sm:table-cell">Balance</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap">Status</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap hidden md:table-cell">Type</th>
+                                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 whitespace-nowrap text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-zinc-300 divide-y divide-white/5">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={14} className="p-12 text-center text-zinc-500">Loading invoices...</td>
+                                </tr>
+                            ) : invoices.length === 0 ? (
+                                <tr>
+                                    <td colSpan={14} className="p-16 text-center">
+                                        <Receipt className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+                                        <p className="text-zinc-500 font-medium">No invoices found</p>
+                                        <p className="text-zinc-600 text-[11px] mt-1">Create your first invoice to get started</p>
+                                        <Link href="/shop/billing/invoices/new" className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-[#16acd4] text-black text-xs font-bold uppercase hover:bg-white transition-colors">
+                                            <Plus className="w-3 h-3" /> Create Invoice
+                                        </Link>
+                                    </td>
+                                </tr>
+                            ) : invoices.map((inv, i) => {
+                                const balance = inv.grandTotal - inv.amountPaid
+                                return (
+                                    <tr key={inv.id} className="hover:bg-white/[0.02] transition-colors group">
+                                        <td className="px-3 py-3.5 text-zinc-600">{i + 1}</td>
+                                        <td className="px-3 py-3.5 font-mono font-bold text-[#16acd4]">{inv.invoiceNumber}</td>
+                                        <td className="px-3 py-3.5 font-medium text-white">{inv.client.name}</td>
+                                        <td className="px-3 py-3.5 text-zinc-400">
+                                            {inv.vehicleRegNo ? (
+                                                <div>
+                                                    <p className="font-semibold text-white">{inv.vehicleName || "Vehicle"}</p>
+                                                    <p className="text-[10px] font-mono text-[#16acd4]">{inv.vehicleRegNo}</p>
+                                                </div>
+                                            ) : (
+                                                <span className="text-zinc-600">-</span>
+                                            )}
+                                        </td>
+                                        <td className="px-3 py-3.5 text-zinc-400 hidden sm:table-cell">{fmtDate(inv.date)}</td>
+                                        <td className="px-3 py-3.5 text-zinc-400 hidden md:table-cell">{fmtDate(inv.dueDate)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono text-zinc-400 hidden 2xl:table-cell">{fmt(inv.subTotal)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono text-zinc-500 hidden 2xl:table-cell">{fmt(inv.taxTotal)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono font-bold text-white">{fmt(inv.grandTotal)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono text-green-400 hidden sm:table-cell">{fmt(inv.amountPaid)}</td>
+                                        <td className="px-3 py-3.5 text-right font-mono text-amber-400 hidden sm:table-cell">{fmt(Math.max(0, balance))}</td>
+                                        <td className="px-3 py-3.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${STATUS_COLORS[inv.status] || STATUS_COLORS.DRAFT}`}>
+                                                    {inv.status.replace("_", " ")}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-3.5 hidden md:table-cell">
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
+                                                inv.type === "QUOTATION" || inv.type === "ESTIMATE" ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" : "bg-[#16acd4]/10 text-[#16acd4] border border-[#16acd4]/20"
+                                            }`}>{inv.type}</span>
+                                        </td>
+                                        <td className="px-3 py-3.5 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <a
+                                                    href={`/api/admin/billing/invoices/${inv.id}/pdf`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/20 transition-colors"
+                                                    title="Download PDF"
+                                                >
+                                                    <FileDown className="w-3 h-3" /> PDF
+                                                </a>
+                                                <Link href={`/shop/billing/invoices/${inv.id}`} className="text-[10px] font-bold uppercase tracking-wider text-[#16acd4] hover:text-white transition-colors">View</Link>
+                                                <Link href={`/shop/billing/invoices/${inv.id}/edit`} className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors">Edit</Link>
+                                                <button
+                                                    onClick={() => handleConvertToQuotation(inv)}
+                                                    className="text-[10px] font-bold uppercase tracking-wider text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+                                                    title={inv.type === "QUOTATION" ? "Convert to Invoice" : "Convert to Quotation"}
+                                                >
+                                                    <ArrowRightLeft className="w-3 h-3" />
+                                                    {inv.type === "QUOTATION" ? "→ Inv" : "→ Qt"}
+                                                </button>
+                                                <button onClick={() => handleDelete(inv.id)} className="text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-400 transition-colors">Del</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                        </tbody>
+                        {invoices.length > 0 && summary && (
+                            <tfoot className="border-t border-white/10 bg-[#121214] font-bold text-white">
+                                <tr>
+                                    <td className="px-3 py-3.5"></td>
+                                    <td className="px-3 py-3.5 text-zinc-400 text-[10px] font-bold uppercase tracking-widest">TOTAL</td>
+                                    <td className="px-3 py-3.5"></td>
+                                    <td className="px-3 py-3.5"></td>
+                                    <td className="px-3 py-3.5 hidden sm:table-cell"></td>
+                                    <td className="px-3 py-3.5 hidden md:table-cell"></td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-zinc-400 hidden 2xl:table-cell">{fmt(summary.subTotal)}</td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-zinc-500 hidden 2xl:table-cell">{fmt(summary.taxTotal)}</td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-[#16acd4]">{fmt(summary.grandTotal)}</td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-green-400 hidden sm:table-cell">{fmt(summary.amountPaid)}</td>
+                                    <td className="px-3 py-3.5 text-right font-mono text-amber-400 hidden sm:table-cell">{fmt(Math.max(0, summary.grandTotal - summary.amountPaid))}</td>
+                                    <td className="px-3 py-3.5"></td>
+                                    <td className="px-3 py-3.5 hidden md:table-cell"></td>
+                                    <td className="px-3 py-3.5"></td>
+                                </tr>
+                            </tfoot>
+                        )}
+                    </table>
+                </div>
+            </div>
+        </div>
+    )
+}

@@ -29,7 +29,10 @@ import {
     AlertCircle,
     AlertTriangle,
     Info,
-    Smartphone
+    Smartphone,
+    Facebook,
+    ExternalLink,
+    RefreshCw
 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -101,6 +104,12 @@ export default function SettingsPage() {
                     >
                         Surepass API
                     </TabsTrigger>
+                    <TabsTrigger
+                        value="facebook"
+                        className="px-6 py-2.5 rounded-xl data-[state=active]:bg-[#1877F2] data-[state=active]:text-white text-slate-600 font-bold tracking-wide transition-all flex items-center gap-2"
+                    >
+                        <Facebook className="w-4 h-4 fill-current" /> Facebook Sync
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="header" className="animate-in fade-in duration-300">
@@ -137,6 +146,10 @@ export default function SettingsPage() {
 
                 <TabsContent value="surepass" className="animate-in fade-in duration-300">
                     <SurepassSettingsTab />
+                </TabsContent>
+
+                <TabsContent value="facebook" className="animate-in fade-in duration-300">
+                    <FacebookSettingsTab />
                 </TabsContent>
             </Tabs>
         </div>
@@ -1959,6 +1972,278 @@ function SurepassSettingsTab() {
                                 {saving
                                     ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                                     : <><Save className="w-4 h-4 mr-2" /> Save Token</>}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </form>
+        </div>
+    )
+}
+
+// Facebook Settings Component for Settings Tab
+function FacebookSettingsTab() {
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [testing, setTesting] = useState(false)
+    const [syncing, setSyncing] = useState(false)
+    const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+    const [formData, setFormData] = useState({
+        pageId: '',
+        pageName: 'Detailing Garage Official',
+        pageAccessToken: '',
+        autoSync: true,
+        showOnHome: true,
+        homeSectionTitle: 'Live from Facebook',
+        homeSectionDesc: 'Latest detailing transformations, master ceramic applications, and stories directly from our Facebook page.',
+        isConnected: false,
+        lastSyncedAt: null as string | null
+    })
+
+    useEffect(() => {
+        loadSettings()
+    }, [])
+
+    async function loadSettings() {
+        setLoading(true)
+        try {
+            const res = await fetch('/api/admin/settings/facebook')
+            const data = await res.json()
+            if (data.success && data.settings) {
+                setFormData({
+                    pageId: data.settings.pageId || '',
+                    pageName: data.settings.pageName || 'Detailing Garage Official',
+                    pageAccessToken: data.settings.pageAccessToken || '',
+                    autoSync: data.settings.autoSync ?? true,
+                    showOnHome: data.settings.showOnHome ?? true,
+                    homeSectionTitle: data.settings.homeSectionTitle || 'Live from Facebook',
+                    homeSectionDesc: data.settings.homeSectionDesc || 'Latest detailing transformations, master ceramic applications, and stories directly from our Facebook page.',
+                    isConnected: data.settings.isConnected ?? false,
+                    lastSyncedAt: data.settings.lastSyncedAt
+                })
+            }
+        } catch (e) {
+            console.error('Failed to load Facebook settings:', e)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    async function handleSave(e: React.FormEvent) {
+        e.preventDefault()
+        setSaving(true)
+        setStatus(null)
+        try {
+            const res = await fetch('/api/admin/settings/facebook', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            const data = await res.json()
+            if (data.success) {
+                setStatus({ type: 'success', msg: 'Facebook settings saved successfully!' })
+                loadSettings()
+            } else {
+                setStatus({ type: 'error', msg: data.error || 'Failed to save settings' })
+            }
+        } catch (e: any) {
+            setStatus({ type: 'error', msg: e.message || 'An error occurred' })
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    async function handleTest() {
+        if (!formData.pageId || !formData.pageAccessToken) {
+            setStatus({ type: 'error', msg: 'Please enter Page ID and Page Access Token first.' })
+            return
+        }
+        setTesting(true)
+        setStatus(null)
+        try {
+            const res = await fetch('/api/admin/settings/facebook/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pageId: formData.pageId, pageAccessToken: formData.pageAccessToken })
+            })
+            const data = await res.json()
+            if (data.success) {
+                setStatus({ type: 'success', msg: `Connected successfully to "${data.page.name}" (${data.page.followers || 0} followers)` })
+                loadSettings()
+            } else {
+                setStatus({ type: 'error', msg: data.error || 'Connection test failed.' })
+            }
+        } catch (e: any) {
+            setStatus({ type: 'error', msg: e.message || 'Failed to test connection.' })
+        } finally {
+            setTesting(false)
+        }
+    }
+
+    async function handleSync() {
+        setSyncing(true)
+        setStatus(null)
+        try {
+            const res = await fetch('/api/admin/settings/facebook/sync', { method: 'POST' })
+            const data = await res.json()
+            if (data.success) {
+                setStatus({ type: 'success', msg: data.message || `Successfully synced ${data.count} posts from Facebook!` })
+                loadSettings()
+            } else {
+                setStatus({ type: 'error', msg: data.error || 'Sync failed.' })
+            }
+        } catch (e: any) {
+            setStatus({ type: 'error', msg: e.message || 'Failed to sync posts.' })
+        } finally {
+            setSyncing(false)
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center p-12">
+                <Loader2 className="w-8 h-8 animate-spin text-accent" />
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            <form onSubmit={handleSave}>
+                <Card className="rounded-3xl border-slate-200 shadow-sm overflow-hidden bg-white">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-[#1877F2]/10 border border-[#1877F2]/20 flex items-center justify-center text-[#1877F2]">
+                                    <Facebook className="w-6 h-6 fill-current" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-black text-slate-900 tracking-tight">
+                                        Facebook Integration & Feed Settings
+                                    </CardTitle>
+                                    <CardDescription className="text-xs font-semibold text-slate-500 mt-1">
+                                        Automatically sync Facebook Page posts directly to your homepage and website
+                                    </CardDescription>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href="/admin/settings/facebook"
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#1877F2] bg-[#1877F2]/10 hover:bg-[#1877F2]/20 transition-colors"
+                                >
+                                    Full Webhook Console <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                            </div>
+                        </div>
+                    </CardHeader>
+
+                    <CardContent className="p-8 space-y-6">
+                        {status && (
+                            <div className={`flex items-center gap-2.5 p-4 rounded-xl border ${
+                                status.type === 'success' 
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                                : 'bg-red-50 border-red-200 text-red-800'
+                            }`}>
+                                {status.type === 'success' 
+                                    ? <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-500" />
+                                    : <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500" />}
+                                <span className="text-sm font-bold">{status.msg}</span>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-black uppercase tracking-wider text-slate-700">
+                                    Facebook Page ID <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    value={formData.pageId}
+                                    onChange={(e) => setFormData({ ...formData, pageId: e.target.value })}
+                                    placeholder="e.g. 1092837465241 or page username"
+                                    className="rounded-xl border-slate-200 font-mono text-sm"
+                                />
+                                <p className="text-[11px] text-slate-500">Find in your Facebook Page About tab</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-xs font-black uppercase tracking-wider text-slate-700">
+                                    Page Display Name
+                                </Label>
+                                <Input
+                                    value={formData.pageName}
+                                    onChange={(e) => setFormData({ ...formData, pageName: e.target.value })}
+                                    placeholder="Detailing Garage Official"
+                                    className="rounded-xl border-slate-200 text-sm"
+                                />
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
+                                <Label className="text-xs font-black uppercase tracking-wider text-slate-700">
+                                    Page Access Token (Graph API) <span className="text-red-500">*</span>
+                                </Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        type="password"
+                                        value={formData.pageAccessToken}
+                                        onChange={(e) => setFormData({ ...formData, pageAccessToken: e.target.value })}
+                                        placeholder="EAABw..."
+                                        className="rounded-xl border-slate-200 font-mono text-xs flex-1"
+                                    />
+                                    <Button
+                                        type="button"
+                                        onClick={handleTest}
+                                        disabled={testing || !formData.pageAccessToken}
+                                        variant="outline"
+                                        className="rounded-xl text-xs font-bold shrink-0"
+                                    >
+                                        {testing ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <RefreshCw className="w-3.5 h-3.5 mr-1 text-[#1877F2]" />}
+                                        Test Token
+                                    </Button>
+                                </div>
+                                <p className="text-[11px] text-slate-500">Generated from Meta Developers Graph API Explorer</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-xs font-black uppercase tracking-wider text-slate-700">
+                                    Homepage Section Title
+                                </Label>
+                                <Input
+                                    value={formData.homeSectionTitle}
+                                    onChange={(e) => setFormData({ ...formData, homeSectionTitle: e.target.value })}
+                                    className="rounded-xl border-slate-200 text-sm"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-xs font-black uppercase tracking-wider text-slate-700">
+                                    Homepage Section Description
+                                </Label>
+                                <Input
+                                    value={formData.homeSectionDesc}
+                                    onChange={(e) => setFormData({ ...formData, homeSectionDesc: e.target.value })}
+                                    className="rounded-xl border-slate-200 text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
+                            <Button
+                                type="button"
+                                onClick={handleSync}
+                                disabled={syncing || !formData.pageAccessToken}
+                                variant="outline"
+                                className="w-full sm:w-auto rounded-xl px-6 py-5 text-xs font-bold uppercase tracking-wider text-[#1877F2] border-[#1877F2]/30 hover:bg-[#1877F2]/10"
+                            >
+                                <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                                {syncing ? 'Syncing...' : 'Sync Posts Now'}
+                            </Button>
+
+                            <Button
+                                type="submit"
+                                disabled={saving}
+                                className="w-full sm:w-auto rounded-xl px-8 py-5 text-xs font-black uppercase tracking-widest bg-accent hover:bg-accent/90 text-white shadow-xl shadow-accent/25"
+                            >
+                                {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <><Save className="w-4 h-4 mr-2" /> Save Settings</>}
                             </Button>
                         </div>
                     </CardContent>

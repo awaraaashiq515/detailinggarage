@@ -5,7 +5,7 @@ import { getSystemSettings, updateSystemSettings } from "@/services/settings.ser
 export async function GET(req: NextRequest) {
     try {
         const user = await getCurrentUser()
-        if (!user || user.role !== "ADMIN") {
+        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const user = await getCurrentUser()
-        if (!user || user.role !== "ADMIN") {
+        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 

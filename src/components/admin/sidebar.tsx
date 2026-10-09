@@ -23,8 +23,13 @@ import {
     ShieldCheck,
     Image as ImageIcon,
     Receipt,
+    ChevronLeft,
+    ChevronRight,
+    Search,
+    Boxes,
+    Facebook,
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface MenuItem {
     name: string
@@ -53,6 +58,7 @@ const menuGroups: MenuGroup[] = [
             { name: "PDI Packages", href: "/admin/packages", icon: FileText },
             { name: "Payments", href: "/admin/payments", icon: CreditCard },
             { name: "Social Showcase", href: "/admin/posts", icon: ImageIcon },
+            { name: "Facebook Feed Sync", href: "/admin/settings/facebook", icon: Facebook },
         ]
     },
     {
@@ -66,6 +72,7 @@ const menuGroups: MenuGroup[] = [
             { name: "Service Inquiries", href: "/admin/service-inquiries", icon: MessageSquare },
             { name: "Scrap Cars", href: "/admin/scrap-cars", icon: Trash2 },
             { name: "E-Challan", href: "/admin/e-challan", icon: FileWarning },
+            { name: "Parts Lookup", href: "/admin/parts-lookup", icon: Boxes },
         ]
     },
     {
@@ -85,12 +92,31 @@ const menuGroups: MenuGroup[] = [
             { name: "Super Admin Billing", href: "/super-admin/invoices", icon: Shield },
         ]
     },
+    {
+        label: "Multi-Shop",
+        items: [
+            { name: "Shop Management", href: "/admin/shops", icon: Store },
+        ]
+    },
 ]
 
 export function AdminSidebar() {
     const pathname = usePathname()
     const [isOpen, setIsOpen] = useState(false)
     const [collapsed, setCollapsed] = useState(false)
+
+    useEffect(() => {
+        const stored = localStorage.getItem("sidebar-collapsed")
+        if (stored === "true") {
+            setCollapsed(true)
+        }
+    }, [])
+
+    const toggleCollapsed = () => {
+        const newVal = !collapsed
+        setCollapsed(newVal)
+        localStorage.setItem("sidebar-collapsed", String(newVal))
+    }
 
     const handleLogout = async () => {
         try {
@@ -137,12 +163,33 @@ export function AdminSidebar() {
                 `}
             >
                 {/* Logo */}
-                <div className="h-20 flex items-center justify-center px-4 flex-shrink-0 border-b border-white/5 bg-[#121214]">
-                    <Link href="/admin" className="flex items-center justify-center w-full" onClick={() => setIsOpen(false)}>
-                        <div className={`font-display font-bold tracking-tight uppercase text-white transition-all ${collapsed ? 'text-xl' : 'text-xl'}`}>
-                            {collapsed ? "DG" : <>Detailing <span className="text-[#16acd4]">Garage</span></>}
+                <div className="h-20 flex items-center justify-between px-4 flex-shrink-0 border-b border-white/5 bg-[#121214]">
+                    {!collapsed ? (
+                        <>
+                            <Link href="/admin" className="flex items-center" onClick={() => setIsOpen(false)}>
+                                <div className="font-display font-bold tracking-tight uppercase text-white text-base truncate">
+                                    Detailing <span className="text-[#16acd4]">Garage</span>
+                                </div>
+                            </Link>
+                            <button
+                                onClick={toggleCollapsed}
+                                className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-zinc-400 hover:text-white shrink-0 ml-2"
+                                title="Collapse Sidebar"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                        </>
+                    ) : (
+                        <div className="w-full flex flex-col items-center justify-center gap-2">
+                            <button
+                                onClick={toggleCollapsed}
+                                className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-zinc-400 hover:text-white shrink-0"
+                                title="Expand Sidebar"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
                         </div>
-                    </Link>
+                    )}
                 </div>
 
                 {/* Nav */}

@@ -3,21 +3,21 @@
 import { useState, useEffect, use, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Plus, Trash2, Check, ArrowLeft, X, Edit2 } from "lucide-react"
+import { Plus, Trash2, Check, ArrowLeft, X, Edit2, Sparkles, Car, ShieldCheck, CheckCircle2, Boxes } from "lucide-react"
 
 type BillingClient = {
     id: string; name: string; phone: string | null; email: string | null; gstin: string | null; state: string | null; address: string | null
     vehicleName?: string | null; vehicleRegNo?: string | null; vehicleChassis?: string | null; odometer?: string | null
     invoices?: { vehicleName: string | null; vehicleRegNo: string | null; vehicleChassis: string | null; odometer: string | null }[]
 }
-type BillingItem = { id: string; name: string; price: number; hsnSacCode: string | null; taxRate: number; type: string }
+type BillingItem = { id: string; name: string; price: number; hsnSacCode: string | null; taxRate: number; type: string; stock?: number; unit?: string }
 type LineItem = { tempId: number; id?: string; name: string; hsnSacCode: string; quantity: number; rate: number; taxRate: number; discount: number }
 
 const INDIAN_STATES = ["01-Jammu & Kashmir","02-Himachal Pradesh","03-Punjab","04-Chandigarh","05-Uttarakhand","06-Haryana","07-Delhi","08-Rajasthan","09-Uttar Pradesh","10-Bihar","11-Sikkim","12-Arunachal Pradesh","13-Nagaland","14-Manipur","15-Mizoram","16-Tripura","17-Meghalaya","18-Assam","19-West Bengal","20-Jharkhand","21-Odisha","22-Chhattisgarh","23-Madhya Pradesh","24-Gujarat","25-Daman & Diu","26-Dadra & Nagar Haveli","27-Maharashtra","28-Andhra Pradesh","29-Karnataka","30-Goa","31-Lakshadweep","32-Kerala","33-Tamil Nadu","34-Puducherry","35-Andaman & Nicobar","36-Telangana","37-Andhra Pradesh (New)"]
 
 const TYPE_LABELS: Record<string, string> = { INVOICE: "Tax Invoice", QUOTATION: "Quotation", PROFORMA: "Proforma Invoice", ESTIMATE: "Estimate" }
 
-function EditInvoiceForm({ id }: { id: string }) {
+export function EditInvoiceForm({ id, basePath = "/admin/invoices" }: { id: string; basePath?: string }) {
     const router = useRouter()
     const [clients, setClients] = useState<BillingClient[]>([])
     const [catalogItems, setCatalogItems] = useState<BillingItem[]>([])
@@ -36,6 +36,8 @@ function EditInvoiceForm({ id }: { id: string }) {
     const [discount, setDiscount] = useState(0)
     const [notes, setNotes] = useState("")
     const [terms, setTerms] = useState("")
+    const [savingDefaults, setSavingDefaults] = useState(false)
+    const [savedDefaultsFeedback, setSavedDefaultsFeedback] = useState(false)
     const [lineItems, setLineItems] = useState<LineItem[]>([])
     const [vehicleName, setVehicleName] = useState("")
     const [vehicleRegNo, setVehicleRegNo] = useState("")
@@ -48,9 +50,49 @@ function EditInvoiceForm({ id }: { id: string }) {
     const [lineHsn, setLineHsn] = useState("")
     const [lineQty, setLineQty] = useState(1)
     const [lineRate, setLineRate] = useState(0)
+    const [lineLabor, setLineLabor] = useState(0)
     const [lineTax, setLineTax] = useState(18)
     const [lineDisc, setLineDisc] = useState(0)
+    const [lineType, setLineType] = useState<"PRODUCT" | "SERVICE">("PRODUCT")
+    const [lineUnit, setLineUnit] = useState("PCS")
+    const [lineStock, setLineStock] = useState("")
     const [editingTempId, setEditingTempId] = useState<number | null>(null)
+    const [showSuggestions, setShowSuggestions] = useState(false)
+
+    // Quick Add Product / Stock Modal
+    const [showAddProductModal, setShowAddProductModal] = useState(false)
+    const [addingProduct, setAddingProduct] = useState(false)
+    const [newProduct, setNewProduct] = useState({
+        name: "",
+        type: "PRODUCT",
+        price: "",
+        purchasePrice: "",
+        stock: "10",
+        unit: "PCS",
+        minStockAlert: "5",
+        sku: "",
+        hsnSacCode: "",
+        taxRate: "18",
+        addToInvoice: true,
+        qtyToBill: "1",
+    })
+
+    // Quick Add Labor state
+    const [quickLaborDesc, setQuickLaborDesc] = useState("")
+    const [quickLaborAmount, setQuickLaborAmount] = useState(0)
+    const [quickLaborTax, setQuickLaborTax] = useState(18)
+    const [quickLaborSac, setQuickLaborSac] = useState("9987")
+
+    // Detailing Packages State
+    const [servicePackages, setServicePackages] = useState<any[]>([])
+    const [showPackageModal, setShowPackageModal] = useState(false)
+    const [selectedPkgId, setSelectedPkgId] = useState<string | null>(null)
+    const [pkgVehicleType, setPkgVehicleType] = useState<"hatchback" | "sedan" | "compactSuv" | "fullSuv" | "bike" | "base">("sedan")
+
+    // Labor modal states
+    const [showLaborModal, setShowLaborModal] = useState(false)
+    const [laborTab, setLaborTab] = useState<"general" | "parts">("general")
+    const [partLabors, setPartLabors] = useState<Record<string, number>>({})
 
     // New client form
     const [newClient, setNewClient] = useState({ name: "", phone: "", email: "", address: "", gstin: "", state: "", city: "", pin: "", vehicleName: "", vehicleRegNo: "", vehicleChassis: "", odometer: "" })
@@ -59,10 +101,12 @@ function EditInvoiceForm({ id }: { id: string }) {
         Promise.all([
             fetch("/api/admin/billing/clients").then(r => r.json()),
             fetch("/api/admin/billing/items").then(r => r.json()),
-            fetch(`/api/admin/billing/invoices?id=${id}`).then(r => r.json())
-        ]).then(([cData, iData, invData]) => {
+            fetch(`/api/admin/billing/invoices?id=${id}`).then(r => r.json()),
+            fetch("/api/admin/billing/packages").then(r => r.json())
+        ]).then(([cData, iData, invData, pkgData]) => {
             if (cData.success) setClients(cData.clients)
             if (iData.success) setCatalogItems(iData.items)
+            if (pkgData && pkgData.success && pkgData.packages) setServicePackages(pkgData.packages)
             if (invData.success && invData.invoice) {
                 const inv = invData.invoice
                 setClientId(inv.clientId)
@@ -105,16 +149,126 @@ function EditInvoiceForm({ id }: { id: string }) {
         setLineHsn(item.hsnSacCode || "")
         setLineRate(item.price)
         setLineTax(item.taxRate)
+        if (item.type === "PRODUCT" || item.type === "SERVICE") {
+            setLineType(item.type as any)
+        }
+        if (item.unit) setLineUnit(item.unit)
+        if (item.stock !== undefined) setLineStock(String(item.stock))
     }, [selItemId, catalogItems])
 
-    const addOrUpdateLine = () => {
+    const handleCreateProductSubmit = async () => {
+        if (!newProduct.name.trim()) {
+            alert("Product name is required")
+            return
+        }
+        if (!newProduct.price || isNaN(parseFloat(newProduct.price))) {
+            alert("Valid selling price is required")
+            return
+        }
+
+        setAddingProduct(true)
+        try {
+            const initialStock = newProduct.type === "PRODUCT" ? (parseFloat(newProduct.stock) || 0) : 0
+            const res = await fetch("/api/admin/billing/items", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: newProduct.name.trim(),
+                    price: parseFloat(newProduct.price),
+                    purchasePrice: newProduct.purchasePrice ? parseFloat(newProduct.purchasePrice) : null,
+                    hsnSacCode: newProduct.hsnSacCode.trim() || null,
+                    taxRate: parseFloat(newProduct.taxRate) || 0,
+                    type: newProduct.type,
+                    stock: initialStock,
+                    unit: newProduct.unit || "PCS",
+                    minStockAlert: parseFloat(newProduct.minStockAlert) || 5,
+                    sku: newProduct.sku.trim() || null,
+                    trackStock: newProduct.type === "PRODUCT",
+                })
+            })
+            const data = await res.json()
+            if (data.success && data.item) {
+                setCatalogItems(prev => [data.item, ...prev])
+
+                if (newProduct.addToInvoice) {
+                    const billQty = parseFloat(newProduct.qtyToBill) || 1
+                    const timestamp = Date.now()
+                    setLineItems(prev => [
+                        ...prev,
+                        {
+                            tempId: timestamp,
+                            name: data.item.name,
+                            hsnSacCode: data.item.hsnSacCode || "",
+                            quantity: billQty,
+                            rate: data.item.price,
+                            taxRate: data.item.taxRate,
+                            discount: 0,
+                        }
+                    ])
+                }
+
+                setShowAddProductModal(false)
+                setNewProduct({
+                    name: "",
+                    type: "PRODUCT",
+                    price: "",
+                    purchasePrice: "",
+                    stock: "10",
+                    unit: "PCS",
+                    minStockAlert: "5",
+                    sku: "",
+                    hsnSacCode: "",
+                    taxRate: "18",
+                    addToInvoice: true,
+                    qtyToBill: "1",
+                })
+            } else {
+                alert(data.error || "Failed to create product")
+            }
+        } catch (e: any) {
+            alert(e?.message || "Failed to create product")
+        } finally {
+            setAddingProduct(false)
+        }
+    }
+
+    const addOrUpdateLine = async () => {
         if (!lineDesc || lineRate <= 0) return
+
+        // Auto-save to catalog & stock if not exists
+        const exists = catalogItems.some(i => i.name.toLowerCase() === lineDesc.trim().toLowerCase())
+        if (!exists) {
+            try {
+                const initialStock = lineType === "PRODUCT" ? (parseFloat(lineStock) || lineQty) : 0
+                const res = await fetch("/api/admin/billing/items", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: lineDesc.trim(),
+                        price: lineRate,
+                        hsnSacCode: lineHsn || "",
+                        taxRate: lineTax,
+                        type: lineType,
+                        stock: initialStock,
+                        unit: lineUnit || "PCS",
+                        minStockAlert: 5,
+                        trackStock: lineType === "PRODUCT",
+                    })
+                })
+                const data = await res.json()
+                if (data.success && data.item) {
+                    setCatalogItems(prev => [data.item, ...prev])
+                }
+            } catch (err) {
+                console.error("Failed to auto-save item to catalog:", err)
+            }
+        }
 
         if (editingTempId !== null) {
             // Update existing line
             setLineItems(prev => prev.map(l => l.tempId === editingTempId ? {
                 ...l,
-                name: lineDesc,
+                name: lineDesc.trim(),
                 hsnSacCode: lineHsn,
                 quantity: lineQty,
                 rate: lineRate,
@@ -124,18 +278,75 @@ function EditInvoiceForm({ id }: { id: string }) {
             setEditingTempId(null)
         } else {
             // Add new line
-            setLineItems(prev => [...prev, {
-                tempId: Date.now() + Math.random(),
-                name: lineDesc,
+            const timestamp = Date.now()
+            const newPart = {
+                tempId: timestamp,
+                name: lineDesc.trim(),
                 hsnSacCode: lineHsn,
                 quantity: lineQty,
                 rate: lineRate,
                 taxRate: lineTax,
                 discount: lineDisc,
-            }])
+            }
+
+            if (lineLabor > 0) {
+                const newLabor = {
+                    tempId: timestamp + 1,
+                    name: `${lineDesc.trim()} (Labor Charge)`,
+                    hsnSacCode: "9987",
+                    quantity: lineQty,
+                    rate: lineLabor,
+                    taxRate: lineTax,
+                    discount: 0,
+                }
+                setLineItems(prev => [...prev, newPart, newLabor])
+            } else {
+                setLineItems(prev => [...prev, newPart])
+            }
         }
 
-        setSelItemId(""); setLineDesc(""); setLineHsn(""); setLineQty(1); setLineRate(0); setLineTax(18); setLineDisc(0)
+        setSelItemId(""); setLineDesc(""); setLineHsn(""); setLineQty(1); setLineRate(0); setLineLabor(0); setLineTax(18); setLineDisc(0)
+    }
+
+    const addQuickLabor = () => {
+        if (!quickLaborDesc || quickLaborAmount <= 0) return
+        setLineItems(prev => [...prev, {
+            tempId: Date.now() + Math.random(),
+            name: quickLaborDesc,
+            hsnSacCode: quickLaborSac || "9987",
+            quantity: 1,
+            rate: quickLaborAmount,
+            taxRate: quickLaborTax,
+            discount: 0,
+        }])
+        setQuickLaborDesc("")
+        setQuickLaborAmount(0)
+        setShowLaborModal(false)
+    }
+
+    const applyPartLabors = () => {
+        const timestamp = Date.now()
+        const newLaborItems: any[] = []
+        Object.entries(partLabors).forEach(([tempIdStr, rate], index) => {
+            const tempId = parseFloat(tempIdStr)
+            const partItem = lineItems.find(item => item.tempId === tempId)
+            if (partItem && rate > 0) {
+                newLaborItems.push({
+                    tempId: timestamp + index + Math.random(),
+                    name: `${partItem.name} (Labor Charge)`,
+                    hsnSacCode: "9987",
+                    quantity: partItem.quantity,
+                    rate: rate,
+                    taxRate: partItem.taxRate,
+                    discount: 0,
+                })
+            }
+        })
+        if (newLaborItems.length > 0) {
+            setLineItems(prev => [...prev, ...newLaborItems])
+        }
+        setPartLabors({})
+        setShowLaborModal(false)
     }
 
     const editLine = (item: LineItem) => {
@@ -154,6 +365,15 @@ function EditInvoiceForm({ id }: { id: string }) {
             setEditingTempId(null)
             setSelItemId(""); setLineDesc(""); setLineHsn(""); setLineQty(1); setLineRate(0); setLineTax(18); setLineDisc(0)
         }
+    }
+
+    const updateLineItem = (tempId: number, field: keyof LineItem, value: any) => {
+        setLineItems(prev => prev.map(item => {
+            if (item.tempId === tempId) {
+                return { ...item, [field]: value }
+            }
+            return item
+        }))
     }
 
     // Compute totals
@@ -195,7 +415,7 @@ function EditInvoiceForm({ id }: { id: string }) {
         const data = await res.json()
         setSaving(false)
         if (data.success) {
-            router.push(`/admin/invoices/${id}`)
+            router.push(`${basePath}/${id}`)
         } else {
             alert(data.error || "Failed to save invoice changes")
         }
@@ -232,9 +452,17 @@ function EditInvoiceForm({ id }: { id: string }) {
             {/* Top Bar */}
             <div className="sticky top-0 z-20 bg-[#121214] border-b border-white/10 px-6 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <Link href={`/admin/invoices/${id}`} className="text-zinc-500 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
-                    <h1 className="text-base font-bold font-display">Edit {TYPE_LABELS[invType] || "Invoice"}: <span className="text-[#16acd4] font-mono">{invoiceNumber}</span></h1>
+                    <Link href={`${basePath}/${id}`} className="text-zinc-500 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
+                    <h1 className="text-base font-bold font-display whitespace-nowrap">Edit {TYPE_LABELS[invType] || "Invoice"}: <span className="text-[#16acd4] font-mono">{invoiceNumber}</span></h1>
+                    <button
+                        type="button"
+                        onClick={() => setShowLaborModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-[#16acd4] hover:text-black border border-[#16acd4]/30 text-white font-bold text-xs uppercase transition-colors rounded-sm ml-4"
+                    >
+                        🔧 Add Labor
+                    </button>
                 </div>
+
                 <div className="flex gap-2">
                     <select value={invType} onChange={e => setInvType(e.target.value)} className="bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none">
                         <option value="INVOICE">Tax Invoice</option>
@@ -255,10 +483,8 @@ function EditInvoiceForm({ id }: { id: string }) {
                 </div>
             </div>
 
-            <div className="flex-1 p-4 md:p-6 w-full max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-6">
-                {/* Left Pane: Document info, item inputs, items list */}
-                <div className="flex-1 flex flex-col gap-6 min-w-0">
-                    {/* Document Info */}
+            <div className="flex-1 p-4 md:p-6 w-full max-w-[1600px] mx-auto flex flex-col gap-6">
+                {/* Document Info */}
                     <div className="bg-[#121214] border border-white/5 p-5 grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Client */}
                         <div className="space-y-3">
@@ -338,18 +564,121 @@ function EditInvoiceForm({ id }: { id: string }) {
 
                     {/* Add Item Row */}
                     <div className="bg-[#121214] border border-white/5 p-4">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">{editingTempId !== null ? "✏ Edit Product / Service" : "Add Product / Service"}</p>
-                        <div className="flex flex-wrap gap-2 items-end">
-                            <div className="flex-1 min-w-[180px]">
-                                <label className="text-[10px] text-zinc-600 mb-1 block">From Catalog</label>
-                                <select value={selItemId} onChange={e => setSelItemId(e.target.value)} className="w-full bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-2 py-2 outline-none focus:border-[#16acd4]/50">
-                                    <option value="">Pick a saved service...</option>
-                                    {catalogItems.map(i => <option key={i.id} value={i.id}>{i.name} (₹{i.price})</option>)}
-                                </select>
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div className="flex items-center gap-2">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                                    {editingTempId !== null ? "✏ Edit Line Item" : "Add Line Item"}
+                                </p>
+                                <div className="flex items-center bg-[#09090b] border border-white/10 rounded p-0.5 text-[10px]">
+                                    <button
+                                        type="button"
+                                        onClick={() => setLineType("PRODUCT")}
+                                        className={`px-2 py-0.5 rounded font-bold transition-all ${
+                                            lineType === "PRODUCT"
+                                                ? "bg-[#16acd4] text-black"
+                                                : "text-zinc-500 hover:text-white"
+                                        }`}
+                                    >
+                                        📦 Product (Stock)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setLineType("SERVICE")}
+                                        className={`px-2 py-0.5 rounded font-bold transition-all ${
+                                            lineType === "SERVICE"
+                                                ? "bg-blue-500 text-white"
+                                                : "text-zinc-500 hover:text-white"
+                                        }`}
+                                    >
+                                        🛠️ Service
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex-1 min-w-[160px]">
-                                <label className="text-[10px] text-zinc-600 mb-1 block">Description *</label>
-                                <input value={lineDesc} onChange={e => setLineDesc(e.target.value)} placeholder="Service name" className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-2 py-2 outline-none focus:border-[#16acd4]/50 placeholder:text-zinc-700" />
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPackageModal(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30 rounded text-xs font-bold transition-colors"
+                                >
+                                    <Sparkles className="w-3.5 h-3.5" /> ✨ Detailing Packages
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddProductModal(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1 bg-[#16acd4]/10 hover:bg-[#16acd4]/20 text-[#16acd4] border border-[#16acd4]/30 rounded text-xs font-bold transition-colors"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> + New Product / Add to Stock
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 items-end">
+                            <div className="relative flex-1 min-w-[240px]">
+                                <label className="text-[10px] text-zinc-600 mb-1 block font-bold text-[#16acd4]">Service / Item *</label>
+                                <input
+                                    value={lineDesc}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                    onChange={e => {
+                                        const val = e.target.value
+                                        setLineDesc(val)
+                                        setShowSuggestions(true)
+                                        const item = catalogItems.find(i => i.name.toLowerCase() === val.trim().toLowerCase())
+                                        if (item) {
+                                            setLineHsn(item.hsnSacCode || "")
+                                            setLineRate(item.price)
+                                            setLineTax(item.taxRate)
+                                            if (item.type === "PRODUCT" || item.type === "SERVICE") {
+                                                setLineType(item.type as any)
+                                            }
+                                            if (item.unit) setLineUnit(item.unit)
+                                            if (item.stock !== undefined) setLineStock(String(item.stock))
+                                        }
+                                    }}
+                                    placeholder="Type product name or select saved..."
+                                    className="w-full bg-[#09090b] border border-[#16acd4]/30 text-white text-xs px-2.5 py-2 outline-none focus:border-[#16acd4] placeholder:text-zinc-700 font-semibold"
+                                />
+                                {showSuggestions && catalogItems.filter(i => i.name.toLowerCase().includes(lineDesc.toLowerCase())).length > 0 && (
+                                    <div className="absolute left-0 right-0 top-full mt-1 bg-[#121214] border border-white/10 shadow-2xl z-30 max-h-48 overflow-y-auto divide-y divide-white/5">
+                                        {catalogItems
+                                            .filter(i => i.name.toLowerCase().includes(lineDesc.toLowerCase()))
+                                            .map(item => (
+                                                <div
+                                                    key={item.id}
+                                                    onMouseDown={() => {
+                                                        setLineDesc(item.name)
+                                                        setLineHsn(item.hsnSacCode || "")
+                                                        setLineRate(item.price)
+                                                        setLineTax(item.taxRate)
+                                                        if (item.type === "PRODUCT" || item.type === "SERVICE") {
+                                                            setLineType(item.type as any)
+                                                        }
+                                                        if (item.unit) setLineUnit(item.unit)
+                                                        if (item.stock !== undefined) setLineStock(String(item.stock))
+                                                        setShowSuggestions(false)
+                                                    }}
+                                                    className="p-2.5 hover:bg-[#16acd4]/10 hover:text-[#16acd4] cursor-pointer text-left transition-colors"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="font-semibold text-white text-xs">{item.name}</div>
+                                                        {item.type === "PRODUCT" && item.stock !== undefined && (
+                                                            <span className={`text-[9.5px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                                                                item.stock <= 0
+                                                                    ? "bg-red-500/20 text-red-400"
+                                                                    : item.stock <= 5
+                                                                    ? "bg-amber-500/20 text-amber-400"
+                                                                    : "bg-emerald-500/20 text-emerald-400"
+                                                            }`}>
+                                                                Stock: {item.stock} {item.unit || "PCS"}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                                                        Rate: ₹{item.price} | GST: {item.taxRate}% {item.type === "PRODUCT" ? `· Product` : "· Service"}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
                             </div>
                             <div className="w-24">
                                 <label className="text-[10px] text-zinc-600 mb-1 block">HSN/SAC</label>
@@ -362,6 +691,10 @@ function EditInvoiceForm({ id }: { id: string }) {
                             <div className="w-24">
                                 <label className="text-[10px] text-zinc-600 mb-1 block">Rate (₹) *</label>
                                 <input type="number" value={lineRate} onChange={e => setLineRate(parseFloat(e.target.value) || 0)} className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-2 py-2 outline-none focus:border-[#16acd4]/50 text-right" />
+                            </div>
+                            <div className="w-24">
+                                <label className="text-[10px] text-[#16acd4] mb-1 block font-bold">Labor (₹)</label>
+                                <input type="number" value={lineLabor} onChange={e => setLineLabor(parseFloat(e.target.value) || 0)} className="w-full bg-[#09090b] border border-[#16acd4]/30 text-white text-xs px-2 py-2 outline-none focus:border-[#16acd4] text-right" />
                             </div>
                             <div className="w-20">
                                 <label className="text-[10px] text-zinc-600 mb-1 block">Disc %</label>
@@ -377,6 +710,35 @@ function EditInvoiceForm({ id }: { id: string }) {
                                     <option value={28}>28%</option>
                                 </select>
                             </div>
+                            {lineType === "PRODUCT" && (
+                                <>
+                                    <div className="w-20">
+                                        <label className="text-[10px] text-zinc-600 mb-1 block">Unit</label>
+                                        <select
+                                            value={lineUnit}
+                                            onChange={e => setLineUnit(e.target.value)}
+                                            className="w-full bg-[#09090b] border border-white/10 text-zinc-300 text-xs px-2 py-2 outline-none focus:border-[#16acd4]/50"
+                                        >
+                                            {["PCS", "LTR", "BOTTLE", "BOX", "SET", "KG", "CAN", "MTR", "PACK", "ROLL", "KIT"].map(u => (
+                                                <option key={u} value={u}>{u}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="w-24">
+                                        <label className="text-[10px] text-emerald-400 mb-1 block font-bold" title="Opening stock quantity in workshop">
+                                            Stock Qty
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={lineStock}
+                                            onChange={e => setLineStock(e.target.value)}
+                                            placeholder="In stock"
+                                            className="w-full bg-[#09090b] border border-emerald-500/40 text-emerald-400 text-xs px-2 py-2 outline-none focus:border-emerald-400 text-center font-mono font-bold"
+                                        />
+                                    </div>
+                                </>
+                            )}
                             <div className="flex gap-1.5">
                                 <button onClick={addOrUpdateLine} className="flex items-center gap-1.5 px-4 py-2 bg-[#16acd4] hover:bg-white text-black font-bold text-xs uppercase transition-colors">
                                     {editingTempId !== null ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {editingTempId !== null ? "UPDATE" : "ADD"}
@@ -393,87 +755,231 @@ function EditInvoiceForm({ id }: { id: string }) {
                         </div>
                     </div>
 
+
+
                     {/* Items Table */}
-                    <div className="bg-[#121214] border border-white/5 overflow-x-auto">
+                    <div className="bg-[#121214] border border-white/5 overflow-x-auto rounded-lg">
                         <table className="w-full text-xs text-left border-collapse">
                             <thead className="bg-[#1a1a1c] border-b border-white/10">
                                 <tr>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest">#</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest">Service / Item</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest">HSN/SAC</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-center">Qty</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-right">Rate</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-right">Disc %</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-right">Taxable</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-right">CGST</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-right">SGST</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-right">Total</th>
-                                    <th className="p-3 text-zinc-500 font-bold uppercase tracking-widest text-center">Actions</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-center w-8">#</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider min-w-[200px]">Service / Item Name</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider w-24">HSN/SAC</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-center w-20">Qty</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-right w-28">Rate (₹)</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-right w-20">Disc %</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-center w-16">Tax %</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-right">Taxable</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-right">CGST</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-right">SGST</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-right">Total</th>
+                                    <th className="p-2.5 text-zinc-500 font-bold uppercase tracking-wider text-center w-10">Del</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {computed.length === 0 ? (
-                                    <tr><td colSpan={11} className="p-10 text-center text-zinc-600">No items added yet. Add a product or service above.</td></tr>
+                                    <tr><td colSpan={12} className="p-10 text-center text-zinc-600">No items added yet. Add a product or service above.</td></tr>
                                 ) : computed.map((l, i) => (
-                                    <tr key={l.tempId} className={`hover:bg-white/[0.02] transition-colors ${editingTempId === l.tempId ? "bg-white/[0.04]" : ""}`}>
-                                        <td className="p-3 text-zinc-600">{i + 1}</td>
-                                        <td className="p-3 text-white font-medium">{l.name}</td>
-                                        <td className="p-3 text-zinc-500">{l.hsnSacCode}</td>
-                                        <td className="p-3 text-center">{l.quantity}</td>
-                                        <td className="p-3 text-right font-mono">₹{l.rate.toFixed(2)}</td>
-                                        <td className="p-3 text-right font-mono">{l.discount}%</td>
-                                        <td className="p-3 text-right font-mono">₹{l.taxable.toFixed(2)}</td>
-                                        <td className="p-3 text-right font-mono text-zinc-400">₹{(l.tax / 2).toFixed(2)}</td>
-                                        <td className="p-3 text-right font-mono text-zinc-400">₹{(l.tax / 2).toFixed(2)}</td>
-                                        <td className="p-3 text-right font-mono font-bold text-[#16acd4]">₹{l.total.toFixed(2)}</td>
-                                        <td className="p-3 text-center">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button onClick={() => editLine(l)} className="text-[#16acd4] hover:text-white" title="Edit row"><Edit2 className="w-3.5 h-3.5" /></button>
-                                                <button onClick={() => removeLine(l.tempId)} className="text-red-500 hover:text-red-400" title="Delete row"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    <tr key={l.tempId} className="hover:bg-white/[0.02] group">
+                                        <td className="p-2.5 text-zinc-600 text-center font-mono text-[11px]">{i + 1}</td>
+                                        <td className="p-1.5">
+                                            <input
+                                                type="text"
+                                                value={l.name}
+                                                onChange={e => updateLineItem(l.tempId, "name", e.target.value)}
+                                                placeholder="Service or part name"
+                                                className="w-full bg-[#09090b]/60 hover:bg-[#09090b] focus:bg-[#09090b] border border-white/5 hover:border-white/20 focus:border-[#16acd4] rounded px-2.5 py-1.5 text-xs text-white font-medium outline-none transition-colors"
+                                            />
+                                        </td>
+                                        <td className="p-1.5">
+                                            <input
+                                                type="text"
+                                                value={l.hsnSacCode}
+                                                onChange={e => updateLineItem(l.tempId, "hsnSacCode", e.target.value)}
+                                                placeholder="HSN/SAC"
+                                                className="w-full bg-[#09090b]/60 hover:bg-[#09090b] focus:bg-[#09090b] border border-white/5 hover:border-white/20 focus:border-[#16acd4] rounded px-2.5 py-1.5 text-xs text-zinc-400 font-mono outline-none transition-colors"
+                                            />
+                                        </td>
+                                        <td className="p-1.5">
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                min="0.01"
+                                                value={l.quantity}
+                                                onChange={e => updateLineItem(l.tempId, "quantity", parseFloat(e.target.value) || 0)}
+                                                className="w-full bg-[#09090b]/60 hover:bg-[#09090b] focus:bg-[#09090b] border border-white/5 hover:border-white/20 focus:border-[#16acd4] rounded px-1.5 py-1.5 text-xs text-white font-mono font-bold text-center outline-none transition-colors"
+                                            />
+                                        </td>
+                                        <td className="p-1.5">
+                                            <div className="flex items-center bg-[#09090b]/60 hover:bg-[#09090b] focus-within:bg-[#09090b] border border-white/5 hover:border-white/20 focus-within:border-[#16acd4] rounded px-2 py-1.5 transition-colors">
+                                                <span className="text-zinc-500 font-mono text-[11px] mr-1">₹</span>
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    value={l.rate}
+                                                    onChange={e => updateLineItem(l.tempId, "rate", parseFloat(e.target.value) || 0)}
+                                                    className="w-full bg-transparent text-xs text-white font-mono font-bold text-right outline-none"
+                                                />
                                             </div>
+                                        </td>
+                                        <td className="p-1.5">
+                                            <div className="flex items-center bg-[#09090b]/60 hover:bg-[#09090b] focus-within:bg-[#09090b] border border-white/5 hover:border-white/20 focus-within:border-[#16acd4] rounded px-1.5 py-1.5 transition-colors">
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    min="0"
+                                                    max="100"
+                                                    value={l.discount}
+                                                    onChange={e => updateLineItem(l.tempId, "discount", parseFloat(e.target.value) || 0)}
+                                                    className="w-full bg-transparent text-xs text-zinc-300 font-mono text-right outline-none"
+                                                />
+                                                <span className="text-zinc-500 font-mono text-[10px] ml-0.5">%</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-1.5">
+                                            <select
+                                                value={l.taxRate}
+                                                onChange={e => updateLineItem(l.tempId, "taxRate", parseFloat(e.target.value))}
+                                                className="w-full bg-[#09090b]/60 hover:bg-[#09090b] focus:bg-[#09090b] border border-white/5 hover:border-white/20 focus:border-[#16acd4] rounded px-1 py-1.5 text-[11px] text-zinc-400 outline-none transition-colors cursor-pointer text-center"
+                                            >
+                                                <option value={0}>0%</option>
+                                                <option value={5}>5%</option>
+                                                <option value={12}>12%</option>
+                                                <option value={18}>18%</option>
+                                                <option value={28}>28%</option>
+                                            </select>
+                                        </td>
+                                        <td className="p-2.5 text-right font-mono text-zinc-200">
+                                            ₹{l.taxable.toFixed(2)}
+                                        </td>
+                                        <td className="p-2.5 text-right font-mono text-zinc-400">
+                                            ₹{(l.tax / 2).toFixed(2)}
+                                        </td>
+                                        <td className="p-2.5 text-right font-mono text-zinc-400">
+                                            ₹{(l.tax / 2).toFixed(2)}
+                                        </td>
+                                        <td className="p-2.5 text-right font-mono font-bold text-[#16acd4]">
+                                            ₹{l.total.toFixed(2)}
+                                        </td>
+                                        <td className="p-2.5 text-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => removeLine(l.tempId)}
+                                                className="p-1 text-zinc-500 hover:text-red-400 rounded hover:bg-red-500/10 transition-colors"
+                                                title="Delete item"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
 
-                {/* Right Pane: Sticky Summary & Notes */}
-                <div className="w-full lg:w-96 shrink-0 flex flex-col gap-6 lg:sticky lg:top-24 h-fit">
-                    {/* Totals Summary */}
-                    <div className="bg-[#121214] border border-white/5 p-5 flex flex-col gap-4">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Summary</p>
-                        <div className="space-y-2 text-xs">
-                            <div className="flex justify-between text-zinc-400"><span>Sub Total</span><span className="font-mono">₹{subTotal.toFixed(2)}</span></div>
-                            <div className="flex justify-between text-zinc-400"><span>CGST</span><span className="font-mono">₹{(taxTotal / 2).toFixed(2)}</span></div>
-                            <div className="flex justify-between text-zinc-400"><span>SGST</span><span className="font-mono">₹{(taxTotal / 2).toFixed(2)}</span></div>
-                            {discount > 0 && <div className="flex justify-between text-red-400"><span>Discount</span><span className="font-mono">-₹{discount.toFixed(2)}</span></div>}
-                            <div className="flex justify-between text-white font-bold text-lg pt-3 border-t border-white/10">
-                                <span>Grand Total</span>
-                                <span className="font-mono text-[#16acd4]">₹{grandTotal.toFixed(2)}</span>
+                    {/* Bottom Section: Notes & Terms (Left) + Totals Summary & Action (Right) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+                        {/* Notes & Terms (Left - 7 cols) */}
+                        <div className="lg:col-span-7 bg-[#121214] border border-white/5 p-5 rounded-lg space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Notes & Terms</p>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        setSavingDefaults(true)
+                                        try {
+                                            const profileApi = basePath.startsWith("/shop") ? "/api/shop/billing/profile" : "/api/admin/billing/profile"
+                                            const res = await fetch(profileApi, {
+                                                method: "PATCH",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ defaultNotes: notes, defaultTerms: terms })
+                                            })
+                                            const d = await res.json()
+                                            if (d.success) {
+                                                setSavedDefaultsFeedback(true)
+                                                setTimeout(() => setSavedDefaultsFeedback(false), 3000)
+                                            } else {
+                                                alert(d.error || "Failed to save defaults")
+                                            }
+                                        } catch (err: any) {
+                                            alert(err?.message || "Error saving defaults")
+                                        }
+                                        setSavingDefaults(false)
+                                    }}
+                                    disabled={savingDefaults}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold bg-white/5 hover:bg-white/10 text-[#16acd4] border border-[#16acd4]/30 rounded transition-all disabled:opacity-50"
+                                    title="Save current note and terms to your Profile defaults so all future invoices use them"
+                                >
+                                    {savedDefaultsFeedback ? (
+                                        <span className="text-emerald-400 font-bold flex items-center gap-1">✓ Saved to Profile Defaults!</span>
+                                    ) : (
+                                        <span>💾 {savingDefaults ? "Saving..." : "Save as Default in Profile"}</span>
+                                    )}
+                                </button>
                             </div>
-                            <p className="text-[10px] text-zinc-600 text-right">* Inclusive of all taxes</p>
+                            <div>
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5 block">Note (printed on invoice)</label>
+                                <textarea
+                                    value={notes}
+                                    onChange={e => setNotes(e.target.value)}
+                                    rows={3}
+                                    placeholder="Enter note to be printed on invoice..."
+                                    className="w-full bg-[#09090b] border border-white/10 text-zinc-300 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50 rounded resize-none font-sans"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5 block">Terms & Conditions</label>
+                                <textarea
+                                    value={terms}
+                                    onChange={e => setTerms(e.target.value)}
+                                    rows={3}
+                                    placeholder="Enter terms and conditions..."
+                                    className="w-full bg-[#09090b] border border-white/10 text-zinc-300 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50 rounded resize-none font-sans"
+                                />
+                            </div>
                         </div>
-                        <button onClick={handleSave} disabled={saving} className="w-full py-3 bg-[#16acd4] hover:bg-white text-black font-bold uppercase tracking-widest text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                            <Check className="w-4 h-4" /> {saving ? "Saving..." : "Save Invoice Changes"}
-                        </button>
-                    </div>
 
-                    {/* Notes & Terms */}
-                    <div className="bg-[#121214] border border-white/5 p-5 space-y-4">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Notes & Terms</p>
-                        <div>
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-1 block">Note (printed on invoice)</label>
-                            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="w-full bg-[#09090b] border border-white/10 text-zinc-300 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50 resize-none font-sans" />
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-1 block">Terms & Conditions</label>
-                            <textarea value={terms} onChange={e => setTerms(e.target.value)} rows={3} className="w-full bg-[#09090b] border border-white/10 text-zinc-300 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50 resize-none font-sans" />
+                        {/* Totals Summary (Right - 5 cols) */}
+                        <div className="lg:col-span-5 bg-[#121214] border border-white/5 p-5 rounded-lg flex flex-col justify-between gap-5">
+                            <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Summary</p>
+                                <div className="space-y-2.5 text-xs">
+                                    <div className="flex justify-between text-zinc-400">
+                                        <span>Sub Total</span>
+                                        <span className="font-mono text-zinc-200">₹{subTotal.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-zinc-400">
+                                        <span>CGST</span>
+                                        <span className="font-mono text-zinc-200">₹{(taxTotal / 2).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-zinc-400">
+                                        <span>SGST</span>
+                                        <span className="font-mono text-zinc-200">₹{(taxTotal / 2).toFixed(2)}</span>
+                                    </div>
+                                    {discount > 0 && (
+                                        <div className="flex justify-between text-red-400">
+                                            <span>Discount</span>
+                                            <span className="font-mono">-₹{discount.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-white font-bold text-lg pt-3 border-t border-white/10">
+                                        <span>Grand Total</span>
+                                        <span className="font-mono text-[#16acd4]">₹{grandTotal.toFixed(2)}</span>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-500 text-right">* Inclusive of all taxes</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="w-full py-3.5 bg-[#16acd4] hover:bg-white text-black font-bold uppercase tracking-widest text-sm rounded transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[#16acd4]/20"
+                            >
+                                <Check className="w-4 h-4" /> {saving ? "Saving..." : "Save Invoice Changes"}
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
 
             {/* Add Client Modal */}
             {showAddClient && (
@@ -521,6 +1027,627 @@ function EditInvoiceForm({ id }: { id: string }) {
                             <button onClick={handleAddClient} disabled={addingClient} className="px-6 py-2 bg-[#16acd4] hover:bg-white text-black font-bold text-xs uppercase transition-colors disabled:opacity-50 flex items-center gap-2">
                                 <Check className="w-4 h-4" /> {addingClient ? "Saving..." : "Save Client"}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Labor Modal */}
+            {showLaborModal && (
+                <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-[#121214] border border-white/10 w-full max-w-2xl rounded-sm shadow-2xl">
+                        <div className="flex items-center justify-between p-4 border-b border-white/10">
+                            <h3 className="font-bold text-white flex items-center gap-2">🔧 Manage Labor Charges</h3>
+                            <button onClick={() => setShowLaborModal(false)} className="text-zinc-500 hover:text-white"><X className="w-5 h-5" /></button>
+                        </div>
+                        
+                        {/* Tabs */}
+                        <div className="flex border-b border-white/5 bg-[#1a1a1c]">
+                            <button
+                                onClick={() => setLaborTab("general")}
+                                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${laborTab === "general" ? "bg-[#16acd4]/10 text-[#16acd4] border-b-2 border-[#16acd4]" : "text-zinc-400 hover:text-white hover:bg-white/5"}`}
+                            >
+                                General Labor Charge
+                            </button>
+                            <button
+                                onClick={() => setLaborTab("parts")}
+                                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${laborTab === "parts" ? "bg-[#16acd4]/10 text-[#16acd4] border-b-2 border-[#16acd4]" : "text-zinc-400 hover:text-white hover:bg-white/5"}`}
+                            >
+                                Part-Linked Labor Charge
+                            </button>
+                        </div>
+
+                        <div className="p-5 max-h-[60vh] overflow-y-auto">
+                            {laborTab === "general" ? (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] text-zinc-500 mb-1 block font-bold uppercase tracking-widest">Labor Description *</label>
+                                        <input
+                                            value={quickLaborDesc}
+                                            onChange={e => setQuickLaborDesc(e.target.value)}
+                                            placeholder="e.g., General Denting & Painting Labor"
+                                            className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="text-[10px] text-zinc-500 mb-1 block font-bold uppercase tracking-widest">SAC Code</label>
+                                            <input
+                                                value={quickLaborSac}
+                                                onChange={e => setQuickLaborSac(e.target.value)}
+                                                className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-zinc-500 mb-1 block font-bold uppercase tracking-widest">Amount (₹) *</label>
+                                            <input
+                                                type="number"
+                                                value={quickLaborAmount || ""}
+                                                onChange={e => setQuickLaborAmount(parseFloat(e.target.value) || 0)}
+                                                className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50 text-right"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-zinc-500 mb-1 block font-bold uppercase tracking-widest">Tax %</label>
+                                            <select
+                                                value={quickLaborTax}
+                                                onChange={e => setQuickLaborTax(parseFloat(e.target.value))}
+                                                className="w-full bg-[#09090b] border border-white/10 text-zinc-400 text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50"
+                                            >
+                                                <option value={0}>0%</option>
+                                                <option value={5}>5%</option>
+                                                <option value={12}>12%</option>
+                                                <option value={18}>18%</option>
+                                                <option value={28}>28%</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mb-2">Select and add labor cost to parts currently in the invoice:</p>
+                                    
+                                    {lineItems.filter(item => item.hsnSacCode !== "9987" && !item.name.includes("(Labor")).length === 0 ? (
+                                        <p className="text-center py-6 text-zinc-600 text-xs">No parts added to the invoice yet. Add products to the invoice first.</p>
+                                    ) : (
+                                        <div className="divide-y divide-white/5 border border-white/5 bg-[#09090b]">
+                                            {lineItems.filter(item => item.hsnSacCode !== "9987" && !item.name.includes("(Labor")).map(item => (
+                                                <div key={item.tempId} className="flex items-center justify-between p-3">
+                                                    <div>
+                                                        <p className="font-semibold text-white text-xs">{item.name}</p>
+                                                        <p className="text-[10px] text-zinc-500 font-mono">Qty: {item.quantity} | Rate: ₹{item.rate}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-zinc-500 font-bold uppercase">Labor Charge (₹):</span>
+                                                        <input
+                                                            type="number"
+                                                            value={partLabors[String(item.tempId)] || ""}
+                                                            onChange={e => setPartLabors(prev => ({ ...prev, [String(item.tempId)]: parseFloat(e.target.value) || 0 }))}
+                                                            placeholder="0.00"
+                                                            className="bg-[#121214] border border-white/10 text-white text-xs px-3 py-1.5 outline-none focus:border-[#16acd4]/50 w-28 text-right font-mono"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t border-white/10 flex justify-end gap-2 bg-[#1a1a1c]">
+                            <button
+                                onClick={() => setShowLaborModal(false)}
+                                className="px-5 py-2 bg-zinc-800 text-zinc-400 hover:text-white border border-white/10 font-bold text-xs uppercase transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            {laborTab === "general" ? (
+                                <button
+                                    onClick={addQuickLabor}
+                                    className="px-6 py-2 bg-[#16acd4] hover:bg-white text-black font-bold text-xs uppercase transition-colors"
+                                >
+                                    Add General Labor
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={applyPartLabors}
+                                    disabled={lineItems.filter(item => item.hsnSacCode !== "9987" && !item.name.includes("(Labor")).length === 0}
+                                    className="px-6 py-2 bg-[#16acd4] hover:bg-white text-black font-bold text-xs uppercase transition-colors disabled:opacity-50"
+                                >
+                                    Apply Labor Charges
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Quick Add Product to Stock Modal */}
+            {showAddProductModal && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-[#121214] border border-white/10 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-4 border-b border-white/10 bg-[#161618]">
+                            <div>
+                                <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                                    <Plus className="w-4 h-4 text-[#16acd4]" />
+                                    Add New Product / Stock Catalog
+                                </h3>
+                                <p className="text-[11px] text-zinc-400 mt-0.5">
+                                    Item will be permanently saved to your workshop stock catalog
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowAddProductModal(false)}
+                                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-white/5"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-5 space-y-3.5 max-h-[75vh] overflow-y-auto">
+                            {/* Type selector */}
+                            <div>
+                                <label className="text-[10px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">Type *</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewProduct(p => ({ ...p, type: "PRODUCT" }))}
+                                        className={`py-2 px-3 rounded-lg border text-xs font-bold transition-all text-center ${
+                                            newProduct.type === "PRODUCT"
+                                                ? "border-[#16acd4] bg-[#16acd4]/10 text-white"
+                                                : "border-white/5 bg-[#09090b] text-zinc-400"
+                                        }`}
+                                    >
+                                        📦 Physical Product (Stock)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewProduct(p => ({ ...p, type: "SERVICE" }))}
+                                        className={`py-2 px-3 rounded-lg border text-xs font-bold transition-all text-center ${
+                                            newProduct.type === "SERVICE"
+                                                ? "border-blue-400 bg-blue-500/10 text-white"
+                                                : "border-white/5 bg-[#09090b] text-zinc-400"
+                                        }`}
+                                    >
+                                        🛠️ Service / Labor
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Product Name */}
+                            <div>
+                                <label className="text-[10px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">Product / Item Name *</label>
+                                <input
+                                    value={newProduct.name}
+                                    onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))}
+                                    placeholder="e.g. PPF Roll TPU 15m, Ceramic 50ml, Oil Filter"
+                                    className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 rounded-lg outline-none focus:border-[#16acd4]/50"
+                                />
+                            </div>
+
+                            {/* SKU & HSN */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">SKU / Part Number</label>
+                                    <input
+                                        value={newProduct.sku}
+                                        onChange={e => setNewProduct(p => ({ ...p, sku: e.target.value }))}
+                                        placeholder="Optional part #"
+                                        className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 rounded-lg outline-none focus:border-[#16acd4]/50 font-mono"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">HSN / SAC Code</label>
+                                    <input
+                                        value={newProduct.hsnSacCode}
+                                        onChange={e => setNewProduct(p => ({ ...p, hsnSacCode: e.target.value }))}
+                                        placeholder="e.g. 39199090"
+                                        className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 rounded-lg outline-none focus:border-[#16acd4]/50 font-mono"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Selling Price & Purchase Price */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">Selling Rate (₹) *</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={newProduct.price}
+                                        onChange={e => setNewProduct(p => ({ ...p, price: e.target.value }))}
+                                        placeholder="Rate for customer"
+                                        className="w-full bg-[#09090b] border border-[#16acd4]/40 text-[#16acd4] font-mono font-bold text-xs px-3 py-2 rounded-lg outline-none focus:border-[#16acd4]"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">Purchase Cost (₹)</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={newProduct.purchasePrice}
+                                        onChange={e => setNewProduct(p => ({ ...p, purchasePrice: e.target.value }))}
+                                        placeholder="Cost price (optional)"
+                                        className="w-full bg-[#09090b] border border-white/10 text-white font-mono text-xs px-3 py-2 rounded-lg outline-none focus:border-[#16acd4]/50"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Stock & Unit (if product) */}
+                            {newProduct.type === "PRODUCT" && (
+                                <div className="bg-[#09090b] border border-white/10 p-3 rounded-xl grid grid-cols-3 gap-2.5">
+                                    <div>
+                                        <label className="text-[9.5px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">Opening Stock</label>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={newProduct.stock}
+                                            onChange={e => setNewProduct(p => ({ ...p, stock: e.target.value }))}
+                                            className="w-full bg-[#121214] border border-white/10 text-emerald-400 font-mono font-bold text-xs px-2.5 py-1.5 rounded-lg outline-none focus:border-emerald-400"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9.5px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">Unit</label>
+                                        <select
+                                            value={newProduct.unit}
+                                            onChange={e => setNewProduct(p => ({ ...p, unit: e.target.value }))}
+                                            className="w-full bg-[#121214] border border-white/10 text-white text-xs px-2 py-1.5 rounded-lg outline-none focus:border-[#16acd4]/50"
+                                        >
+                                            {["PCS", "LTR", "BOTTLE", "BOX", "SET", "KG", "CAN", "MTR", "PACK", "ROLL", "KIT"].map(u => (
+                                                <option key={u} value={u}>{u}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[9.5px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">Low Alert Qty</label>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={newProduct.minStockAlert}
+                                            onChange={e => setNewProduct(p => ({ ...p, minStockAlert: e.target.value }))}
+                                            className="w-full bg-[#121214] border border-white/10 text-amber-400 font-mono text-xs px-2.5 py-1.5 rounded-lg outline-none focus:border-amber-400"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* GST Rate */}
+                            <div>
+                                <label className="text-[10px] text-zinc-400 mb-1 block font-bold uppercase tracking-wider">GST Rate (%)</label>
+                                <select
+                                    value={newProduct.taxRate}
+                                    onChange={e => setNewProduct(p => ({ ...p, taxRate: e.target.value }))}
+                                    className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 rounded-lg outline-none focus:border-[#16acd4]/50"
+                                >
+                                    {[0, 5, 12, 18, 28].map(r => (
+                                        <option key={r} value={r}>{r}% GST {r === 18 ? "(Standard)" : ""}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Add immediately to current invoice checkbox */}
+                            <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={newProduct.addToInvoice}
+                                        onChange={e => setNewProduct(p => ({ ...p, addToInvoice: e.target.checked }))}
+                                        className="w-4 h-4 accent-[#16acd4]"
+                                    />
+                                    Add this item to current bill right now
+                                </label>
+                                {newProduct.addToInvoice && (
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[11px] text-zinc-500">Bill Qty:</span>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={newProduct.qtyToBill}
+                                            onChange={e => setNewProduct(p => ({ ...p, qtyToBill: e.target.value }))}
+                                            className="w-14 bg-[#09090b] border border-white/10 text-white text-xs px-2 py-1 rounded outline-none focus:border-[#16acd4] text-center font-mono"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-white/10 bg-[#161618] flex items-center justify-end gap-2.5">
+                            <button
+                                type="button"
+                                onClick={() => setShowAddProductModal(false)}
+                                className="px-4 py-2 rounded-lg border border-white/10 text-zinc-400 text-xs font-bold hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={addingProduct}
+                                onClick={handleCreateProductSubmit}
+                                className="px-5 py-2 bg-[#16acd4] hover:bg-white text-black font-bold uppercase tracking-wider text-xs rounded-lg transition-colors flex items-center gap-2"
+                            >
+                                {addingProduct ? "Saving..." : "Save to Stock & Add"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Detailing Packages Modal */}
+            {showPackageModal && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-[#121214] border border-white/10 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-4 border-b border-white/10 bg-[#161618]">
+                            <div>
+                                <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-fuchsia-400" />
+                                    Select Detailing / Labor Package
+                                </h3>
+                                <p className="text-[11px] text-zinc-400 mt-0.5">
+                                    Pick a package and vehicle category to auto-calculate price & inclusions (No stock required)
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowPackageModal(false)}
+                                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-white/5"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+                            {/* Vehicle Segment Selector */}
+                            <div>
+                                <label className="text-[10px] text-zinc-400 mb-1.5 block font-bold uppercase tracking-wider">
+                                    Select Vehicle Category
+                                </label>
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                                    {[
+                                        { key: "hatchback", label: "Hatchback", icon: "🚗" },
+                                        { key: "sedan", label: "Sedan", icon: "🚘" },
+                                        { key: "compactSuv", label: "Compact SUV", icon: "🚙" },
+                                        { key: "fullSuv", label: "Full SUV", icon: "🚜" },
+                                        { key: "bike", label: "Two-Wheeler", icon: "🏍️" },
+                                        { key: "base", label: "Standard", icon: "⭐" },
+                                    ].map(seg => (
+                                        <button
+                                            key={seg.key}
+                                            type="button"
+                                            onClick={() => setPkgVehicleType(seg.key as any)}
+                                            className={`p-2 rounded-lg border text-center transition-all ${
+                                                pkgVehicleType === seg.key
+                                                    ? "bg-[#16acd4]/20 border-[#16acd4] text-white shadow-sm"
+                                                    : "bg-[#09090b] border-white/10 text-zinc-400 hover:text-white"
+                                            }`}
+                                        >
+                                            <div className="text-base">{seg.icon}</div>
+                                            <div className="text-[10px] font-bold mt-0.5 leading-tight">{seg.label}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Packages list */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] text-zinc-400 block font-bold uppercase tracking-wider">
+                                    Available Packages ({servicePackages.length})
+                                </label>
+                                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                    {servicePackages.map(pkg => {
+                                        const isSel = (selectedPkgId || servicePackages[0]?.id) === pkg.id
+                                        
+                                        let price = pkg.basePrice
+                                        if (pkgVehicleType === "hatchback" && pkg.hatchbackPrice) price = pkg.hatchbackPrice
+                                        else if (pkgVehicleType === "sedan" && pkg.sedanPrice) price = pkg.sedanPrice
+                                        else if (pkgVehicleType === "compactSuv" && pkg.compactSuvPrice) price = pkg.compactSuvPrice
+                                        else if (pkgVehicleType === "fullSuv" && pkg.fullSuvPrice) price = pkg.fullSuvPrice
+                                        else if (pkgVehicleType === "bike" && pkg.bikePrice) price = pkg.bikePrice
+
+                                        let incs: string[] = []
+                                        if (pkg.inclusions) {
+                                            try { incs = JSON.parse(pkg.inclusions) } catch { incs = pkg.inclusions.split("\n") }
+                                        }
+
+                                        let prods: any[] = []
+                                        if (pkg.productsUsed) {
+                                            try { prods = JSON.parse(pkg.productsUsed) } catch { prods = [] }
+                                        }
+
+                                        return (
+                                            <div
+                                                key={pkg.id}
+                                                onClick={() => setSelectedPkgId(pkg.id)}
+                                                className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                                                    isSel
+                                                        ? "bg-fuchsia-500/10 border-fuchsia-500/50 shadow-md"
+                                                        : "bg-[#09090b] border-white/5 hover:border-white/20"
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-zinc-800 text-fuchsia-300">
+                                                            {pkg.category}
+                                                        </span>
+                                                        <h4 className="font-bold text-white text-xs">{pkg.name}</h4>
+                                                    </div>
+                                                    <span className="font-mono font-bold text-[#16acd4] text-sm">
+                                                        ₹{price.toLocaleString()}
+                                                    </span>
+                                                </div>
+
+                                                {pkg.description && (
+                                                    <p className="text-[11px] text-zinc-400 mt-1 line-clamp-1">
+                                                        {pkg.description}
+                                                    </p>
+                                                )}
+
+                                                {/* Materials & Parts Required */}
+                                                {prods.length > 0 && isSel && (
+                                                    <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
+                                                        <div className="flex items-center justify-between text-[10px] text-[#fb923c] font-bold">
+                                                            <span className="flex items-center gap-1">
+                                                                <Boxes className="w-3 h-3" /> Required Parts & Materials:
+                                                            </span>
+                                                            <span className="font-mono">
+                                                                Cost: ₹{prods.reduce((a, b) => a + (b.price * b.quantity), 0).toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] text-zinc-300">
+                                                            {prods.map((p, idx) => (
+                                                                <div key={idx} className="flex justify-between bg-black/20 px-2 py-0.5 rounded border border-white/5">
+                                                                    <span className="truncate">• {p.name} ({p.quantity} {p.unit})</span>
+                                                                    <span className="font-mono text-[#fb923c] ml-1 shrink-0">₹{(p.price * p.quantity).toLocaleString()}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {incs.length > 0 && isSel && (
+                                                    <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
+                                                        <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Scope of Work:</div>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                                            {incs.slice(0, 4).map((inc, i) => (
+                                                                <div key={i} className="flex items-center gap-1.5 text-[10px] text-zinc-300">
+                                                                    <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                                                                    <span className="truncate">{inc}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-zinc-500">
+                                                    {pkg.duration && <span>⏱ {pkg.duration}</span>}
+                                                    {pkg.warranty && <span>🛡️ {pkg.warranty}</span>}
+                                                    <span>SAC {pkg.hsnSacCode || "9987"} · {pkg.taxRate}% GST</span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-white/10 bg-[#161618] flex items-center justify-between">
+                            <Link
+                                href="/shop/billing/services"
+                                target="_blank"
+                                className="text-xs text-fuchsia-400 hover:underline flex items-center gap-1 font-semibold"
+                            >
+                                Manage Packages & Rates →
+                            </Link>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPackageModal(false)}
+                                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const pkg = servicePackages.find(p => p.id === (selectedPkgId || servicePackages[0]?.id))
+                                        if (!pkg) return
+
+                                        let segPrice = pkg.basePrice
+                                        let segLabel = "Standard"
+                                        if (pkgVehicleType === "hatchback") {
+                                            segLabel = "Hatchback"
+                                            if (pkg.hatchbackPrice) segPrice = pkg.hatchbackPrice
+                                        } else if (pkgVehicleType === "sedan") {
+                                            segLabel = "Sedan"
+                                            if (pkg.sedanPrice) segPrice = pkg.sedanPrice
+                                        } else if (pkgVehicleType === "compactSuv") {
+                                            segLabel = "Compact SUV"
+                                            if (pkg.compactSuvPrice) segPrice = pkg.compactSuvPrice
+                                        } else if (pkgVehicleType === "fullSuv") {
+                                            segLabel = "Full SUV"
+                                            if (pkg.fullSuvPrice) segPrice = pkg.fullSuvPrice
+                                        } else if (pkgVehicleType === "bike") {
+                                            segLabel = "Two-Wheeler"
+                                            if (pkg.bikePrice) segPrice = pkg.bikePrice
+                                        }
+
+                                        let prods: any[] = []
+                                        if (pkg.productsUsed) {
+                                            try {
+                                                prods = typeof pkg.productsUsed === "string" ? JSON.parse(pkg.productsUsed) : pkg.productsUsed
+                                                if (typeof prods === "string") prods = JSON.parse(prods)
+                                            } catch {
+                                                prods = []
+                                            }
+                                        }
+
+                                        const timestamp = Date.now()
+                                        const newItems: LineItem[] = []
+
+                                        if (Array.isArray(prods) && prods.length > 0) {
+                                            let partsSum = 0
+                                            prods.forEach((p: any, idx: number) => {
+                                                const qty = parseFloat(p.quantity) || 1
+                                                const rate = parseFloat(p.price) || 0
+                                                partsSum += (qty * rate)
+
+                                                const matched = catalogItems.find(c => c.name.toLowerCase() === (p.name || "").toLowerCase())
+                                                const defaultHsn = (p.name || "").toLowerCase().includes("oil")
+                                                    ? "27101981"
+                                                    : (p.name || "").toLowerCase().includes("filter")
+                                                    ? "8421"
+                                                    : (p.name || "").toLowerCase().includes("coolant")
+                                                    ? "38200000"
+                                                    : (p.name || "").toLowerCase().includes("plug")
+                                                    ? "85111000"
+                                                    : "8708"
+
+                                                newItems.push({
+                                                    tempId: timestamp + idx + Math.random(),
+                                                    name: p.name,
+                                                    hsnSacCode: matched?.hsnSacCode || defaultHsn,
+                                                    quantity: qty,
+                                                    rate: rate,
+                                                    taxRate: matched?.taxRate || 18,
+                                                    discount: 0,
+                                                })
+                                            })
+
+                                            const labor = pkg.laborCharge > 0 ? pkg.laborCharge : Math.max(0, segPrice - partsSum)
+                                            if (labor > 0) {
+                                                newItems.push({
+                                                    tempId: timestamp + prods.length + 10 + Math.random(),
+                                                    name: `${pkg.name} - Service & Labor Charge (${segLabel})`,
+                                                    hsnSacCode: "9987",
+                                                    quantity: 1,
+                                                    rate: labor,
+                                                    taxRate: 18,
+                                                    discount: 0,
+                                                })
+                                            }
+                                        } else {
+                                            newItems.push({
+                                                tempId: timestamp,
+                                                name: `${pkg.name} (${segLabel})`,
+                                                hsnSacCode: pkg.hsnSacCode || "9987",
+                                                quantity: 1,
+                                                rate: segPrice,
+                                                taxRate: pkg.taxRate || 18,
+                                                discount: 0,
+                                            })
+                                        }
+
+                                        if (!vehicleName && pkg.vehicleName) {
+                                            setVehicleName(pkg.vehicleName)
+                                        }
+
+                                        setLineItems(prev => [...prev, ...newItems])
+                                        setShowPackageModal(false)
+                                    }}
+                                    className="px-5 py-2 bg-[#16acd4] hover:bg-white text-black font-bold uppercase tracking-wider text-xs rounded-lg transition-colors flex items-center gap-1.5"
+                                >
+                                    <Check className="w-4 h-4" /> Add Package to Bill
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -58,8 +58,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Only ADMIN can create PDI reports
-        if (user.role !== 'ADMIN') {
+        // Only ADMIN / SUPER_ADMIN can create PDI reports
+        if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
         }
 

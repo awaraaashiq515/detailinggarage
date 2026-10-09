@@ -48,6 +48,7 @@ model User {
   dealerSubscriptions DealerSubscription[]
   dealerVehicles    DealerVehicle[]
   pdiInspections    PDIInspection[]
+  evPdiInspections  EVPDIInspection[]
   pdiRequests       PDIConfirmationRequest[]
   otpVerifications  OTPVerification[]
   insuranceClaims   InsuranceClaim[]
@@ -72,6 +73,9 @@ model User {
   dealerPostLikes   DealerPostLike[]
   dealerPostComments DealerPostComment[]
   
+  // Shop owner relation
+  shop              Shop?         @relation("ShopOwner")
+
   // Billing system links
   billingClients    BillingClient[] @relation("UserBillingClient")
 }
@@ -1461,14 +1465,186 @@ model DealerPageView {
 }
 
 model StudioPost {
-  id        String   @id @default(cuid())
-  type      String   @default("IMAGE") // IMAGE, VIDEO, REEL
-  url       String
-  caption   String?
-  link      String?  
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  type          String    @default("IMAGE") // IMAGE, VIDEO, REEL
+  url           String
+  caption       String?
+  link          String?  
+  isActive      Boolean   @default(true)
+  source        String    @default("MANUAL")
+  externalId    String?   @unique
+  likesCount    Int       @default(0)
+  commentsCount Int       @default(0)
+  sharesCount   Int       @default(0)
+  publishedAt   DateTime? @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model FacebookSettings {
+  id                 String    @id @default(cuid())
+  pageId             String?
+  pageName           String?
+  pageAccessToken    String?
+  appId              String?
+  appSecret          String?
+  webhookVerifyToken String?   @default("dg_fb_webhook_token_secure_2026")
+  autoSync           Boolean   @default(true)
+  syncInterval       Int       @default(30)
+  showOnHome         Boolean   @default(true)
+  homeSectionTitle   String?   @default("Live from Facebook")
+  homeSectionDesc    String?   @default("Latest transformations, reels, and detailing updates directly from our Facebook page.")
+  maxHomePosts       Int       @default(6)
+  fallbackEmbedUrl   String?
+  lastSyncedAt       DateTime?
+  lastSyncStatus     String?   @default("IDLE")
+  lastSyncMessage    String?
+  isConnected        Boolean   @default(false)
+  updatedAt          DateTime  @updatedAt
+  updatedBy          String?
+}
+
+model EVPDIInspection {
+  id                   String   @id @default(cuid())
+  userId               String?
+  user                 User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  vehicleMake          String
+  vehicleModel         String
+  vehicleVariant       String?
+  vehicleColor         String
+  vehicleYear          String?
+  vin                  String?
+  motorNumber          String?
+  batteryId            String?
+  registrationNumber   String?
+  dealership           String?
+  odometer             String?
+  manufacturingDate    String?
+  customerName         String
+  customerEmail        String?
+  customerPhone        String?
+  inspectionDate       DateTime @default(now())
+  inspectedBy          String?  @default("Ritchie")
+  status               String   @default("COMPLETED")
+  pdfUrl               String?
+  adminComments        String?
+  digitalSignature     String?
+  customerSignature    String?
+  dealerSignature      String?
+  scores               String?
+  finalResult          String?
+  documentationData    String?
+  exteriorData         String?
+  paintThicknessData   String?
+  tyreData             String?
+  underbodyData        String?
+  batteryData          String?
+  batterySoc           String?
+  batterySoh           String?
+  cellVoltageDeviation String?
+  batteryTemperature   String?
+  hvIsolation          String?
+  motorData            String?
+  chargingData         String?
+  acChargingResult     String?
+  dcChargingResult     String?
+  chargingRate         String?
+  diagnosticData       String?
+  activeFaultCodes     String?
+  storedFaultCodes     String?
+  pendingFaultCodes    String?
+  totalFaultCodes      String?
+  electricalData       String?
+  brakingData          String?
+  steeringData         String?
+  interiorData         String?
+  infotainmentData     String?
+  adasData             String?
+  roadTestData         String?
+  images               String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([userId])
+}
+
+
+// ─── Multi-Tenant Shop System ──────────────────────────────────────────────
+
+// Represents an independent workshop/shop that uses the billing system
+// Status: ACTIVE, SUSPENDED
+model Shop {
+  id            String    @id @default(cuid())
+  name          String                      // "Al Motors", "Speedy Garage"
+  ownerUserId   String    @unique           // One user = one shop
+  owner         User      @relation("ShopOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  // Business Info
+  phone         String?
+  email         String?
+  address       String?
+  city          String?
+  state         String?
+  gstin         String?
+  logoUrl       String?
+
+  // Status
+  status        String    @default("ACTIVE") // ACTIVE, SUSPENDED
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations — all billing data scoped to this shop
+  billingProfile ShopBillingProfile?
+  clients        BillingClient[]
+  invoices       Invoice[]
+  billingItems   BillingItem[]
+  servicePackages ServicePackage[]
+
+  @@index([ownerUserId])
+  @@index([status])
+}
+
+// Per-shop billing profile (appears on invoices)
+model ShopBillingProfile {
+  id            String  @id @default(cuid())
+  shopId        String  @unique
+  shop          Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  businessName  String  @default("My Business")
+  tagline       String?
+  logoUrl       String?
+
+  // Contact
+  phone         String?
+  altPhone      String?
+  email         String?
+  website       String?
+
+  // Address
+  address       String?
+  city          String?
+  state         String?
+  pinCode       String?
+  country       String? @default("India")
+
+  // Tax / Legal
+  gstin         String?
+  pan           String?
+
+  // Bank Details
+  bankName      String?
+  accountName   String?
+  accountNumber String?
+  ifscCode      String?
+  upiId         String?
+
+  // Invoice defaults
+  defaultNotes  String?
+  defaultTerms  String?
+  signatureUrl  String?
+
+  updatedAt     DateTime @updatedAt
 }
 
 // ─── Billing & Invoicing System (Sleek Bill style) ───────────────────────
@@ -1492,35 +1668,113 @@ model BillingClient {
   userId    String?
   user      User?     @relation("UserBillingClient", fields: [userId], references: [id], onDelete: SetNull)
   
+  // Multi-tenant: which shop owns this client (null = main admin's clients)
+  shopId    String?
+  shop      Shop?     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
   invoices  Invoice[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   
   @@index([userId])
+  @@index([shopId])
 }
 
 model BillingItem {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  price       Float
-  hsnSacCode  String?
-  taxRate     Float    // e.g., 18%
-  type        String   @default("SERVICE") // "SERVICE" or "PRODUCT"
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  price           Float
+  hsnSacCode      String?
+  taxRate         Float    // e.g., 18%
+  type            String   @default("SERVICE") // "SERVICE" or "PRODUCT"
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Stock / Inventory tracking
+  stock           Float    @default(0) // Available quantity in stock
+  unit            String   @default("PCS") // PCS, LTR, BOTTLE, BOX, SET, KG, CAN, MTR, PACK
+  purchasePrice   Float?   // Cost / purchase price for profit calculation
+  minStockAlert   Float    @default(5) // Low stock alert threshold
+  sku             String?  // SKU / Barcode / Part Number
+  trackStock      Boolean  @default(true) // Whether to track stock for this item
+  
+  // Multi-tenant: which shop owns this item (null = main admin's items)
+  shopId          String?
+  shop            Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  stockLogs       StockLog[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([shopId])
+}
+
+model StockLog {
+  id            String      @id @default(cuid())
+  itemId        String
+  item          BillingItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  quantity      Float       // Quantity changed (+ for in, - for out)
+  previousStock Float
+  newStock      Float
+  type          String      // "RESTOCK" (stock in), "SALE" (invoice deduction), "ADJUSTMENT", "RETURN", "DAMAGE"
+  note          String?     // Vendor name, bill number, or reason
+  referenceId   String?     // Invoice ID if related to a sale
+  shopId        String?
+  createdAt     DateTime    @default(now())
+
+  @@index([itemId])
+  @@index([shopId])
+}
+
+model ServicePackage {
+  id              String   @id @default(cuid())
+  vehicleName     String?  // Vehicle Name / Model (e.g. "Toyota Fortuner", "Hyundai Creta", "Mahindra Thar")
+  name            String   // Package Title / Service Name (e.g. "Toyota Fortuner - 9H Ceramic & Armor")
+  category        String   @default("DETAILING") // DETAILING, SERVICE, COATING, PPF, WASHING, POLISHING, REPAIR
+  description     String?  // Brief description / notes
+  inclusions      String?  // Optional extra notes
+  productsUsed    String?  // JSON array of parts & materials: [{ name, price, quantity, unit, itemId }]
+  
+  // Pricing breakdown
+  laborCharge     Float    @default(0)   // Workshop labor / service fee
+  basePrice       Float    @default(0)   // Total Package Selling Price (Parts + Labor)
+  hatchbackPrice  Float?                 // Hatchback (Swift, i20, Tiago, etc.)
+  sedanPrice      Float?                 // Sedan (City, Verna, Virtus, Ciaz)
+  compactSuvPrice Float?                 // Compact / Mid SUV (Creta, Seltos, Brezza, Nexon)
+  fullSuvPrice    Float?                 // Full SUV / 7-Seater / Luxury (Fortuner, Scorpio, Safari, XUV700)
+  bikePrice       Float?                 // Two Wheeler / Superbike
+  
+  duration        String?  // e.g., "2 Hours", "1 Day", "2 Days"
+  warranty        String?  // e.g., "1 Year", "3 Years", "5 Years", "None"
+  hsnSacCode      String?  @default("9987") // SAC 9987 (Automotive repair, washing & detailing services)
+  taxRate         Float    @default(18)    // Standard 18% GST for services
+  
+  isActive        Boolean  @default(true)
+  
+  // Multi-tenant: scoped to shop (null = system default templates)
+  shopId          String?
+  shop            Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([category])
 }
 
 model Invoice {
   id            String    @id @default(cuid())
-  invoiceNumber String    @unique // e.g., INV-2026-001
+  invoiceNumber String    // Not @unique so shop sequences don't collide
   type          String    @default("INVOICE") // "INVOICE" or "ESTIMATE"
   date          DateTime  @default(now())
   dueDate       DateTime?
   
   clientId      String
   client        BillingClient @relation(fields: [clientId], references: [id])
+  
+  // Multi-tenant: which shop owns this invoice (null = main admin)
+  shopId        String?
+  shop          Shop?     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   
   status        String    @default("DRAFT") // DRAFT, UNPAID, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED
   
@@ -1549,6 +1803,8 @@ model Invoice {
   updatedAt     DateTime  @updatedAt
   
   @@index([clientId])
+  @@index([shopId])
+  @@index([invoiceNumber])
   @@index([status])
 }
 
@@ -1629,5 +1885,27 @@ model BillingProfile {
 
   updatedAt       DateTime @updatedAt
 }
+
+// ─── Maruti Suzuki Parts Lookup Cache ─────────────────────────────────────────
+// Stores scraped genuine parts data from marutisuzuki.com
+// Status: FOUND, NOT_FOUND, ERROR
+model MarutiPart {
+  id           String   @id @default(cuid())
+  partNumber   String   @unique      // The searched part number (normalized uppercase)
+  partName     String?               // Part display name
+  mrp          String?               // MRP as string to preserve formatting e.g. "₹1,234.00"
+  availability String?               // "In Stock", "Out of Stock", etc.
+  imageUrl     String?               // Product image URL from Maruti website
+  category     String?               // Part category if available
+  status       String   @default("FOUND") // FOUND, NOT_FOUND, ERROR
+  rawHtml      String?               // Snapshot of scraped raw data (JSON) for debugging
+  scrapedAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([partNumber])
+  @@index([status])
+  @@index([scrapedAt])
+}
+
 
 

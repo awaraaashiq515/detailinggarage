@@ -2,7 +2,7 @@
 
 import { Navbar } from "@/components/layout/navbar"
 import HomeFooter from "@/components/home/HomeFooter"
-import { ArrowRight, Shield, Sparkles, Droplets, CheckCircle2, Play, ExternalLink } from "lucide-react"
+import { ArrowRight, Shield, ShieldCheck, Sparkles, Droplets, CheckCircle2, Play, ExternalLink, Radio, X, Calendar } from "lucide-react"
 import { motion, useScroll, useTransform } from "framer-motion"
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -13,6 +13,20 @@ type Post = {
     url: string
     caption: string | null
     link: string | null
+    source?: string
+    sharesCount?: number
+    publishedAt?: string
+}
+
+type FacebookInfo = {
+    pageName: string | null
+    pageId: string | null
+    isConnected: boolean
+    showOnHome: boolean
+    homeSectionTitle: string | null
+    homeSectionDesc: string | null
+    fallbackEmbedUrl: string | null
+    lastSyncedAt: string | null
 }
 
 const FADE_UP: any = {
@@ -30,15 +44,21 @@ export default function HomeClient() {
     const heroOpacity = useTransform(scrollY, [0, 500], [1, 0])
     
     const [socialPosts, setSocialPosts] = useState<Post[]>([])
+    const [facebookInfo, setFacebookInfo] = useState<FacebookInfo | null>(null)
+    const [selectedPost, setSelectedPost] = useState<Post | null>(null)
 
     useEffect(() => {
         fetch("/api/public/posts")
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    setSocialPosts(data.posts.slice(0, 4)) // Only take latest 4
+                    setSocialPosts(data.posts || [])
+                    if (data.facebook) {
+                        setFacebookInfo(data.facebook)
+                    }
                 }
             })
+            .catch(() => {})
     }, [])
 
     return (
@@ -161,7 +181,134 @@ export default function HomeClient() {
                 </div>
             </section>
 
-            {/* 3. BENTO GRID SERVICES - LUXURY EDITION */}
+            {/* 3. LATEST PDI DELIVERIES & STORIES */}
+            <section className="py-24 px-6 md:px-14 bg-[#09090b] border-t border-white/5 relative overflow-hidden">
+                {/* Subtle ambient light */}
+                <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#16acd4]/5 rounded-full blur-[120px] pointer-events-none" />
+
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-12 gap-6">
+                        <div>
+                            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-[#16acd4]/30 bg-[#16acd4]/10 backdrop-blur-md mb-4 text-[#16acd4]">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#16acd4] opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#16acd4]"></span>
+                                </span>
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-200">
+                                    Latest Updates &amp; Studio Stories
+                                </span>
+                            </div>
+                            
+                            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4 font-display text-white">
+                                {facebookInfo?.homeSectionTitle && !facebookInfo.homeSectionTitle.toLowerCase().includes("facebook") 
+                                    ? facebookInfo.homeSectionTitle 
+                                    : "Recent PDI Deliveries & Studio Stories"}
+                            </h2>
+                            <p className="text-zinc-400 max-w-2xl text-sm md:text-base font-light">
+                                Straight from our studio floor — certified PDI pre-delivery inspections, new customer car deliveries, ceramic transformations, and PPF protection.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Link href="/social" className="px-6 py-3 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all flex items-center gap-2 text-zinc-300">
+                                Full Showcase <ArrowRight className="w-3.5 h-3.5" />
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Auto-scrolling Continuous Carousel Container */}
+                    {(() => {
+                        const fallbackPosts: Post[] = [
+                            { id: "1", type: "IMAGE", url: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?q=80&w=800&auto=format&fit=crop", caption: "Ferrari 488 GTB - Full PPF & Ceramic Coating.", link: null, source: "STUDIO" },
+                            { id: "2", type: "VIDEO", url: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=800&auto=format&fit=crop", caption: "Paint correction magic. Swirls eradicated under studio lights.", link: null, source: "STUDIO" },
+                            { id: "3", type: "IMAGE", url: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=800&auto=format&fit=crop", caption: "Porsche 911 GT3 RS receiving hydrophobic shield.", link: null, source: "STUDIO" },
+                            { id: "4", type: "IMAGE", url: "https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c?q=80&w=800&auto=format&fit=crop", caption: "Bespoke interior restoration. Better than factory new.", link: null, source: "STUDIO" }
+                        ]
+
+                        const basePosts = socialPosts.length > 0 ? socialPosts : fallbackPosts
+                        // Repeat list to guarantee continuous smooth loop across all viewport sizes
+                        const repeatedPosts = basePosts.length < 5
+                            ? [...basePosts, ...basePosts, ...basePosts]
+                            : basePosts
+                        const marqueeList = [...repeatedPosts, ...repeatedPosts]
+
+                        return (
+                            <div className="relative w-full overflow-hidden group">
+                                {/* Gradient edge masks for sleek continuous transition */}
+                                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-r from-[#09090b] to-transparent z-20" />
+                                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-[#09090b] to-transparent z-20" />
+
+                                {/* Moving Track */}
+                                <div className="flex gap-6 py-4 animate-stories-scroll w-max group-hover:[animation-play-state:paused]">
+                                    {marqueeList.map((post, i) => (
+                                        <Link
+                                            key={`${post.id}-${i}`}
+                                            href={post.id && post.id.length > 3 ? `/posts/${post.id}` : `/social`}
+                                            className="block w-[280px] sm:w-[320px] md:w-[360px] shrink-0"
+                                        >
+                                            <div className="relative bg-[#121214] rounded-2xl overflow-hidden border border-white/10 hover:border-[#16acd4]/60 hover:shadow-2xl hover:shadow-[#16acd4]/20 transition-all duration-500 cursor-pointer aspect-[4/5] flex flex-col justify-end group/card">
+                                                <img 
+                                                    src={post.url} 
+                                                    alt={post.caption || "Detailing Garage Showcase"} 
+                                                    className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover/card:opacity-100 group-hover/card:scale-105 transition-all duration-700" 
+                                                />
+
+                                                {/* Media Type Icon */}
+                                                {(post.type === "VIDEO" || post.type === "REEL") && (
+                                                    <div className="absolute top-4 right-4 z-20 w-9 h-9 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 group-hover/card:bg-[#16acd4] group-hover/card:text-black transition-colors">
+                                                        <Play className="w-4 h-4 ml-0.5 fill-current" />
+                                                    </div>
+                                                )}
+
+                                                {/* Persistent bottom subtle overlay */}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent opacity-80 group-hover/card:opacity-95 transition-opacity duration-300" />
+
+                                                {/* Card Content */}
+                                                <div className="relative z-20 p-5 space-y-3">
+                                                    {post.caption && (
+                                                        <p className="text-xs md:text-sm text-zinc-200 line-clamp-2 group-hover/card:line-clamp-4 transition-all duration-300 font-light leading-relaxed">
+                                                            {post.caption}
+                                                        </p>
+                                                    )}
+
+                                                    <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
+                                                        <span className="text-[11px] text-zinc-400 font-medium">
+                                                            {post.publishedAt 
+                                                                ? new Date(post.publishedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+                                                                : "Studio Story"}
+                                                        </span>
+
+                                                        <span className="inline-flex items-center gap-1 text-[#16acd4] font-bold text-xs uppercase tracking-wider group-hover/card:translate-x-1 transition-transform">
+                                                            View Story <ArrowRight className="w-3 h-3" />
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+
+                                {/* View All Button Section */}
+                                <div className="mt-12 mb-2 flex flex-col items-center justify-center gap-3 relative z-10">
+                                    <Link 
+                                        href="/social"
+                                        className="group inline-flex items-center gap-3 px-10 py-4.5 rounded-full bg-[#16acd4] hover:bg-white text-black font-extrabold text-xs uppercase tracking-[0.22em] transition-all duration-300 shadow-2xl shadow-[#16acd4]/25 hover:shadow-white/20 hover:scale-[1.02] active:scale-[0.98]"
+                                    >
+                                        <span>View All Posts</span>
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
+                                    </Link>
+                                    <span className="text-[11px] text-zinc-500 font-medium uppercase tracking-wider">
+                                        All View • Total {basePosts.length} Updates Available
+                                    </span>
+                                </div>
+                            </div>
+                        )
+                    })()}
+                </div>
+            </section>
+
+            {/* 4. BENTO GRID SERVICES - LUXURY EDITION */}
             <section className="py-32 px-6 md:px-14 bg-[#09090b] relative border-t border-white/5" id="services">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#16acd4]/5 blur-[150px] rounded-full pointer-events-none" />
                 
@@ -294,7 +441,7 @@ export default function HomeClient() {
                 </div>
             </section>
 
-            {/* 4. HORIZONTAL MARQUEE / SHOWCASE */}
+            {/* 5. HORIZONTAL MARQUEE / SHOWCASE */}
             <section className="py-24 bg-[#09090b] overflow-hidden border-y border-white/5 flex flex-col justify-center">
                 <div className="mb-12 px-6 md:px-14">
                     <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-500">Recent Masterpieces</h2>
@@ -318,7 +465,7 @@ export default function HomeClient() {
                 </div>
             </section>
 
-            {/* 5. PROCESS TIMELINE */}
+            {/* 6. PROCESS TIMELINE */}
             <section className="py-32 px-6 md:px-14 bg-[#09090b]">
                 <div className="max-w-4xl mx-auto">
                     <motion.div 
@@ -366,7 +513,7 @@ export default function HomeClient() {
                 </div>
             </section>
 
-            {/* 5.2 THE STUDIO (VIDEO FEATURE) */}
+            {/* 7. THE STUDIO (VIDEO FEATURE) */}
             <section className="py-24 px-6 md:px-14 bg-[#09090b] border-t border-white/5">
                 <div className="max-w-7xl mx-auto">
                     <motion.div 
@@ -392,60 +539,6 @@ export default function HomeClient() {
                             <p className="text-zinc-300 font-light tracking-wide mt-2">Watch our master technicians at work.</p>
                         </div>
                     </motion.div>
-                </div>
-            </section>
-
-            {/* 5.3 LATEST SOCIAL SHOWCASE */}
-            <section className="py-24 px-6 md:px-14 bg-[#09090b] border-t border-white/5">
-                <div className="max-w-7xl mx-auto">
-                    <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-                        <div>
-                            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4 font-display">Recent Masterpieces</h2>
-                            <p className="text-zinc-400">Straight from our studio floor.</p>
-                        </div>
-                        <Link href="/social" className="px-6 py-3 border border-white/10 rounded-full text-sm font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors flex items-center gap-2">
-                            View Full Gallery <ArrowRight className="w-4 h-4" />
-                        </Link>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {(socialPosts.length > 0 ? socialPosts : [
-                            { id: "1", type: "IMAGE", url: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?q=80&w=800&auto=format&fit=crop", caption: "Ferrari 488 GTB - Full PPF & Ceramic Coating.", link: null },
-                            { id: "2", type: "VIDEO", url: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=800&auto=format&fit=crop", caption: "Paint correction magic. Watch the swirls disappear.", link: null },
-                            { id: "3", type: "IMAGE", url: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=800&auto=format&fit=crop", caption: "Porsche 911 GT3 RS getting the royal treatment.", link: null },
-                            { id: "4", type: "IMAGE", url: "https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c?q=80&w=800&auto=format&fit=crop", caption: "Bespoke interior restoration. Better than factory.", link: null }
-                        ]).map((post, i) => (
-                            <motion.div 
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.1 }}
-                                key={post.id} 
-                                className="group relative bg-[#121214] rounded-2xl overflow-hidden border border-white/5 hover:border-[#16acd4]/30 transition-all cursor-pointer aspect-[4/5]"
-                                onClick={() => post.link && window.open(post.link, "_blank")}
-                            >
-                                <img src={post.url} alt="Showcase" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
-                                
-                                {(post.type === "VIDEO" || post.type === "REEL") && (
-                                    <div className="absolute top-4 right-4 w-8 h-8 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center">
-                                        <Play className="w-4 h-4 text-white ml-0.5" />
-                                    </div>
-                                )}
-
-                                {post.link && (
-                                    <div className="absolute top-4 left-4 w-8 h-8 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <ExternalLink className="w-4 h-4 text-white" />
-                                    </div>
-                                )}
-
-                                {post.caption && (
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                                        <p className="text-sm text-zinc-300 line-clamp-3">{post.caption}</p>
-                                    </div>
-                                )}
-                            </motion.div>
-                        ))}
-                    </div>
                 </div>
             </section>
 
@@ -525,6 +618,17 @@ export default function HomeClient() {
                 }
                 .animate-marquee2 {
                     animation: marquee2 25s linear infinite;
+                }
+                @keyframes storiesScroll {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .animate-stories-scroll {
+                    animation: storiesScroll 55s linear infinite;
+                    will-change: transform;
+                }
+                .animate-stories-scroll:hover {
+                    animation-play-state: paused;
                 }
             `}} />
         </div>

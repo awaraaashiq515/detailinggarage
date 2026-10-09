@@ -15,7 +15,7 @@ function getJwtSecret(): Uint8Array {
 }
 
 // Routes that require authentication
-const protectedRoutes = ["/admin"]
+const protectedRoutes = ["/admin", "/shop"]
 
 // Routes that require ADMIN role
 const adminRoutes = ["/admin"]
@@ -72,7 +72,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        // Match all admin routes
         "/admin/:path*",
+        "/shop/:path*",
     ]
 }

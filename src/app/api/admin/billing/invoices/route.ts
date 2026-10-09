@@ -2,11 +2,7 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/auth/jwt"
 
-async function checkAdminAuth() {
-    const user = await getCurrentUser()
-    if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) return null
-    return user
-}
+import { getShopOwnerContext } from "@/lib/auth/shop-auth"
 
 const TYPE_PREFIX: Record<string, string> = {
     INVOICE:      "DG",
@@ -18,16 +14,22 @@ const TYPE_PREFIX: Record<string, string> = {
     CHALLAN:      "CH",
 }
 
-function generateInvoiceNumber(lastNumber: number, type = "INVOICE") {
+function generateInvoiceNumber(lastNumber: number, type = "INVOICE", customPrefix?: string, isShop = false) {
     const year = new Date().getFullYear()
     const shortYear = String(year).slice(2)
-    const prefix = TYPE_PREFIX[type] || "DG"
+    let prefix = customPrefix?.trim().toUpperCase()
+    if (!prefix) {
+        if (type === "QUOTATION" || type === "ESTIMATE") prefix = "QT"
+        else if (type === "PROFORMA") prefix = "PF"
+        else prefix = isShop ? "INV" : (TYPE_PREFIX[type] || "DG")
+    }
     return `${prefix}-${shortYear}-${String(lastNumber + 1).padStart(4, "0")}`
 }
 
 // GET all invoices with filters
 export async function GET(request: Request) {
-    if (!await checkAdminAuth()) {
+    const ctx = await getShopOwnerContext()
+    if (!ctx) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -37,6 +39,7 @@ export async function GET(request: Request) {
         const search = searchParams.get("search") || ""
         const status = searchParams.get("status") || ""
         const type = searchParams.get("type") || ""
+        const clientId = searchParams.get("clientId") || ""
         const fromDate = searchParams.get("fromDate")
         const toDate = searchParams.get("toDate")
 
@@ -44,16 +47,36 @@ export async function GET(request: Request) {
         if (id) {
             const invoice = await db.invoice.findUnique({
                 where: { id },
-                include: { client: true, items: true, payments: true },
+                include: {
+                    client: true,
+                    items: true,
+                    payments: true,
+                    shop: {
+                        include: {
+                            billingProfile: true
+                        }
+                    }
+                },
             })
             if (!invoice) return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
+            if (!ctx.isAdmin && invoice.shopId !== ctx.shopId) {
+                return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
+            }
             return NextResponse.json({ success: true, invoice })
         }
 
         const where: any = {}
 
+        if (!ctx.isAdmin) {
+            where.shopId = ctx.shopId
+        } else {
+            const shopFilter = searchParams.get("shopId")
+            if (shopFilter) where.shopId = shopFilter
+        }
+
         if (status) where.status = status
         if (type) where.type = type
+        if (clientId) where.clientId = clientId
         if (fromDate || toDate) {
             where.date = {}
             if (fromDate) where.date.gte = new Date(fromDate)
@@ -63,6 +86,9 @@ export async function GET(request: Request) {
             where.OR = [
                 { invoiceNumber: { contains: search } },
                 { client: { name: { contains: search } } },
+                { vehicleRegNo: { contains: search } },
+                { vehicleName: { contains: search } },
+                { vehicleChassis: { contains: search } },
             ]
         }
 
@@ -104,13 +130,14 @@ export async function GET(request: Request) {
 
 // POST create new invoice
 export async function POST(request: Request) {
-    if (!await checkAdminAuth()) {
+    const ctx = await getShopOwnerContext()
+    if (!ctx) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     try {
         const body = await request.json()
-        const { clientId, type, date, dueDate, items, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer } = body
+        const { clientId, type, date, dueDate, items, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer, prefix: customPrefix } = body
 
         if (!clientId || !items || items.length === 0) {
             return NextResponse.json({ error: "Client and at least one item are required" }, { status: 400 })
@@ -122,16 +149,33 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Client not found" }, { status: 404 })
         }
 
-        // Generate number (each type has its own sequence)
+        // Generate number (each type has its own sequence per shop)
         const docType = type || "INVOICE"
+        const isShop = !ctx.isAdmin && !!ctx.shopId
+
         const lastInvoice = await db.invoice.findFirst({
-            where: { type: docType },
+            where: {
+                type: docType,
+                ...(ctx.shopId ? { shopId: ctx.shopId } : { shopId: null })
+            },
             orderBy: { createdAt: "desc" }
         })
-        const lastNum = lastInvoice
+        let lastNum = lastInvoice
             ? parseInt(lastInvoice.invoiceNumber.split("-").pop() || "0")
             : 0
-        const invoiceNumber = generateInvoiceNumber(lastNum, docType)
+        let nextNum = lastNum + 1
+        let invoiceNumber = generateInvoiceNumber(nextNum - 1, docType, customPrefix, isShop)
+
+        // Ensure collision-safe within this tenant
+        while (await db.invoice.findFirst({
+            where: {
+                invoiceNumber,
+                ...(ctx.shopId ? { shopId: ctx.shopId } : { shopId: null })
+            }
+        })) {
+            nextNum++
+            invoiceNumber = generateInvoiceNumber(nextNum - 1, docType, customPrefix, isShop)
+        }
 
         // Calculate totals
         // Business state is assumed Delhi/India - you can make this a setting later
@@ -203,6 +247,7 @@ export async function POST(request: Request) {
                 amountPaid: 0,
                 notes,
                 terms,
+                shopId: ctx.shopId || null,
                 vehicleName: vehicleName || null,
                 vehicleRegNo: vehicleRegNo || null,
                 vehicleChassis: vehicleChassis || null,
@@ -214,24 +259,147 @@ export async function POST(request: Request) {
             include: { client: true, items: true }
         })
 
+        // Automatically deduct stock for matching catalog products
+        if (docType === "INVOICE" || docType === "TAX_INVOICE") {
+            try {
+                for (const it of processedItems) {
+                    const catalogItem = await db.billingItem.findFirst({
+                        where: {
+                            name: it.name,
+                            trackStock: true,
+                            ...(ctx.shopId ? { shopId: ctx.shopId } : { shopId: null })
+                        }
+                    })
+                    if (catalogItem && catalogItem.type === "PRODUCT") {
+                        const prevStock = catalogItem.stock ?? 0
+                        const newStock = Math.max(0, prevStock - it.quantity)
+                        await db.$transaction([
+                            db.billingItem.update({
+                                where: { id: catalogItem.id },
+                                data: { stock: newStock }
+                            }),
+                            db.stockLog.create({
+                                data: {
+                                    itemId: catalogItem.id,
+                                    quantity: -it.quantity,
+                                    previousStock: prevStock,
+                                    newStock,
+                                    type: "SALE",
+                                    note: `Invoice ${invoice.invoiceNumber}`,
+                                    referenceId: invoice.id,
+                                    shopId: ctx.shopId || null
+                                }
+                            })
+                        ])
+                    }
+                }
+            } catch (stockErr) {
+                console.error("Failed to auto-deduct stock on invoice creation:", stockErr)
+            }
+        }
+
         return NextResponse.json({ success: true, invoice })
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating invoice:", error)
-        return NextResponse.json({ error: "Failed to create invoice" }, { status: 500 })
+        return NextResponse.json({ error: error?.message || "Failed to create invoice" }, { status: 500 })
     }
 }
 
-// PATCH update invoice status
+// PATCH update invoice status / convert type
 export async function PATCH(request: Request) {
-    if (!await checkAdminAuth()) {
+    const ctx = await getShopOwnerContext()
+    if (!ctx) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     try {
         const body = await request.json()
-        const { id, status } = body
+        const { id, status, action, targetType } = body
         if (!id) return NextResponse.json({ error: "Invoice ID required" }, { status: 400 })
 
+        // ── Convert invoice ↔ quotation ──────────────────────────────────────
+        if (action === "convert") {
+            const docType = targetType || "QUOTATION"
+
+            // Fetch original with items
+            const original = await db.invoice.findUnique({
+                where: { id },
+                include: { items: true }
+            })
+            if (!original) return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
+
+            const originalShopId = original.shopId || ctx.shopId || null
+            const isShop = !!originalShopId
+
+            // Generate new number for target type scoped by shop
+            const lastDoc = await db.invoice.findFirst({
+                where: {
+                    type: docType,
+                    ...(originalShopId ? { shopId: originalShopId } : { shopId: null })
+                },
+                orderBy: { createdAt: "desc" }
+            })
+            let lastNum = lastDoc
+                ? parseInt(lastDoc.invoiceNumber.split("-").pop() || "0")
+                : 0
+            let nextNum = lastNum + 1
+            let newNumber = generateInvoiceNumber(nextNum - 1, docType, undefined, isShop)
+
+            while (await db.invoice.findFirst({
+                where: {
+                    invoiceNumber: newNumber,
+                    ...(originalShopId ? { shopId: originalShopId } : { shopId: null })
+                }
+            })) {
+                nextNum++
+                newNumber = generateInvoiceNumber(nextNum - 1, docType, undefined, isShop)
+            }
+
+            // Create the converted document
+            const converted = await db.invoice.create({
+                data: {
+                    invoiceNumber: newNumber,
+                    type: docType,
+                    date: new Date(),
+                    dueDate: null,
+                    clientId: original.clientId,
+                    status: "DRAFT",
+                    subTotal: original.subTotal,
+                    cgstTotal: original.cgstTotal,
+                    sgstTotal: original.sgstTotal,
+                    igstTotal: original.igstTotal,
+                    taxTotal: original.taxTotal,
+                    discount: original.discount,
+                    grandTotal: original.grandTotal,
+                    amountPaid: 0,
+                    notes: original.notes,
+                    terms: original.terms,
+                    shopId: originalShopId,
+                    vehicleName: original.vehicleName,
+                    vehicleRegNo: original.vehicleRegNo,
+                    vehicleChassis: original.vehicleChassis,
+                    odometer: original.odometer,
+                    items: {
+                        create: original.items.map(item => ({
+                            name: item.name,
+                            hsnSacCode: item.hsnSacCode,
+                            quantity: item.quantity,
+                            rate: item.rate,
+                            taxRate: item.taxRate,
+                            cgst: item.cgst,
+                            sgst: item.sgst,
+                            igst: item.igst,
+                            total: item.total,
+                        }))
+                    }
+                },
+                include: { client: true, items: true }
+            })
+
+            return NextResponse.json({ success: true, invoice: converted, message: `Converted to ${docType} successfully` })
+        }
+
+        // ── Simple status update ─────────────────────────────────────────────
         const invoice = await db.invoice.update({
             where: { id },
             data: { status }
@@ -246,7 +414,8 @@ export async function PATCH(request: Request) {
 
 // PUT update invoice details and items
 export async function PUT(request: Request) {
-    if (!await checkAdminAuth()) {
+    const ctx = await getShopOwnerContext()
+    if (!ctx) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -389,7 +558,8 @@ export async function PUT(request: Request) {
 
 // DELETE invoice
 export async function DELETE(request: Request) {
-    if (!await checkAdminAuth()) {
+    const ctx = await getShopOwnerContext()
+    if (!ctx) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -397,6 +567,13 @@ export async function DELETE(request: Request) {
         const { searchParams } = new URL(request.url)
         const id = searchParams.get("id")
         if (!id) return NextResponse.json({ error: "Invoice ID required" }, { status: 400 })
+
+        const invoice = await db.invoice.findUnique({ where: { id } })
+        if (!invoice) return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
+
+        if (!ctx.isAdmin && invoice.shopId !== ctx.shopId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+        }
 
         await db.invoice.delete({ where: { id } })
         return NextResponse.json({ success: true })

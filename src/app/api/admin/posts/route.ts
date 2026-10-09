@@ -5,10 +5,15 @@ import { getCurrentUser } from "@/lib/auth/jwt"
 export async function GET() {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
 
         const posts = await db.studioPost.findMany({
-            orderBy: { createdAt: "desc" }
+            orderBy: [
+                { publishedAt: "desc" },
+                { createdAt: "desc" }
+            ]
         })
         return NextResponse.json({ success: true, posts })
     } catch (error) {
@@ -20,10 +25,12 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
 
         const body = await request.json()
-        const { type, url, caption, link } = body
+        const { type, url, caption, link, source } = body
 
         if (!url) {
             return NextResponse.json({ error: "URL is required" }, { status: 400 })
@@ -34,7 +41,9 @@ export async function POST(request: Request) {
                 type: type || "IMAGE",
                 url,
                 caption,
-                link
+                link,
+                source: source || "MANUAL",
+                publishedAt: new Date()
             }
         })
 

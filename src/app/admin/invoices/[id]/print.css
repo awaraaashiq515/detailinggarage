@@ -1,0 +1,379 @@
+/* ===================================================
+   Invoice Print Stylesheet
+   Detailing Garage – Premium Auto Protection Studio
+   =================================================== */
+
+/* Keep print-only div invisible on screen */
+@media screen {
+    .print-only {
+        display: none !important;
+    }
+}
+
+@media print {
+    /* --- Remove browser default header/footer (URL, date, page number) --- */
+    @page {
+        size: A4;
+        margin: 0;
+    }
+
+    /* --- Reset --- */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        box-sizing: border-box !important;
+        margin: 0;
+        padding: 0;
+    }
+
+    html, body {
+        background: #ffffff !important;
+        color: #111111 !important;
+        font-family: "Arial", "Helvetica Neue", Helvetica, sans-serif !important;
+        font-size: 11px !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    /* --- Hide all UI chrome --- */
+    .no-print,
+    .sticky,
+    button,
+    nav,
+    aside,
+    header {
+        display: none !important;
+    }
+
+    /* --- Root wrapper --- */
+    .min-h-screen {
+        background: #ffffff !important;
+        min-height: auto !important;
+        padding: 0 !important;
+    }
+
+    /* --- Show print-only content --- */
+    .print-only {
+        display: block !important;
+        width: 100% !important;
+        padding: 14mm 16mm !important;
+        background: #ffffff !important;
+        color: #111111 !important;
+    }
+
+    /* ========================
+       HEADER: Company + Invoice meta
+       ======================== */
+    .ip-header {
+        display: grid !important;
+        grid-template-columns: 1fr auto !important;
+        align-items: flex-start !important;
+        gap: 16px !important;
+        padding-bottom: 10px !important;
+        border-bottom: 2.5px solid #111111 !important;
+        margin-bottom: 14px !important;
+    }
+
+    .ip-company-name {
+        font-size: 26px !important;
+        font-weight: 900 !important;
+        color: #111111 !important;
+        letter-spacing: 0.01em !important;
+        text-transform: uppercase !important;
+        line-height: 1 !important;
+    }
+
+    .ip-company-tagline {
+        font-size: 9px !important;
+        color: #555555 !important;
+        margin-top: 3px !important;
+        letter-spacing: 0.03em !important;
+    }
+
+    .ip-invoice-meta {
+        text-align: right !important;
+    }
+
+    .ip-meta-label {
+        font-size: 7.5px !important;
+        color: #888888 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.08em !important;
+    }
+
+    .ip-invoice-number {
+        font-size: 18px !important;
+        font-weight: 900 !important;
+        color: #111111 !important;
+        letter-spacing: 0.02em !important;
+        font-family: "Arial", monospace !important;
+        line-height: 1.1 !important;
+    }
+
+    .ip-date-row {
+        font-size: 9px !important;
+        color: #333333 !important;
+        margin-top: 3px !important;
+        line-height: 1.6 !important;
+    }
+
+    /* ========================
+       PARTIES: From + Bill To
+       ======================== */
+    .ip-parties {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 20px !important;
+        margin-bottom: 14px !important;
+        padding: 10px 12px !important;
+        border: 1px solid #dddddd !important;
+        background: #fafafa !important;
+    }
+
+    .ip-party-label {
+        font-size: 8px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.08em !important;
+        color: #777777 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .ip-party-name {
+        font-size: 12px !important;
+        font-weight: 800 !important;
+        color: #111111 !important;
+        margin-bottom: 3px !important;
+        line-height: 1.2 !important;
+    }
+
+    .ip-party-detail {
+        font-size: 9px !important;
+        color: #444444 !important;
+        line-height: 1.65 !important;
+    }
+
+    .ip-party-detail span {
+        color: #111111 !important;
+        font-weight: 600 !important;
+    }
+
+    /* ========================
+       VEHICLE INFO BAND
+       ======================== */
+    .ip-vehicle {
+        background: #f0f0f0 !important;
+        border: 1px solid #dddddd !important;
+        padding: 7px 12px !important;
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 10px !important;
+        margin-bottom: 14px !important;
+    }
+
+    .ip-vehicle-cell-label {
+        font-size: 7.5px !important;
+        text-transform: uppercase !important;
+        font-weight: 700 !important;
+        color: #888888 !important;
+        letter-spacing: 0.06em !important;
+        margin-bottom: 2px !important;
+    }
+
+    .ip-vehicle-cell-value {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        color: #111111 !important;
+        font-family: "Courier New", monospace !important;
+    }
+
+    /* ========================
+       ITEMS TABLE
+       ======================== */
+    .ip-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-bottom: 16px !important;
+    }
+
+    .ip-table thead tr {
+        background-color: #111111 !important;
+        color: #ffffff !important;
+    }
+
+    .ip-table thead th {
+        padding: 7px 8px !important;
+        font-size: 8px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.07em !important;
+        color: #ffffff !important;
+        background-color: #111111 !important;
+        border: none !important;
+    }
+
+    .ip-table tbody tr {
+        border-bottom: 1px solid #e5e5e5 !important;
+    }
+
+    .ip-table tbody tr:nth-child(even) {
+        background-color: #f8f8f8 !important;
+    }
+
+    .ip-table tbody td {
+        padding: 6px 8px !important;
+        font-size: 9.5px !important;
+        color: #111111 !important;
+        vertical-align: top !important;
+        border: none !important;
+    }
+
+    .ip-table td.ip-item-name {
+        font-weight: 600 !important;
+        line-height: 1.45 !important;
+    }
+
+    .ip-table td.ip-right {
+        text-align: right !important;
+    }
+
+    .ip-table td.ip-center {
+        text-align: center !important;
+    }
+
+    .ip-table td.ip-tax-cell {
+        text-align: right !important;
+        font-size: 9.5px !important;
+        white-space: nowrap !important;
+    }
+
+    .ip-tax-pct {
+        font-size: 8px !important;
+        color: #888888 !important;
+        display: block !important;
+    }
+
+    .ip-table td.ip-total-cell {
+        font-weight: 800 !important;
+        text-align: right !important;
+    }
+
+    /* ========================
+       FOOTER: Notes + Summary
+       ======================== */
+    .ip-footer {
+        display: grid !important;
+        grid-template-columns: 1fr 200px !important;
+        gap: 20px !important;
+        align-items: flex-start !important;
+    }
+
+    .ip-notes-section {
+        padding-top: 2px !important;
+    }
+
+    .ip-notes-title {
+        font-size: 8px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.08em !important;
+        color: #555555 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .ip-notes-text {
+        font-size: 9px !important;
+        color: #444444 !important;
+        line-height: 1.65 !important;
+    }
+
+    .ip-pay-label {
+        font-size: 8px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.08em !important;
+        color: #555555 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .ip-pay-row {
+        display: flex !important;
+        justify-content: space-between !important;
+        font-size: 9px !important;
+        color: #333333 !important;
+        padding: 2px 0 !important;
+        border-bottom: 1px dotted #dddddd !important;
+    }
+
+    /* Summary box */
+    .ip-summary {
+        border: 1.5px solid #cccccc !important;
+        padding: 8px 12px !important;
+    }
+
+    .ip-summary-row {
+        display: flex !important;
+        justify-content: space-between !important;
+        font-size: 9.5px !important;
+        color: #333333 !important;
+        padding: 3px 0 !important;
+    }
+
+    .ip-summary-row.ip-subtotal {
+        border-bottom: 1px solid #eeeeee !important;
+        padding-bottom: 5px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .ip-summary-row.ip-grand-total {
+        font-size: 12px !important;
+        font-weight: 900 !important;
+        color: #111111 !important;
+        border-top: 2px solid #111111 !important;
+        padding-top: 6px !important;
+        margin-top: 4px !important;
+    }
+
+    .ip-summary-row.ip-balance-due {
+        font-size: 10.5px !important;
+        font-weight: 800 !important;
+        color: #c05621 !important;
+    }
+
+    .ip-summary-row.ip-amount-paid {
+        color: #166534 !important;
+        font-size: 9px !important;
+    }
+
+    /* ========================
+       STAMP / SIGNATURE
+       ======================== */
+    .ip-stamp {
+        margin-top: 24px !important;
+        border-top: 1px solid #cccccc !important;
+        padding-top: 10px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+    }
+
+    .ip-stamp-text {
+        font-size: 8px !important;
+        color: #888888 !important;
+        line-height: 1.6 !important;
+    }
+
+    .ip-stamp-sign {
+        font-size: 8.5px !important;
+        color: #555555 !important;
+        text-align: right !important;
+    }
+
+    .ip-sign-line {
+        display: block !important;
+        width: 130px !important;
+        border-top: 1px solid #888888 !important;
+        margin-bottom: 4px !important;
+        margin-left: auto !important;
+    }
+}

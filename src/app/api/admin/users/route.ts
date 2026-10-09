@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth/jwt"
 // Helper for auth check
 async function checkAdminAuth() {
     const user = await getCurrentUser()
-    if (!user || user.role !== "ADMIN") {
+    if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
         return null
     }
     return user

@@ -17,6 +17,8 @@ type Invoice = {
     taxTotal: number
     grandTotal: number
     amountPaid: number
+    vehicleName?: string | null
+    vehicleRegNo?: string | null
     client: Client
     items: InvoiceItem[]
     payments: Payment[]
@@ -54,7 +56,8 @@ export default function SuperAdminInvoicesPage() {
     const [summary, setSummary] = useState<Summary | null>(null)
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
-    const [clientName, setClientName] = useState("")
+    const [clientId, setClientId] = useState("")
+    const [clients, setClients] = useState<{ id: string; name: string }[]>([])
     const [invoiceNum, setInvoiceNum] = useState("")
     const [city, setCity] = useState("")
     const [status, setStatus] = useState("")
@@ -69,7 +72,7 @@ export default function SuperAdminInvoicesPage() {
         setLoading(true)
         const params = new URLSearchParams()
         if (search) params.set("search", search)
-        if (clientName) params.set("search", clientName)
+        if (clientId) params.set("clientId", clientId)
         if (invoiceNum) params.set("invoiceNum", invoiceNum)
         if (status) params.set("status", status)
         if (type) params.set("type", type)
@@ -83,12 +86,20 @@ export default function SuperAdminInvoicesPage() {
             setSummary(data.summary)
         }
         setLoading(false)
-    }, [search, clientName, invoiceNum, status, type, fromDate, toDate])
+    }, [search, clientId, invoiceNum, status, type, fromDate, toDate])
 
-    useEffect(() => { fetchInvoices() }, [])
+    useEffect(() => {
+        fetchInvoices()
+        fetch("/api/admin/billing/clients")
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) setClients(data.clients)
+            })
+            .catch(err => console.error("Error fetching clients:", err))
+    }, [])
 
     const handleReset = () => {
-        setSearch(""); setClientName(""); setInvoiceNum(""); setCity("")
+        setSearch(""); setClientId(""); setInvoiceNum(""); setCity("")
         setStatus(""); setType(""); setFromDate(""); setToDate("")
         setDueFrom(""); setDueTo("")
     }
@@ -123,9 +134,12 @@ export default function SuperAdminInvoicesPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", marginBottom: "6px" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                         <label style={{ fontSize: "11px", color: "#333", fontWeight: "bold" }}>Client Name</label>
-                        <select value={clientName} onChange={e => setClientName(e.target.value)}
+                        <select value={clientId} onChange={e => setClientId(e.target.value)}
                             style={{ padding: "3px 4px", fontSize: "11px", border: "1px solid #a0b8d8", borderRadius: "2px", background: "white" }}>
                             <option value="">-</option>
+                            {clients.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
                         </select>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -238,6 +252,7 @@ export default function SuperAdminInvoicesPage() {
                             <tr style={{ background: "#2a6fbd", color: "white" }}>
                                 <th style={thStyle}>No.</th>
                                 <th style={thStyle}>Client Name</th>
+                                <th style={thStyle}>Vehicle</th>
                                 <th style={thStyle}>Invoice No.</th>
                                 <th style={thStyle}>Issue Date</th>
                                 <th style={thStyle}>Due Date</th>
@@ -255,13 +270,13 @@ export default function SuperAdminInvoicesPage() {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={14} style={{ textAlign: "center", padding: "20px", color: "#666" }}>
+                                    <td colSpan={15} style={{ textAlign: "center", padding: "20px", color: "#666" }}>
                                         Loading invoices...
                                     </td>
                                 </tr>
                             ) : displayedInvoices.length === 0 ? (
                                 <tr>
-                                    <td colSpan={14} style={{ textAlign: "center", padding: "30px", color: "#666" }}>
+                                    <td colSpan={15} style={{ textAlign: "center", padding: "30px", color: "#666" }}>
                                         No invoices found. <Link href="/super-admin/invoices/new" style={{ color: "#2a6fbd" }}>Create New Invoice</Link>
                                     </td>
                                 </tr>
@@ -279,6 +294,15 @@ export default function SuperAdminInvoicesPage() {
                                         onMouseLeave={e => (e.currentTarget.style.background = isEven ? "#f0f6ff" : "white")}>
                                         <td style={tdStyle}>{i + 1}</td>
                                         <td style={{ ...tdStyle, fontWeight: "bold", color: "#1a1a1a" }}>{inv.client.name}</td>
+                                        <td style={tdStyle}>
+                                            {inv.vehicleRegNo ? (
+                                                <span style={{ fontWeight: "bold", color: "#0d3a7a" }}>
+                                                    {inv.vehicleName || "Vehicle"} ({inv.vehicleRegNo})
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: "#888" }}>-</span>
+                                            )}
+                                        </td>
                                         <td style={{ ...tdStyle, color: "#1a4f9a", fontWeight: "bold" }}>{inv.invoiceNumber}</td>
                                         <td style={tdStyle}>{fmtDate(inv.date)}</td>
                                         <td style={tdStyle}>{fmtDate(inv.dueDate)}</td>
@@ -313,7 +337,7 @@ export default function SuperAdminInvoicesPage() {
                         {displayedInvoices.length > 0 && summary && (
                             <tfoot>
                                 <tr style={{ background: "#2a6fbd", color: "white", fontWeight: "bold" }}>
-                                    <td colSpan={5} style={{ ...tdStyle, textAlign: "right", fontSize: "11px", letterSpacing: "1px" }}>TOTAL INVOICES</td>
+                                    <td colSpan={6} style={{ ...tdStyle, textAlign: "right", fontSize: "11px", letterSpacing: "1px" }}>TOTAL INVOICES</td>
                                     <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(summary.subTotal)}</td>
                                     <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(summary.taxTotal)}</td>
                                     <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(summary.grandTotal)}</td>

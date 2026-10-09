@@ -106,15 +106,15 @@
     }
   ],
   "social": {
-    "instagramUrl": "https://instagram.com/detailinggarage",
-    "facebookUrl": "https://facebook.com/detailinggarage",
+    "instagramUrl": "https://www.instagram.com/detailinggarage.in",
+    "facebookUrl": "https://www.facebook.com/detailinggarage.in",
     "widgetType": "elfsight",
     "widgetId": "YOUR_ELFSIGHT_WIDGET_ID"
   },
   "contact": {
-    "address": "Auto Hub, Mandi, Himachal Pradesh",
-    "phone": "+91 98765 43210",
-    "email": "info@detailinggarage.com",
-    "mapUrl": "https://maps.google.com/..."
+    "address": "Prime Shine, Saulikhad, Mandi, HP | Opposite Rani Ki Bain, Gutkar, Mandi – 175021",
+    "phone": "+91 86798 00074",
+    "email": "info@detailinggarage.in",
+    "mapUrl": "https://maps.google.com/?q=Detailing+Garage+Mandi"
   }
 }

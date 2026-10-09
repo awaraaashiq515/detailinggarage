@@ -1,7 +1,7 @@
 import { PDIRequestForm } from "@/components/pdi/request-form"
 import { getCurrentUser } from "@/lib/auth/jwt"
 import { db } from "@/lib/db"
-import { CheckCircle2, Shield, Search, FileText, ArrowRight, Star } from "lucide-react"
+import { CheckCircle2, Shield, ShieldCheck, Search, FileText, ArrowRight, Star, Play } from "lucide-react"
 import Link from "next/link"
 
 // Fetch packages (view only)
@@ -16,10 +16,26 @@ async function getPDIPackages() {
     })
 }
 
+async function getPDIPosts() {
+    try {
+        return await db.studioPost.findMany({
+            where: { isActive: true },
+            orderBy: [
+                { publishedAt: "desc" },
+                { createdAt: "desc" }
+            ],
+            take: 8
+        })
+    } catch {
+        return []
+    }
+}
+
 export default async function PDIPage() {
     const user = await getCurrentUser()
     const packages = await getPDIPackages()
     const content = await getWebsiteContent()
+    const pdiPosts = await getPDIPosts()
 
     return (
         <div className="min-h-screen bg-[#08090c] text-white selection:bg-accent/30">
@@ -233,14 +249,90 @@ export default async function PDIPage() {
                     </div>
                 </div>
 
-                {/* Gallery Section */}
-                {content.gallery.filter(g => g.isActive).length > 0 && (
-                    <div id="gallery" className="py-16 bg-[#111318] border-y border-white/5">
-                        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                            <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-                                <h2 className="text-accent font-semibold tracking-wider uppercase text-sm">Portfolio</h2>
-                                <h3 className="text-3xl md:text-4xl font-bold text-white">Our Masterpieces</h3>
+                {/* Verified PDI Deliveries Section */}
+                <div id="gallery" className="py-20 bg-[#111318] border-y border-white/5 relative overflow-hidden">
+                    <div className="absolute top-0 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
+
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-14 gap-6">
+                            <div>
+                                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold uppercase tracking-wider mb-4">
+                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                    <span>Verified PDI Showcase</span>
+                                </div>
+                                <h3 className="text-3xl md:text-5xl font-bold font-display text-white">
+                                    Recent PDI Deliveries & Stories
+                                </h3>
+                                <p className="text-gray-400 max-w-2xl text-sm md:text-base mt-3 leading-relaxed font-light">
+                                    Real customer cars thoroughly inspected by our master technicians before delivery. Defect-free handovers guaranteed.
+                                </p>
                             </div>
+
+                            <Link 
+                                href="/social"
+                                className="px-6 py-3 rounded-full border border-white/10 hover:border-accent text-xs font-bold uppercase tracking-widest text-white hover:text-accent transition-all flex items-center gap-2 group shrink-0"
+                            >
+                                View All PDI Deliveries <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                        </div>
+
+                        {pdiPosts.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {pdiPosts.slice(0, 4).map((post) => (
+                                    <Link 
+                                        key={post.id}
+                                        href={`/posts/${post.id}`}
+                                        className="group block"
+                                    >
+                                        <div className="relative bg-[#161920] rounded-2xl overflow-hidden border border-white/10 hover:border-accent/40 hover:shadow-2xl hover:shadow-accent/10 transition-all duration-500 cursor-pointer aspect-[4/5] flex flex-col justify-end">
+                                            <img 
+                                                src={post.url} 
+                                                alt={post.caption || "PDI Delivery"} 
+                                                className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" 
+                                            />
+                                            
+                                            {/* Top Badge */}
+                                            <div className="absolute top-4 left-4 z-20">
+                                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-zinc-100 text-[11px] font-bold border border-accent/30 shadow-lg">
+                                                    <ShieldCheck className="w-3.5 h-3.5 text-accent" />
+                                                    <span>Verified PDI Delivery</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Media Type Icon */}
+                                            {(post.type === "VIDEO" || post.type === "REEL") && (
+                                                <div className="absolute top-4 right-4 z-20 w-9 h-9 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 group-hover:bg-accent group-hover:text-black transition-colors">
+                                                    <Play className="w-4 h-4 ml-0.5 fill-current" />
+                                                </div>
+                                            )}
+
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80 group-hover:opacity-95 transition-opacity duration-300" />
+
+                                            {/* Card Content */}
+                                            <div className="relative z-20 p-5 space-y-3">
+                                                {post.caption && (
+                                                    <p className="text-xs md:text-sm text-zinc-200 line-clamp-2 group-hover:line-clamp-4 transition-all duration-300 font-light leading-relaxed">
+                                                        {post.caption}
+                                                    </p>
+                                                )}
+
+                                                <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
+                                                    <span className="text-[11px] text-zinc-400 font-medium">
+                                                        {post.publishedAt 
+                                                            ? new Date(post.publishedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+                                                            : "PDI Delivery"}
+                                                    </span>
+
+                                                    <span className="inline-flex items-center gap-1 text-accent font-bold text-xs uppercase tracking-wider group-hover:translate-x-1 transition-transform">
+                                                        Read PDI Story <ArrowRight className="w-3 h-3" />
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        ) : content.gallery.filter(g => g.isActive).length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {content.gallery.filter(g => g.isActive).map((img) => (
                                     <div key={img.id} className="group relative rounded-2xl overflow-hidden aspect-video bg-gray-900 border border-white/10">
@@ -252,9 +344,21 @@ export default async function PDIPage() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        ) : null}
+
+                        {pdiPosts.length > 4 && (
+                            <div className="mt-12 text-center">
+                                <Link 
+                                    href="/social"
+                                    className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-accent hover:bg-white text-black font-extrabold text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-accent/20"
+                                >
+                                    <span>View All ({pdiPosts.length}) PDI Stories</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </Link>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
 
                 {/* Testimonials Section */}
                 {content.testimonials.filter(t => t.isActive).length > 0 && (

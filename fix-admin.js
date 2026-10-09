@@ -9,6 +9,7 @@ async function main() {
     where: { email: 'superadmin@gmail.com' },
     data: {
       password: hash,
+      role: 'SUPER_ADMIN',
       status: 'APPROVED',
       emailVerified: true,
       mobileVerified: true

@@ -14,7 +14,7 @@ import {
 export async function POST(request: NextRequest) {
     try {
         const user = await getCurrentUser()
-        if (!user || user.role !== 'ADMIN') {
+        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
             return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 })
         }
 
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
     try {
         const user = await getCurrentUser()
-        if (!user || user.role !== 'ADMIN') {
+        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
             return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 })
         }
 

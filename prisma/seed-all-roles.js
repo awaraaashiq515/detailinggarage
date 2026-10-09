@@ -20,6 +20,8 @@ async function main() {
         const createdUser = await prisma.user.upsert({
             where: { email: user.email },
             update: {
+                role: user.role,
+                name: user.name,
                 status: 'APPROVED',
                 kycStatus: user.role === 'DEALER' ? 'APPROVED' : undefined
             },

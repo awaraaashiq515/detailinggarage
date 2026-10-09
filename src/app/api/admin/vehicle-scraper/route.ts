@@ -145,7 +145,7 @@ async function scrapeLiveFromCarInfo(regNo: string) {
 export async function POST(req: NextRequest) {
     try {
         const user = await getCurrentUser()
-        if (!user || user.role !== 'ADMIN') {
+        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
