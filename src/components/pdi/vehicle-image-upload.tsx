@@ -38,6 +38,7 @@ interface CameraModalProps {
 function CameraModal({ categoryLabel, onCapture, onClose }: CameraModalProps) {
     const videoRef = React.useRef<HTMLVideoElement>(null)
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
+    const fallbackInputRef = React.useRef<HTMLInputElement>(null)
     const streamRef = React.useRef<MediaStream | null>(null)
     const [capturedDataUrl, setCapturedDataUrl] = React.useState<string | null>(null)
     const [facingMode, setFacingMode] = React.useState<"environment" | "user">("environment")
@@ -137,6 +138,14 @@ function CameraModal({ categoryLabel, onCapture, onClose }: CameraModalProps) {
         setCapturedDataUrl(null)
     }
 
+    const handleNativeFallback = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            onCapture(file)
+            onClose()
+        }
+    }
+
     return (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
             <div className="w-full max-w-lg bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10">
@@ -151,7 +160,15 @@ function CameraModal({ categoryLabel, onCapture, onClose }: CameraModalProps) {
                             <p className="text-sm font-black text-white">{categoryLabel}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-all">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            onClose()
+                        }}
+                        className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-all"
+                    >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -181,7 +198,27 @@ function CameraModal({ categoryLabel, onCapture, onClose }: CameraModalProps) {
                                 <AlertCircle className="w-7 h-7 text-rose-400" />
                             </div>
                             <p className="text-sm font-bold text-rose-300">{cameraError}</p>
-                            <p className="text-xs text-slate-400">Please check browser permissions or use the upload button.</p>
+                            <p className="text-xs text-slate-400">Please check browser permissions or use phone camera directly.</p>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                ref={fallbackInputRef}
+                                onChange={handleNativeFallback}
+                                className="hidden"
+                            />
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    fallbackInputRef.current?.click()
+                                }}
+                                className="mt-2 flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-500/30 active:scale-95"
+                            >
+                                <Camera className="w-4 h-4" />
+                                <span>Use Phone Camera App</span>
+                            </button>
                         </div>
                     )}
 
@@ -210,20 +247,50 @@ function CameraModal({ categoryLabel, onCapture, onClose }: CameraModalProps) {
                 <div className="px-5 py-4 border-t border-white/10">
                     {capturedDataUrl ? (
                         <div className="flex items-center gap-3">
-                            <button onClick={handleRetake} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white text-xs font-black uppercase tracking-widest transition-all border border-white/10">
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleRetake()
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white text-xs font-black uppercase tracking-widest transition-all border border-white/10"
+                            >
                                 <Camera className="w-4 h-4" /> Retake
                             </button>
-                            <button onClick={handleConfirm} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/30">
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleConfirm()
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/30"
+                            >
                                 <ZapIcon className="w-4 h-4" /> Use Photo
                             </button>
                         </div>
                     ) : (
                         <div className="flex items-center gap-3">
-                            <button onClick={switchCamera} className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-all border border-white/10" title="Switch Camera">
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    switchCamera()
+                                }}
+                                className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-all border border-white/10"
+                                title="Switch Camera"
+                            >
                                 <SwitchCamera className="w-5 h-5" />
                             </button>
                             <button
-                                onClick={handleCapture}
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleCapture()
+                                }}
                                 disabled={starting || !!cameraError}
                                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-blue-500 hover:bg-blue-400 disabled:opacity-40 text-white text-sm font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/30 active:scale-95"
                             >
@@ -336,7 +403,12 @@ export function VehicleImageUpload({ images, onChange }: VehicleImageUploadProps
                     </div>
                     <p className="text-xs text-rose-900 font-bold">{uploadError}</p>
                     <button
-                        onClick={() => setUploadError(null)}
+                        type="button"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setUploadError(null)
+                        }}
                         className="ml-auto w-8 h-8 rounded-xl bg-white border border-rose-100 text-rose-400 hover:text-rose-600 flex items-center justify-center transition-all"
                     >
                         <X className="w-4 h-4" />
@@ -380,7 +452,12 @@ export function VehicleImageUpload({ images, onChange }: VehicleImageUploadProps
                                                 />
                                                 <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                                                     <button
-                                                        onClick={() => handleRemoveImage(img)}
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            e.stopPropagation()
+                                                            handleRemoveImage(img)
+                                                        }}
                                                         className="w-10 h-10 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-lg"
                                                     >
                                                         <X className="w-5 h-5" />

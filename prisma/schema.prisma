@@ -1907,5 +1907,43 @@ model MarutiPart {
   @@index([scrapedAt])
 }
 
+// Google Reviews & Rating Integration
+model GoogleReviewSettings {
+  id               String    @id @default(cuid())
+  placeId          String?   @default("ChIJ054h_z_wDDkRxX9QnS_v5v4")
+  placeName        String?   @default("Detailing Garage Mandi")
+  apiKey           String?
+  rating           Float     @default(4.9)
+  totalReviews     Int       @default(120)
+  writeReviewUrl   String?   @default("https://maps.google.com/?q=Detailing+Garage+Mandi")
+  autoSync         Boolean   @default(true)
+  syncInterval     Int       @default(60) // minutes
+  showOnHome       Boolean   @default(true)
+  minRatingToShow  Int       @default(4)
+  homeSectionTitle String?   @default("Google Reviews & Client Stories")
+  homeSectionDesc  String?   @default("Real, unfiltered experiences from automobile enthusiasts who trusted us with their vehicles.")
+  lastSyncedAt     DateTime?
+  lastSyncStatus   String?   @default("IDLE")
+  lastSyncMessage  String?
+  updatedAt        DateTime  @updatedAt
+  updatedBy        String?
+}
 
+model GoogleReview {
+  id              String    @id @default(cuid())
+  googleReviewId  String?   @unique
+  authorName      String
+  authorPhoto     String?
+  rating          Int       @default(5)
+  text            String
+  relativeTime    String?
+  reviewDate      DateTime?
+  source          String    @default("GOOGLE")
+  isFeatured      Boolean   @default(true)
+  isVisible       Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
+  @@index([isVisible])
+  @@index([rating])
+}

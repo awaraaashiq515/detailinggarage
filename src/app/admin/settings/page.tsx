@@ -32,7 +32,9 @@ import {
     Smartphone,
     Facebook,
     ExternalLink,
-    RefreshCw
+    RefreshCw,
+    Star,
+    MessageSquare
 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -110,6 +112,12 @@ export default function SettingsPage() {
                     >
                         <Facebook className="w-4 h-4 fill-current" /> Facebook Sync
                     </TabsTrigger>
+                    <TabsTrigger
+                        value="google-reviews"
+                        className="px-6 py-2.5 rounded-xl data-[state=active]:bg-[#4285F4] data-[state=active]:text-white text-slate-600 font-bold tracking-wide transition-all flex items-center gap-2"
+                    >
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" /> Google Reviews
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="header" className="animate-in fade-in duration-300">
@@ -150,6 +158,10 @@ export default function SettingsPage() {
 
                 <TabsContent value="facebook" className="animate-in fade-in duration-300">
                     <FacebookSettingsTab />
+                </TabsContent>
+
+                <TabsContent value="google-reviews" className="animate-in fade-in duration-300">
+                    <GoogleReviewsTab />
                 </TabsContent>
             </Tabs>
         </div>
@@ -2252,4 +2264,521 @@ function FacebookSettingsTab() {
         </div>
     )
 }
+
+// Google Reviews Component for Settings Tab
+function GoogleReviewsTab() {
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [syncing, setSyncing] = useState(false)
+    const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+    const [reviews, setReviews] = useState<any[]>([])
+    const [showAddForm, setShowAddForm] = useState(false)
+    const [addingReview, setAddingReview] = useState(false)
+    const [newReview, setNewReview] = useState({
+        authorName: '',
+        rating: 5,
+        text: '',
+        relativeTime: 'Recently'
+    })
+
+    const [formData, setFormData] = useState({
+        placeId: 'ChIJ6WFXUSodBTkR8BDYB1vohrE',
+        placeName: 'Detailing Garage',
+        apiKey: 'AIzaSyB3cfpMypGWOlv57GqA0suGF8LqqKjPBbw',
+        rating: 5.0,
+        totalReviews: 47,
+        writeReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJ6WFXUSodBTkR8BDYB1vohrE',
+        autoSync: true,
+        showOnHome: true,
+        homeSectionTitle: 'Google Reviews & Client Stories',
+        homeSectionDesc: 'Real, unfiltered experiences from automobile enthusiasts who trusted us with their vehicles.',
+        lastSyncStatus: 'SUCCESS',
+        lastSyncedAt: null as string | null
+    })
+
+    useEffect(() => {
+        loadData()
+    }, [])
+
+    async function loadData() {
+        setLoading(true)
+        try {
+            // Load settings
+            const res = await fetch('/api/public/google-reviews')
+            if (res.ok) {
+                const data = await res.json()
+                if (data.settings) {
+                    setFormData(prev => ({
+                        ...prev,
+                        placeId: data.settings.placeId || prev.placeId,
+                        placeName: data.settings.placeName || prev.placeName,
+                        apiKey: data.settings.apiKey || prev.apiKey,
+                        rating: Number(data.settings.rating) || 5.0,
+                        totalReviews: Number(data.settings.totalReviews) || 47,
+                        writeReviewUrl: data.settings.writeReviewUrl || prev.writeReviewUrl,
+                        showOnHome: data.settings.showOnHome ?? true,
+                        homeSectionTitle: data.settings.homeSectionTitle || prev.homeSectionTitle,
+                        homeSectionDesc: data.settings.homeSectionDesc || prev.homeSectionDesc,
+                    }))
+                }
+                if (data.reviews) {
+                    setReviews(data.reviews)
+                }
+            }
+
+            // Also check admin settings for API key
+            const adminRes = await fetch('/api/admin/settings/google-reviews')
+            if (adminRes.ok) {
+                const adminData = await adminRes.json()
+                if (adminData.settings) {
+                    setFormData(prev => ({
+                        ...prev,
+                        placeId: adminData.settings.placeId || prev.placeId,
+                        placeName: adminData.settings.placeName || prev.placeName,
+                        apiKey: adminData.settings.apiKey || prev.apiKey,
+                        rating: Number(adminData.settings.rating) || prev.rating,
+                        totalReviews: Number(adminData.settings.totalReviews) || prev.totalReviews,
+                        writeReviewUrl: adminData.settings.writeReviewUrl || prev.writeReviewUrl,
+                        lastSyncStatus: adminData.settings.lastSyncStatus || 'SUCCESS',
+                        lastSyncedAt: adminData.settings.lastSyncedAt || null
+                    }))
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load Google Reviews settings:', e)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault()
+        setSaving(true)
+        setStatus(null)
+        try {
+            const res = await fetch('/api/admin/settings/google-reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            const data = await res.json()
+            if (res.ok && data.success) {
+                setStatus({ type: 'success', msg: 'Google Review settings saved successfully!' })
+                await loadData()
+            } else {
+                setStatus({ type: 'error', msg: data.error || 'Failed to save settings' })
+            }
+        } catch {
+            setStatus({ type: 'error', msg: 'Network error while saving settings' })
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    async function handleSync() {
+        setSyncing(true)
+        setStatus(null)
+        try {
+            const res = await fetch('/api/admin/settings/google-reviews/sync', { method: 'POST' })
+            const data = await res.json()
+            if (res.ok && data.success) {
+                setStatus({ type: 'success', msg: data.message || `Successfully synced ${data.count} reviews from Google!` })
+                await loadData()
+            } else {
+                setStatus({ type: 'error', msg: data.error || data.message || 'Failed to sync reviews from Google' })
+            }
+        } catch {
+            setStatus({ type: 'error', msg: 'Network error during Google sync' })
+        } finally {
+            setSyncing(false)
+        }
+    }
+
+    async function handleAddReview(e: React.FormEvent) {
+        e.preventDefault()
+        if (!newReview.authorName || !newReview.text) {
+            alert('Please provide customer name and review text')
+            return
+        }
+        setAddingReview(true)
+        try {
+            const res = await fetch('/api/admin/google-reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newReview)
+            })
+            const data = await res.json()
+            if (res.ok && data.success) {
+                setShowAddForm(false)
+                setNewReview({ authorName: '', rating: 5, text: '', relativeTime: 'Recently' })
+                setStatus({ type: 'success', msg: 'New customer review added successfully!' })
+                await loadData()
+            } else {
+                alert(data.error || 'Failed to add review')
+            }
+        } catch {
+            alert('Network error while adding review')
+        } finally {
+            setAddingReview(false)
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center p-12">
+                <Loader2 className="w-8 h-8 animate-spin text-[#4285F4]" />
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-8">
+            {/* Live Status Header */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0d1f38] via-[#091528] to-[#070e1b] border border-[#16acd4]/30 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-white uppercase tracking-wider">
+                                {formData.placeName || "Detailing Garage"}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                Live &amp; Synced
+                            </span>
+                        </div>
+                        <p className="text-xs text-zinc-300 mt-1 font-medium">
+                            Rating: <strong className="text-amber-400 font-bold">{formData.rating.toFixed(1)} ★★★★★</strong> • Total Reviews: <strong className="text-white font-bold">{formData.totalReviews}+</strong> • Gutkar Mandi, HP
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <a
+                        href={formData.writeReviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                        View Google Maps <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                        href="/admin/settings/google-reviews"
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#16acd4] hover:bg-[#19bde9] text-black font-black flex items-center gap-1.5 transition-all shadow-lg shadow-[#16acd4]/20"
+                    >
+                        Advanced Center <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                </div>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+                <div className="rounded-3xl border border-white/10 shadow-2xl overflow-hidden bg-[#0c121e]">
+                    <div className="bg-[#131d33] border-b border-white/10 p-6 sm:p-8">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4285F4]/20 to-[#4285F4]/5 border border-[#4285F4]/30 flex items-center justify-center text-amber-400 shadow-inner">
+                                <Star className="w-6 h-6 fill-amber-400 text-amber-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-extrabold text-white tracking-wide uppercase">
+                                    Google Reviews &amp; Auto-Sync Integration
+                                </h2>
+                                <p className="text-xs sm:text-sm font-medium text-zinc-300 mt-1">
+                                    Real-time Google Places API sync for Detailing Garage customer reviews
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 sm:p-8 space-y-6 bg-[#0c121e]">
+                        {status && (
+                            <div className={`p-4 rounded-xl flex items-center gap-3 text-sm font-semibold border ${
+                                status.type === 'success' 
+                                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' 
+                                    : 'bg-red-500/10 text-red-300 border-red-500/30'
+                            }`}>
+                                {status.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> : <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />}
+                                <span>{status.msg}</span>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Business Name */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-extrabold uppercase tracking-wider text-white block">
+                                    Google Business Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.placeName}
+                                    onChange={(e) => setFormData({ ...formData, placeName: e.target.value })}
+                                    placeholder="Detailing Garage"
+                                    className="w-full bg-[#070b14] border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#16acd4] focus:ring-1 focus:ring-[#16acd4] focus:outline-none transition-all placeholder:text-zinc-500"
+                                />
+                            </div>
+
+                            {/* Place ID */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-extrabold uppercase tracking-wider text-white block">
+                                    Google Place ID <span className="text-rose-400 font-bold">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.placeId}
+                                    onChange={(e) => setFormData({ ...formData, placeId: e.target.value })}
+                                    placeholder="ChIJ6WFXUSodBTkR8BDYB1vohrE"
+                                    className="w-full bg-[#070b14] border border-white/20 rounded-xl px-4 py-3 text-white text-sm font-mono focus:border-[#16acd4] focus:ring-1 focus:ring-[#16acd4] focus:outline-none transition-all placeholder:text-zinc-500"
+                                />
+                            </div>
+
+                            {/* API Key */}
+                            <div className="md:col-span-2 space-y-2">
+                                <label className="text-xs font-extrabold uppercase tracking-wider text-white block">
+                                    Google Places API Key (Live Sync)
+                                </label>
+                                <input
+                                    type="password"
+                                    value={formData.apiKey}
+                                    onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                                    placeholder="AIzaSyB3cfpMypGWOlv57GqA0suGF8LqqKjPBbw"
+                                    className="w-full bg-[#070b14] border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#16acd4] focus:ring-1 focus:ring-[#16acd4] focus:outline-none transition-all placeholder:text-zinc-500 font-mono"
+                                />
+                                <p className="text-[11px] text-zinc-400 font-medium">
+                                    Connected to Google Cloud Console with Places API (New).
+                                </p>
+                            </div>
+
+                            {/* Displayed Rating */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-extrabold uppercase tracking-wider text-white block">
+                                    Displayed Google Rating (Stars)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    min="1"
+                                    max="5"
+                                    value={formData.rating}
+                                    onChange={(e) => setFormData({ ...formData, rating: parseFloat(e.target.value) || 5 })}
+                                    className="w-full bg-[#070b14] border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#16acd4] focus:ring-1 focus:ring-[#16acd4] focus:outline-none transition-all placeholder:text-zinc-500"
+                                />
+                            </div>
+
+                            {/* Total Reviews Count */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-extrabold uppercase tracking-wider text-white block">
+                                    Total Reviews Count Badge
+                                </label>
+                                <input
+                                    type="number"
+                                    value={formData.totalReviews}
+                                    onChange={(e) => setFormData({ ...formData, totalReviews: parseInt(e.target.value) || 0 })}
+                                    className="w-full bg-[#070b14] border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#16acd4] focus:ring-1 focus:ring-[#16acd4] focus:outline-none transition-all placeholder:text-zinc-500"
+                                />
+                            </div>
+
+                            {/* Direct Link */}
+                            <div className="md:col-span-2 space-y-2">
+                                <label className="text-xs font-extrabold uppercase tracking-wider text-white block">
+                                    Review Us on Google (Direct Link)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.writeReviewUrl}
+                                    onChange={(e) => setFormData({ ...formData, writeReviewUrl: e.target.value })}
+                                    placeholder="https://search.google.com/local/writereview?placeid=ChIJ6WFXUSodBTkR8BDYB1vohrE"
+                                    className="w-full bg-[#070b14] border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#16acd4] focus:ring-1 focus:ring-[#16acd4] focus:outline-none transition-all placeholder:text-zinc-500"
+                                />
+                            </div>
+
+                            {/* Section Title */}
+                            <div className="md:col-span-2 space-y-2">
+                                <label className="text-xs font-extrabold uppercase tracking-wider text-white block">
+                                    Homepage Section Title
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.homeSectionTitle}
+                                    onChange={(e) => setFormData({ ...formData, homeSectionTitle: e.target.value })}
+                                    className="w-full bg-[#070b14] border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#16acd4] focus:ring-1 focus:ring-[#16acd4] focus:outline-none transition-all placeholder:text-zinc-500"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Bottom Actions */}
+                        <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+                            <button
+                                type="button"
+                                onClick={handleSync}
+                                disabled={syncing}
+                                className="w-full sm:w-auto rounded-xl px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center gap-2 transition-all disabled:opacity-50 active:scale-95 shadow-sm"
+                            >
+                                <RefreshCw className={`w-4 h-4 text-[#16acd4] ${syncing ? 'animate-spin' : ''}`} />
+                                {syncing ? 'Syncing with Google Places...' : 'Sync Reviews Now'}
+                            </button>
+
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="w-full sm:w-auto rounded-xl px-8 py-3.5 text-xs font-black uppercase tracking-widest bg-gradient-to-r from-[#16acd4] to-[#0ea5e9] hover:from-[#19bde9] hover:to-[#0284c7] text-black shadow-xl shadow-[#16acd4]/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                            >
+                                {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin text-black" /> Saving...</> : <><Save className="w-4 h-4 mr-2 text-black" /> Save Settings</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            {/* Verified Reviews Display & Manager */}
+            <div className="rounded-3xl border border-white/10 shadow-2xl overflow-hidden bg-[#0c121e]">
+                <div className="bg-[#131d33] border-b border-white/10 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-extrabold text-white uppercase tracking-wider">
+                                Verified Customer Reviews ({reviews.length})
+                            </h3>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#16acd4]/20 text-[#16acd4] border border-[#16acd4]/30">
+                                Visible On Homepage
+                            </span>
+                        </div>
+                        <p className="text-xs text-zinc-300 mt-1">
+                            These 5-star verified customer experiences appear on your website homepage
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowAddForm(!showAddForm)}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center gap-2 transition-all"
+                    >
+                        <MessageSquare className="w-4 h-4 text-[#16acd4]" />
+                        {showAddForm ? 'Cancel' : '+ Add New Review'}
+                    </button>
+                </div>
+
+                {/* Add Review Inline Form */}
+                {showAddForm && (
+                    <form onSubmit={handleAddReview} className="p-6 border-b border-white/10 bg-[#070b14] space-y-4">
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#16acd4]">
+                            Add Customer Google Review
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="text-[11px] font-bold text-zinc-300 uppercase block mb-1">Customer Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newReview.authorName}
+                                    onChange={e => setNewReview({ ...newReview, authorName: e.target.value })}
+                                    placeholder="e.g. Sunny Mehta"
+                                    className="w-full bg-[#0c121e] border border-white/20 rounded-xl px-3 py-2 text-white text-xs"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[11px] font-bold text-zinc-300 uppercase block mb-1">Rating (Stars)</label>
+                                <select
+                                    value={newReview.rating}
+                                    onChange={e => setNewReview({ ...newReview, rating: Number(e.target.value) })}
+                                    className="w-full bg-[#0c121e] border border-white/20 rounded-xl px-3 py-2 text-white text-xs"
+                                >
+                                    <option value={5}>5 Stars ★★★★★</option>
+                                    <option value={4}>4 Stars ★★★★☆</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[11px] font-bold text-zinc-300 uppercase block mb-1">Relative Time</label>
+                                <input
+                                    type="text"
+                                    value={newReview.relativeTime}
+                                    onChange={e => setNewReview({ ...newReview, relativeTime: e.target.value })}
+                                    placeholder="e.g. 2 days ago"
+                                    className="w-full bg-[#0c121e] border border-white/20 rounded-xl px-3 py-2 text-white text-xs"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-[11px] font-bold text-zinc-300 uppercase block mb-1">Review Text</label>
+                            <textarea
+                                required
+                                rows={3}
+                                value={newReview.text}
+                                onChange={e => setNewReview({ ...newReview, text: e.target.value })}
+                                placeholder="Write the customer review message here..."
+                                className="w-full bg-[#0c121e] border border-white/20 rounded-xl p-3 text-white text-xs"
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowAddForm(false)}
+                                className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:text-white"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={addingReview}
+                                className="px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-[#16acd4] hover:bg-[#19bde9] text-black"
+                            >
+                                {addingReview ? 'Adding...' : 'Add Review'}
+                            </button>
+                        </div>
+                    </form>
+                )}
+
+                {/* Reviews Cards Grid */}
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {reviews.map((r, i) => (
+                        <div key={r.id || i} className="p-5 rounded-2xl bg-[#070b14] border border-white/10 flex flex-col justify-between space-y-3 hover:border-[#16acd4]/40 transition-all">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 border border-white/20 shrink-0">
+                                            {r.authorPhoto ? (
+                                                <img 
+                                                    src={r.authorPhoto} 
+                                                    alt={r.authorName} 
+                                                    referrerPolicy="no-referrer"
+                                                    className="w-full h-full object-cover" 
+                                                    onError={(e) => {
+                                                        const target = e.currentTarget
+                                                        target.onerror = null
+                                                        target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(r.authorName)}&background=16acd4&color=fff&bold=true`
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center font-bold text-white text-xs">
+                                                    {r.authorName?.[0]}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h5 className="text-sm font-bold text-white">{r.authorName}</h5>
+                                            <span className="text-[11px] text-zinc-400">{r.relativeTime || 'Verified Review'}</span>
+                                        </div>
+                                    </div>
+                                    <span className="text-amber-400 text-xs font-black flex items-center gap-0.5">
+                                        ★ {r.rating}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-zinc-300 leading-relaxed italic line-clamp-4">
+                                    "{r.text}"
+                                </p>
+                            </div>
+                            <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-500">
+                                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Google Verified
+                                </span>
+                                <span className="uppercase text-[9px] tracking-widest font-mono text-zinc-400">
+                                    {r.source || 'GOOGLE'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
+}
+
 

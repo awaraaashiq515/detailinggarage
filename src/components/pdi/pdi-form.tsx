@@ -343,6 +343,7 @@ export function PDIForm({ inspectionId, initialData }: PDIFormProps = {}) {
                         {/* Actions */}
                         <div className="flex items-center gap-3">
                             <Button
+                                type="button"
                                 onClick={form.handleSubmit(onSubmit)}
                                 disabled={submitting}
                                 className="bg-accent text-white hover:bg-accent/90 font-black uppercase tracking-widest text-[10px] px-8 h-12 rounded-2xl shadow-lg shadow-accent/25 transition-all active:scale-95"

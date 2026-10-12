@@ -2,6 +2,7 @@
 
 import { Navbar } from "@/components/layout/navbar"
 import HomeFooter from "@/components/home/HomeFooter"
+import GoogleReviewsSection from "@/components/home/GoogleReviewsSection"
 import { ArrowRight, Shield, ShieldCheck, Sparkles, Droplets, CheckCircle2, Play, ExternalLink, Radio, X, Calendar } from "lucide-react"
 import { motion, useScroll, useTransform } from "framer-motion"
 import { useEffect, useState } from "react"
@@ -307,6 +308,9 @@ export default function HomeClient() {
                     })()}
                 </div>
             </section>
+
+            {/* 3.5 GOOGLE REVIEWS & CLIENT STORIES */}
+            <GoogleReviewsSection />
 
             {/* 4. BENTO GRID SERVICES - LUXURY EDITION */}
             <section className="py-32 px-6 md:px-14 bg-[#09090b] relative border-t border-white/5" id="services">
