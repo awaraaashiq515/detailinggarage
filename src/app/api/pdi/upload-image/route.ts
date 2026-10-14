@@ -10,8 +10,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Only ADMIN / SUPER_ADMIN can upload PDI images
-        if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+        // Allow ADMIN, SUPER_ADMIN, and SHOP_OWNER with hasPdiAccess
+        if (user.role === 'SHOP_OWNER') {
+            const { db } = await import('@/lib/db')
+            const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (!shop || !shop.hasPdiAccess) {
+                return NextResponse.json({ error: 'PDI module is not enabled for your workshop' }, { status: 403 })
+            }
+        } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
         }
 

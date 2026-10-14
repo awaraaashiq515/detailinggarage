@@ -12,7 +12,14 @@ export async function PUT(
 ) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+        if (user.role === 'SHOP_OWNER') {
+            const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (!shop || !shop.hasPdiAccess) {
+                return NextResponse.json({ error: 'PDI module is not enabled for your workshop' }, { status: 403 })
+            }
+        } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
@@ -26,6 +33,13 @@ export async function PUT(
 
         if (!existingInspection) {
             return NextResponse.json({ error: 'Inspection not found' }, { status: 404 })
+        }
+
+        if (user.role === 'SHOP_OWNER') {
+            const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (existingInspection.shopId && existingInspection.shopId !== shop?.id) {
+                return NextResponse.json({ error: 'Access denied to this inspection report' }, { status: 403 })
+            }
         }
 
         const body = await request.json()

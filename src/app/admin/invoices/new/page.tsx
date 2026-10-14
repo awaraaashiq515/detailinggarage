@@ -59,6 +59,8 @@ export function AdminInvoiceForm({
     const [vehicleRegNo, setVehicleRegNo] = useState("")
     const [vehicleChassis, setVehicleChassis] = useState("")
     const [odometer, setOdometer] = useState("")
+    const [staffList, setStaffList] = useState<{ id: string; name: string; role: string; commissionRate: number; phone?: string | null }[]>([])
+    const [assignedStaffId, setAssignedStaffId] = useState("")
 
     // New line item inputs
     const [selItemId, setSelItemId] = useState("")
@@ -115,6 +117,7 @@ export function AdminInvoiceForm({
     useEffect(() => {
         fetch("/api/admin/billing/clients").then(r => r.json()).then(d => d.success && setClients(d.clients))
         fetch("/api/admin/billing/items").then(r => r.json()).then(d => d.success && setCatalogItems(d.items))
+        fetch("/api/shop/billing/staff").then(r => r.json()).then(d => d.success && d.staff && setStaffList(d.staff)).catch(() => {})
 
         // Pre-fill default Notes & Terms from Shop / Business Profile
         const profileApi = backUrl.startsWith("/shop") ? "/api/shop/billing/profile" : "/api/admin/billing/profile"
@@ -393,7 +396,7 @@ export function AdminInvoiceForm({
         const res = await fetch("/api/admin/billing/invoices", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ clientId, type: invType, date, dueDate: dueDate || null, items: lineItems, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer, prefix: docPrefix }),
+            body: JSON.stringify({ clientId, type: invType, date, dueDate: dueDate || null, items: lineItems, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer, prefix: docPrefix, assignedStaffId: assignedStaffId || null }),
         })
         const data = await res.json()
         setSaving(false)
@@ -541,6 +544,86 @@ export function AdminInvoiceForm({
                             <div className="grid grid-cols-[80px_1fr] items-center gap-2">
                                 <label className="text-xs text-zinc-500">Due Date</label>
                                 <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Vehicle & Assigned Technician / Staff */}
+                    <div className="bg-[#121214] border border-white/5 p-4 rounded-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#16acd4] mb-1.5 flex items-center gap-1.5">
+                                <Car className="w-3.5 h-3.5" /> Vehicle Name / Model
+                            </label>
+                            <input
+                                value={vehicleName}
+                                onChange={e => setVehicleName(e.target.value)}
+                                placeholder="e.g. Toyota Fortuner / Creta"
+                                className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5 block">
+                                Vehicle Reg. Number
+                            </label>
+                            <input
+                                value={vehicleRegNo}
+                                onChange={e => setVehicleRegNo(e.target.value.toUpperCase())}
+                                placeholder="e.g. DL 01 AB 1234"
+                                className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50 font-mono uppercase"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-1.5 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> Serviced By (Staff)
+                                </span>
+                                {assignedStaffId && (() => {
+                                    const s = staffList.find(x => x.id === assignedStaffId)
+                                    return s?.commissionRate ? (
+                                        <span className="text-[9px] text-[#c084fc] font-bold">
+                                            {s.commissionRate}% Comm
+                                        </span>
+                                    ) : null
+                                })()}
+                            </label>
+                            <select
+                                value={assignedStaffId}
+                                onChange={e => setAssignedStaffId(e.target.value)}
+                                className="w-full bg-[#09090b] border border-emerald-500/30 text-white text-xs px-3 py-2 outline-none focus:border-emerald-400 font-semibold"
+                            >
+                                <option value="">No staff assigned</option>
+                                {staffList.map(s => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name} ({s.role}){s.commissionRate > 0 ? ` • ${s.commissionRate}% Comm` : ""}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 block">
+                                    Odometer
+                                </label>
+                                <input
+                                    value={odometer}
+                                    onChange={e => setOdometer(e.target.value)}
+                                    placeholder="KM"
+                                    className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 block">
+                                    Chassis / VIN
+                                </label>
+                                <input
+                                    value={vehicleChassis}
+                                    onChange={e => setVehicleChassis(e.target.value)}
+                                    placeholder="Optional"
+                                    className="w-full bg-[#09090b] border border-white/10 text-white text-xs px-3 py-2 outline-none focus:border-[#16acd4]/50"
+                                />
                             </div>
                         </div>
                     </div>

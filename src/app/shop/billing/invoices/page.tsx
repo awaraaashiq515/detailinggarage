@@ -25,6 +25,7 @@ type Invoice = {
     amountPaid: number
     vehicleName?: string | null
     vehicleRegNo?: string | null
+    assignedStaff?: { id: string; name: string; role: string } | null
     client: Client
     items: InvoiceItem[]
     payments: Payment[]
@@ -111,6 +112,13 @@ function InvoiceCard({
                                         {inv.vehicleRegNo}
                                     </span>
                                 )}
+                            </div>
+                        )}
+                        {inv.assignedStaff && (
+                            <div className="mt-1">
+                                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                    👨‍🔧 {inv.assignedStaff.name} ({inv.assignedStaff.role})
+                                </span>
                             </div>
                         )}
                     </div>
@@ -490,6 +498,13 @@ export default function ShopInvoicesPage() {
                                                     <p className="text-[10px] font-mono text-[#16acd4]">{inv.vehicleRegNo}</p>
                                                 </div>
                                             ) : <span className="text-zinc-600">-</span>}
+                                            {inv.assignedStaff && (
+                                                <div className="mt-1">
+                                                    <span className="inline-block text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                                        👨‍🔧 {inv.assignedStaff.name}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-3 py-3.5 text-zinc-400">{fmtDate(inv.date)}</td>
                                         <td className="px-3 py-3.5 text-zinc-400">{fmtDate(inv.dueDate)}</td>

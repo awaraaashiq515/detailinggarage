@@ -22,6 +22,16 @@ export interface InsuranceClaimInput {
     chassisNumber?: string
     engineNumber?: string
 
+    // EV Details
+    isEv?: boolean
+    batteryCapacity?: string
+    batterySerialNumber?: string
+    batteryHealthSoH?: string
+    motorNumber?: string
+    chargerType?: string
+    chargerSerialNumber?: string
+    evSpecificCover?: string
+
     // Insurance Policy Details (expanded)
     policyNumber: string
     insuranceCompany: string
@@ -55,6 +65,7 @@ export interface InsuranceClaimInput {
     customerCity?: string
     createdByAdminId?: string
     source?: "ONLINE" | "WALK_IN"
+    shopId?: string | null
 }
 
 export interface InsuranceDocumentInput {
@@ -126,6 +137,7 @@ export async function createInsuranceClaim(
             claimNumber,
             userId: data.userId!,
             source: "ONLINE",
+            shopId: data.shopId || null,
 
             // Vehicle Details
             vehicleMake: data.vehicleMake,
@@ -143,6 +155,16 @@ export async function createInsuranceClaim(
             odometerReading: data.odometerReading,
             chassisNumber: data.chassisNumber,
             engineNumber: data.engineNumber,
+
+            // EV Details
+            isEv: data.isEv ?? false,
+            batteryCapacity: data.batteryCapacity,
+            batterySerialNumber: data.batterySerialNumber,
+            batteryHealthSoH: data.batteryHealthSoH,
+            motorNumber: data.motorNumber,
+            chargerType: data.chargerType,
+            chargerSerialNumber: data.chargerSerialNumber,
+            evSpecificCover: data.evSpecificCover,
 
             // Insurance Details
             policyNumber: data.policyNumber,
@@ -261,6 +283,7 @@ export async function createWalkInClaim(
                 source: "WALK_IN",
                 createdByAdminId: data.createdByAdminId,
                 customerCity: data.customerCity,
+                shopId: data.shopId || null,
 
                 // Vehicle Details (expanded)
                 vehicleMake: data.vehicleMake,
@@ -278,6 +301,16 @@ export async function createWalkInClaim(
                 odometerReading: data.odometerReading,
                 chassisNumber: data.chassisNumber,
                 engineNumber: data.engineNumber,
+
+                // EV Details
+                isEv: data.isEv ?? false,
+                batteryCapacity: data.batteryCapacity,
+                batterySerialNumber: data.batterySerialNumber,
+                batteryHealthSoH: data.batteryHealthSoH,
+                motorNumber: data.motorNumber,
+                chargerType: data.chargerType,
+                chargerSerialNumber: data.chargerSerialNumber,
+                evSpecificCover: data.evSpecificCover,
 
                 // Insurance Details (expanded)
                 policyNumber: data.policyNumber,
@@ -355,6 +388,9 @@ export async function getInsuranceClaim(id: string) {
             user: {
                 select: { id: true, name: true, email: true, mobile: true }
             },
+            shop: {
+                select: { id: true, name: true }
+            },
             notifications: true
         }
     })
@@ -369,8 +405,18 @@ export async function getAllInsuranceClaims(options?: {
     page?: number
     limit?: number
     source?: 'ONLINE' | 'WALK_IN'
+    shopId?: string | null
+    isEv?: boolean
 }) {
     const where: any = {}
+
+    if (options?.shopId !== undefined) {
+        where.shopId = options.shopId
+    }
+
+    if (options?.isEv !== undefined) {
+        where.isEv = options.isEv
+    }
 
     if (options?.status && options.status !== 'all') {
         where.status = options.status
@@ -384,8 +430,13 @@ export async function getAllInsuranceClaims(options?: {
         where.OR = [
             { claimNumber: { contains: options.search } },
             { policyNumber: { contains: options.search } },
+            { vehicleMake: { contains: options.search } },
+            { vehicleModel: { contains: options.search } },
+            { registrationNumber: { contains: options.search } },
             { user: { name: { contains: options.search } } },
-            { user: { email: { contains: options.search } } }
+            { user: { email: { contains: options.search } } },
+            { surveyorName: { contains: options.search } },
+            { surveyorEmail: { contains: options.search } }
         ]
     }
 
@@ -394,6 +445,9 @@ export async function getAllInsuranceClaims(options?: {
         include: {
             user: {
                 select: { id: true, name: true, email: true }
+            },
+            shop: {
+                select: { id: true, name: true }
             }
         },
         orderBy: { createdAt: 'desc' },
@@ -523,17 +577,24 @@ export async function updateClaimPDF(claimId: string, pdfUrl: string) {
 /**
  * Get dashboard stats for admin
  */
-export async function getInsuranceClaimStats() {
-    const [total, submitted, underReview, approved, rejected] = await Promise.all([
-        (prisma as any).insuranceClaim.count(),
-        (prisma as any).insuranceClaim.count({ where: { status: "SUBMITTED" } }),
-        (prisma as any).insuranceClaim.count({ where: { status: "UNDER_REVIEW" } }),
-        (prisma as any).insuranceClaim.count({ where: { status: "APPROVED" } }),
-        (prisma as any).insuranceClaim.count({ where: { status: "REJECTED" } })
+export async function getInsuranceClaimStats(options?: { shopId?: string | null }) {
+    const baseWhere: any = {}
+    if (options?.shopId !== undefined) {
+        baseWhere.shopId = options.shopId
+    }
+
+    const [total, submitted, underReview, approved, rejected, evTotal] = await Promise.all([
+        (prisma as any).insuranceClaim.count({ where: baseWhere }),
+        (prisma as any).insuranceClaim.count({ where: { ...baseWhere, status: "SUBMITTED" } }),
+        (prisma as any).insuranceClaim.count({ where: { ...baseWhere, status: "UNDER_REVIEW" } }),
+        (prisma as any).insuranceClaim.count({ where: { ...baseWhere, status: "APPROVED" } }),
+        (prisma as any).insuranceClaim.count({ where: { ...baseWhere, status: "REJECTED" } }),
+        (prisma as any).insuranceClaim.count({ where: { ...baseWhere, isEv: true } })
     ])
 
     // Get total estimated damage
     const damageResult = await (prisma as any).insuranceClaim.aggregate({
+        where: baseWhere,
         _sum: { estimatedDamage: true }
     })
 
@@ -543,6 +604,7 @@ export async function getInsuranceClaimStats() {
         underReview,
         approved,
         rejected,
+        evTotal,
         pending: submitted + underReview,
         totalDamage: damageResult._sum.estimatedDamage || 0
     }

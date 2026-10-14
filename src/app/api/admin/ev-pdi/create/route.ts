@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db as prisma } from "@/lib/db"
+import { getCurrentUser } from "@/lib/auth/jwt"
 
 export async function POST(req: NextRequest) {
     try {
+        const user = await getCurrentUser()
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+        let shopId: string | null = null
+        if (user.role === "SHOP_OWNER") {
+            const shop = await prisma.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (!shop || !shop.hasPdiAccess) {
+                return NextResponse.json({ error: "PDI module is not enabled for your workshop" }, { status: 403 })
+            }
+            shopId = shop.id
+        } else if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
         const body = await req.json()
 
         const {
@@ -26,8 +41,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Vehicle Make, Model and Customer Name are required" }, { status: 400 })
         }
 
+        if (!shopId && body.shopId) {
+            shopId = body.shopId
+        }
+
         const inspection = await prisma.eVPDIInspection.create({
             data: {
+                shopId,
                 vehicleMake,
                 vehicleModel,
                 vehicleVariant: vehicleVariant || null,

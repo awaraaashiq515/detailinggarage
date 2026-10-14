@@ -415,7 +415,7 @@ export default function GoogleReviewsSettingsPage() {
                         <div className="flex items-center gap-3">
                             <HelpCircle className="w-5 h-5 text-[#4285F4]" />
                             <span className="font-bold text-sm text-zinc-200">
-                                Google Reviews Auto-Sync Setup Guide (Google Reviews Website Par Kaise Auto-Sync Karein?)
+                                Google Reviews Auto-Sync Setup Guide (How to configure Google Reviews)
                             </span>
                         </div>
                         {showGuide ? <ChevronUp className="w-5 h-5 text-zinc-400" /> : <ChevronDown className="w-5 h-5 text-zinc-400" />}
@@ -426,10 +426,10 @@ export default function GoogleReviewsSettingsPage() {
                             <div className="space-y-2">
                                 <h4 className="font-bold text-white flex items-center gap-2">
                                     <span className="w-6 h-6 rounded-full bg-[#4285F4] text-white flex items-center justify-center text-xs">1</span>
-                                    Google Place ID Prapt Karein:
+                                    Obtain Your Google Place ID:
                                 </h4>
                                 <p className="pl-8 text-xs text-zinc-400">
-                                    Google Place ID Finder (
+                                    Go to the Google Place ID Finder (
                                     <a
                                         href="https://developers.google.com/maps/documentation/places/web-service/place-id"
                                         target="_blank"
@@ -438,7 +438,7 @@ export default function GoogleReviewsSettingsPage() {
                                     >
                                         Place ID Tool
                                     </a>
-                                    ) par jaakar <strong>"Detailing Garage Mandi"</strong> search karein aur Place ID copy karke niche paste karein.
+                                    ), search for your business name (e.g. <strong>"Detailing Garage Mandi"</strong>), copy your Place ID, and paste it below.
                                 </p>
                             </div>
 
@@ -448,7 +448,7 @@ export default function GoogleReviewsSettingsPage() {
                                     Google Cloud Places API Key (Optional for Live Auto-Sync):
                                 </h4>
                                 <p className="pl-8 text-xs text-zinc-400">
-                                    Google Cloud Console (
+                                    In Google Cloud Console (
                                     <a
                                         href="https://console.cloud.google.com"
                                         target="_blank"
@@ -457,17 +457,17 @@ export default function GoogleReviewsSettingsPage() {
                                     >
                                         console.cloud.google.com
                                     </a>
-                                    ) me <strong>Places API</strong> enable karein aur Credentials se API Key banakar niche dalein. API key daalne ke baad har naya Google review automatic fetch ho jayega!
+                                    ), enable the <strong>Places API</strong>, create an API key in Credentials, and paste it below to enable automatic review sync.
                                 </p>
                             </div>
 
                             <div className="space-y-2">
                                 <h4 className="font-bold text-white flex items-center gap-2">
                                     <span className="w-6 h-6 rounded-full bg-[#4285F4] text-white flex items-center justify-center text-xs">3</span>
-                                    Bina API Key ke bhi chalega:
+                                    Works Without API Key (Manual Mode):
                                 </h4>
                                 <p className="pl-8 text-xs text-zinc-400">
-                                    Agar abhi API key nahi hai, toh bhi system me 5-star verified reviews load hain, aur aap niche <strong>"+ Add Manual Review"</strong> button dabakar kabhi bhi naya customer review add kar sakte hain.
+                                    If you do not have an API key yet, the system still displays verified 5-star reviews, and you can click <strong>"+ Add Manual Review"</strong> below anytime to add client reviews manually.
                                 </p>
                             </div>
                         </div>

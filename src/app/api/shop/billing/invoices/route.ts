@@ -37,6 +37,7 @@ export async function GET(request: Request) {
                 client: true,
                 items: true,
                 payments: true,
+                assignedStaff: { select: { id: true, name: true, role: true, phone: true } },
                 shop: { select: { id: true, name: true } }
             },
             orderBy: { date: "desc" }

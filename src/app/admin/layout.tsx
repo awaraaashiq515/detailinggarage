@@ -1,8 +1,9 @@
 import { AdminSidebar } from "@/components/admin/sidebar"
+import { AdminMobileNav } from "@/components/admin/AdminMobileNav"
 import { getCurrentUser } from "@/lib/auth/jwt"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Bell, Globe, ChevronRight } from "lucide-react"
+import { Bell, Globe, ChevronRight, LayoutGrid } from "lucide-react"
 
 export default async function AdminLayout({
     children,
@@ -44,7 +45,16 @@ export default async function AdminLayout({
                     </div>
 
                     {/* Right: Actions */}
-                    <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <Link
+                            href="/admin/portal"
+                            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all border border-[#16acd4]/30 bg-[#16acd4]/10 hover:bg-[#16acd4] hover:text-black text-[#16acd4] group shadow-[0_0_15px_rgba(22,172,212,0.15)]"
+                            title="Direct access to all modules without sidebar"
+                        >
+                            <LayoutGrid className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+                            <span className="tracking-widest uppercase hidden xs:inline sm:inline">All Pages</span>
+                        </Link>
+
                         <Link
                             href="/"
                             className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border border-white/10 hover:border-[#16acd4]/50 hover:bg-[#16acd4]/10 text-zinc-400 hover:text-[#16acd4] group"
@@ -75,9 +85,12 @@ export default async function AdminLayout({
                 </header>
 
                 {/* ── Page Content ── */}
-                <main className="flex-1 overflow-y-auto p-5 lg:p-8 bg-[#09090b]">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 pb-24 lg:pb-8 bg-[#09090b]">
                     {children}
                 </main>
+
+                {/* ── Global Mobile Bottom Navigation Bar (All admin pages) ── */}
+                <AdminMobileNav />
             </div>
         </div>
     )

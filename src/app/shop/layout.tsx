@@ -21,16 +21,30 @@ export default async function ShopLayout({
 
     // Admin can also access shop routes for preview
     let shopName = "My Workshop"
+    let hasPdiAccess = false
+    let hasInsuranceAccess = false
+
     if (user.role === "SHOP_OWNER") {
         const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
         if (!shop || shop.status !== "ACTIVE") redirect("/unauthorized")
         shopName = shop.name
+        hasPdiAccess = Boolean(shop.hasPdiAccess)
+        hasInsuranceAccess = Boolean(shop.hasInsuranceAccess)
+    } else {
+        // Superadmins previewing have full module access
+        hasPdiAccess = true
+        hasInsuranceAccess = true
     }
 
     return (
         <div className="min-h-screen flex bg-[#09090b] text-white">
             {/* Sidebar with exact same design & brand styling */}
-            <ShopSidebar shopName={shopName} userName={user.name} />
+            <ShopSidebar
+                shopName={shopName}
+                userName={user.name}
+                hasPdiAccess={hasPdiAccess}
+                hasInsuranceAccess={hasInsuranceAccess}
+            />
 
             {/* Main column */}
             <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
@@ -43,16 +57,20 @@ export default async function ShopLayout({
                         borderBottom: "1px solid rgba(255,255,255,0.05)",
                     }}
                 >
-                    {/* Left: breadcrumb — on mobile, indent to avoid hamburger overlap */}
+                    {/* Left: breadcrumb / launcher link */}
                     <div className="flex items-center gap-3">
-                        <div className="lg:hidden w-14" />
-                        <div className="flex items-center gap-1.5 overflow-hidden">
-                            <span className="text-zinc-500 font-bold text-xs uppercase tracking-[2px] hidden lg:inline">Shop Portal</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0 hidden lg:inline" />
-                            <span className="text-white font-bold text-xs truncate tracking-[2px] uppercase">
-                                {shopName}
-                            </span>
-                        </div>
+                        <Link href="/shop/billing" className="flex items-center gap-2.5 group">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#16acd4] to-cyan-300 flex items-center justify-center text-black font-black text-xs shadow-md shadow-[#16acd4]/25 group-hover:scale-105 transition-transform">
+                                DG
+                            </div>
+                            <div className="flex items-center gap-1.5 overflow-hidden">
+                                <span className="text-zinc-500 font-bold text-xs uppercase tracking-[2px] hidden lg:inline group-hover:text-zinc-300 transition-colors">Launcher</span>
+                                <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0 hidden lg:inline" />
+                                <span className="text-white font-bold text-xs truncate tracking-[2px] uppercase group-hover:text-[#16acd4] transition-colors">
+                                    {shopName}
+                                </span>
+                            </div>
+                        </Link>
                     </div>
 
                     {/* Right: Actions */}

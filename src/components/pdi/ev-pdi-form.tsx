@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import {
     EVPDIFormData, EVCheckItem, EVCheckStatus, PaintThicknessReading,
     TyreReading, DiagnosticModule, EVPDIScores, EVFinalResult,
@@ -170,6 +170,7 @@ function PassFailToggle({ value, onChange, label }: { value: string; onChange: (
 // ── Main EV PDI Form ─────────────────────────────────────────────────────────
 export function EVPDIForm() {
     const router = useRouter()
+    const pathname = usePathname()
     const [data, setData] = React.useState<EVPDIFormData>(getDefaultFormData())
     const [submitting, setSubmitting] = React.useState(false)
     const [error, setError] = React.useState("")
@@ -197,7 +198,10 @@ export function EVPDIForm() {
                 throw new Error(err.error || "Failed to save")
             }
             const result = await res.json()
-            router.push(`/admin/pdi/ev-view/${result.id}`)
+            const targetViewUrl = pathname?.startsWith('/shop/billing')
+                ? `/shop/billing/pdi/ev-view/${result.id}`
+                : `/admin/pdi/ev-view/${result.id}`
+            router.push(targetViewUrl)
         } catch (err: any) {
             setError(err.message)
         } finally {

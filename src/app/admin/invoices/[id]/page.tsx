@@ -12,6 +12,7 @@ type Invoice = {
     taxTotal: number; discount: number; grandTotal: number; amountPaid: number
     notes: string | null; terms: string | null
     vehicleName: string | null; vehicleRegNo: string | null; vehicleChassis: string | null; odometer: string | null
+    assignedStaff?: { id: string; name: string; role: string; phone?: string | null } | null
     client: { name: string; phone: string | null; email: string | null; gstin: string | null; address: string | null; state: string | null }
     shop?: {
         name: string
@@ -265,6 +266,14 @@ export function InvoiceDetailView({ id, basePath = "/admin/invoices" }: { id: st
                                 <p className="text-xs text-zinc-400 font-mono">{invoice.vehicleChassis}</p>
                             </div>
                         )}
+                        {invoice.assignedStaff && (
+                            <div className="border-t border-white/5 pt-3 mt-4">
+                                <p className="text-[10px] text-zinc-500 uppercase font-semibold">Serviced By (Technician)</p>
+                                <p className="text-xs text-emerald-400 font-bold">
+                                    👨‍🔧 {invoice.assignedStaff.name} ({invoice.assignedStaff.role})
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -455,7 +464,7 @@ export function InvoiceDetailView({ id, basePath = "/admin/invoices" }: { id: st
                 </div>
 
                 {/* Vehicle Info Band (if any) */}
-                {(invoice.vehicleName || invoice.vehicleRegNo || invoice.vehicleChassis || invoice.odometer) && (
+                {(invoice.vehicleName || invoice.vehicleRegNo || invoice.vehicleChassis || invoice.odometer || invoice.assignedStaff) && (
                     <div className="ip-vehicle">
                         {invoice.vehicleName && (
                             <div>
@@ -469,16 +478,22 @@ export function InvoiceDetailView({ id, basePath = "/admin/invoices" }: { id: st
                                 <div className="ip-vehicle-cell-value">{invoice.vehicleRegNo}</div>
                             </div>
                         )}
-                        {invoice.vehicleChassis && (
+                        {invoice.assignedStaff && (
                             <div>
-                                <div className="ip-vehicle-cell-label">Chassis / VIN</div>
-                                <div className="ip-vehicle-cell-value">{invoice.vehicleChassis}</div>
+                                <div className="ip-vehicle-cell-label">Serviced By</div>
+                                <div className="ip-vehicle-cell-value">{invoice.assignedStaff.name} ({invoice.assignedStaff.role})</div>
                             </div>
                         )}
                         {invoice.odometer && (
                             <div>
                                 <div className="ip-vehicle-cell-label">Odometer</div>
                                 <div className="ip-vehicle-cell-value">{invoice.odometer}</div>
+                            </div>
+                        )}
+                        {invoice.vehicleChassis && (
+                            <div>
+                                <div className="ip-vehicle-cell-label">Chassis / VIN</div>
+                                <div className="ip-vehicle-cell-value">{invoice.vehicleChassis}</div>
                             </div>
                         )}
                     </div>

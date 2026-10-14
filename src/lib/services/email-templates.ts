@@ -617,11 +617,211 @@ export const insuranceClaimStatusUpdateTemplate = (name: string, claimNumber: st
                             </div>
                         </td>
                     </tr>
+    </table>
+</body>
+</html>
+`;
+
+export const surveyorInsuranceClaimTemplate = ({
+    surveyorName,
+    claimNumber,
+    vehicleMake,
+    vehicleModel,
+    vehicleVariant,
+    vehicleYear,
+    registrationNumber,
+    policyNumber,
+    insuranceCompany,
+    estimatedDamage,
+    incidentDate,
+    incidentLocation,
+    incidentDescription,
+    customerName,
+    customerMobile,
+    isEv,
+    customMessage,
+    pdfDownloadUrl,
+    workshopName
+}: {
+    surveyorName?: string
+    claimNumber: string
+    vehicleMake: string
+    vehicleModel: string
+    vehicleVariant?: string
+    vehicleYear: string
+    registrationNumber: string
+    policyNumber: string
+    insuranceCompany: string
+    estimatedDamage?: number | null
+    incidentDate?: string
+    incidentLocation?: string
+    incidentDescription?: string
+    customerName?: string
+    customerMobile?: string
+    isEv?: boolean
+    customMessage?: string
+    pdfDownloadUrl?: string
+    workshopName?: string
+}) => {
+    const formattedAmount = estimatedDamage
+        ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(estimatedDamage)
+        : 'Under Assessment'
+
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insurance Claim Assessment & Estimate Report - ${claimNumber}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b0d12; color: #ffffff;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #0b0d12;">
+        <tr>
+            <td align="center" style="padding: 30px 10px;">
+                <table role="presentation" style="width: 100%; max-width: 650px; border-collapse: collapse; background-color: #12151c; border-radius: 16px; border: 1px solid rgba(255,255,255,0.12); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+                    
+                    <!-- Header Banner -->
                     <tr>
-                        <td style="padding: 30px 40px; background-color: #0d0f14; border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
-                            <p style="margin: 0; color: #52525b; font-size: 12px;">© ${new Date().getFullYear()} Detailing Garage</p>
+                        <td style="padding: 32px 36px; background: linear-gradient(135deg, #09203f 0%, #16acd4 50%, #00d4ff 100%);">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td>
+                                        <div style="font-size: 11px; font-weight: 900; letter-spacing: 2px; color: rgba(255,255,255,0.85); text-transform: uppercase;">DETAILING GARAGE® | CLAIMS & SURVEY DESK</div>
+                                        <h1 style="margin: 6px 0 2px 0; color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">Vehicle Insurance Claim Assessment</h1>
+                                        <div style="font-size: 14px; color: #ffffff; font-weight: 600; opacity: 0.95;">Claim Dossier & Estimate Report for Deputed Surveyor</div>
+                                    </td>
+                                    <td align="right" style="vertical-align: top;">
+                                        <span style="display: inline-block; padding: 6px 14px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.3); border-radius: 9999px; font-size: 11px; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">
+                                            ${isEv ? '⚡ EV CLAIM' : 'ACCIDENT CLAIM'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 32px 36px;">
+                            <p style="margin: 0 0 16px 0; font-size: 15px; color: #e4e4e7; line-height: 1.6;">
+                                Respected Surveyor <strong>${surveyorName || 'Officer'}</strong>,
+                            </p>
+                            <p style="margin: 0 0 24px 0; font-size: 14px; color: #a1a1aa; line-height: 1.6;">
+                                Please find attached the complete <strong>Insurance Claim Assessment PDF Report</strong>, including vehicle damage evaluation, repair cost estimates, and inspection photographs for the vehicle registered below.
+                            </p>
+
+                            <!-- Key Claim Reference Card -->
+                            <div style="background-color: #171b24; border: 1px solid rgba(22, 172, 212, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="width: 50%; padding-bottom: 12px;">
+                                            <div style="font-size: 10px; font-weight: 800; color: #16acd4; text-transform: uppercase; letter-spacing: 1px;">Claim Number</div>
+                                            <div style="font-size: 16px; font-weight: 900; color: #ffffff; font-family: monospace;">${claimNumber}</div>
+                                        </td>
+                                        <td style="width: 50%; padding-bottom: 12px;">
+                                            <div style="font-size: 10px; font-weight: 800; color: #16acd4; text-transform: uppercase; letter-spacing: 1px;">Estimated Repair Amount</div>
+                                            <div style="font-size: 16px; font-weight: 900; color: #22c55e;">${formattedAmount}</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="width: 50%;">
+                                            <div style="font-size: 10px; font-weight: 800; color: #a1a1aa; text-transform: uppercase; letter-spacing: 1px;">Insurance Company</div>
+                                            <div style="font-size: 13px; font-weight: 700; color: #ffffff;">${insuranceCompany}</div>
+                                        </td>
+                                        <td style="width: 50%;">
+                                            <div style="font-size: 10px; font-weight: 800; color: #a1a1aa; text-transform: uppercase; letter-spacing: 1px;">Policy Number</div>
+                                            <div style="font-size: 13px; font-weight: 700; color: #ffffff; font-family: monospace;">${policyNumber}</div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Vehicle Details Table -->
+                            <div style="background-color: #1a1e29; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                                <div style="padding: 12px 18px; background-color: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 11px; font-weight: 900; color: #d4d4d8; text-transform: uppercase; letter-spacing: 1px;">
+                                    🚗 Insured Vehicle Information
+                                </div>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 10px 18px; color: #71717a; width: 40%;">Vehicle Make & Model:</td>
+                                        <td style="padding: 10px 18px; color: #ffffff; font-weight: 700;">${vehicleMake} ${vehicleModel} ${vehicleVariant || ''} (${vehicleYear})</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 10px 18px; color: #71717a;">Registration Number:</td>
+                                        <td style="padding: 10px 18px; color: #00d4ff; font-weight: 900; font-family: monospace;">${registrationNumber}</td>
+                                    </tr>
+                                    ${customerName ? `
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 10px 18px; color: #71717a;">Vehicle Owner / Insured:</td>
+                                        <td style="padding: 10px 18px; color: #ffffff; font-weight: 600;">${customerName} ${customerMobile ? `(${customerMobile})` : ''}</td>
+                                    </tr>
+                                    ` : ''}
+                                    ${incidentDate ? `
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 10px 18px; color: #71717a;">Date of Incident:</td>
+                                        <td style="padding: 10px 18px; color: #ffffff; font-weight: 600;">${incidentDate}</td>
+                                    </tr>
+                                    ` : ''}
+                                    ${incidentLocation ? `
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 10px 18px; color: #71717a;">Incident Location:</td>
+                                        <td style="padding: 10px 18px; color: #ffffff; font-weight: 600;">${incidentLocation}</td>
+                                    </tr>
+                                    ` : ''}
+                                    ${incidentDescription ? `
+                                    <tr>
+                                        <td style="padding: 10px 18px; color: #71717a; vertical-align: top;">Damage Brief:</td>
+                                        <td style="padding: 10px 18px; color: #e4e4e7; font-size: 12px; line-height: 1.5;">${incidentDescription}</td>
+                                    </tr>
+                                    ` : ''}
+                                </table>
+                            </div>
+
+                            ${customMessage ? `
+                            <!-- Workshop Message to Surveyor -->
+                            <div style="background-color: rgba(22, 172, 212, 0.08); border-left: 4px solid #16acd4; border-radius: 4px 12px 12px 4px; padding: 14px 18px; margin-bottom: 24px;">
+                                <div style="font-size: 11px; font-weight: 800; color: #16acd4; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Message from Workshop Team:</div>
+                                <div style="font-size: 13px; color: #e4e4e7; line-height: 1.5; white-space: pre-line;">${customMessage}</div>
+                            </div>
+                            ` : ''}
+
+                            <!-- Attachment Notice Banner -->
+                            <div style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(22, 172, 212, 0.12) 100%); border: 1px dashed rgba(34, 197, 94, 0.4); border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 24px;">
+                                <div style="font-size: 14px; font-weight: 800; color: #22c55e; margin-bottom: 4px;">
+                                    📎 Attached File: Insurance_Claim_${claimNumber}.pdf
+                                </div>
+                                <div style="font-size: 12px; color: #a1a1aa;">
+                                    The full estimate sheet with part-wise breakdown & inspection photographs has been attached directly to this email.
+                                </div>
+                                ${pdfDownloadUrl ? `
+                                <div style="margin-top: 14px;">
+                                    <a href="${pdfDownloadUrl}" target="_blank" style="display: inline-block; padding: 10px 22px; background-color: #16acd4; color: #000000; font-size: 12px; font-weight: 900; text-decoration: none; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        View / Download PDF Online
+                                    </a>
+                                </div>
+                                ` : ''}
+                            </div>
+
+                            <!-- Physical Inspection & Contact -->
+                            <p style="margin: 0; font-size: 12px; color: #71717a; line-height: 1.5;">
+                                The vehicle is currently stationed at <strong>${workshopName || 'Detailing Garage Workshop'}</strong> and available for physical re-inspection/survey. Please let us know if additional documents or photos are required.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 24px 36px; background-color: #0b0d12; border-top: 1px solid rgba(255,255,255,0.08); text-align: center;">
+                            <div style="font-size: 12px; font-weight: 700; color: #d4d4d8; margin-bottom: 4px;">
+                                ${workshopName || 'Detailing Garage'} – Premium Auto Protection & Bodycraft Studio
+                            </div>
+                            <div style="font-size: 11px; color: #52525b;">
+                                Automated Claim Dispatch System • © ${new Date().getFullYear()} All Rights Reserved
+                            </div>
+                        </td>
+                    </tr>
+
                 </table>
             </td>
         </tr>
@@ -629,4 +829,6 @@ export const insuranceClaimStatusUpdateTemplate = (name: string, claimNumber: st
 </body>
 </html>
 `;
+};
+
 

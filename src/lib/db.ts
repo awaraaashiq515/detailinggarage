@@ -2,19 +2,31 @@ import { PrismaClient } from "@prisma/client"
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
+function hasRequiredFields(client: any): boolean {
+    if (!client) return false
+    const fields = client._runtimeDataModel?.models?.InsuranceClaim?.fields || []
+    const hasSurveyor = Array.isArray(fields) && fields.some((f: any) => f.name === "surveyorEmail")
+    return (
+        hasSurveyor &&
+        Boolean(client.shopStaff) &&
+        Boolean(client.googleReviewSettings) &&
+        Boolean(client.googleReview)
+    )
+}
+
 function getActiveClient(): PrismaClient {
-    if (
-        globalForPrisma.prisma &&
-        (globalForPrisma.prisma as any).googleReviewSettings &&
-        (globalForPrisma.prisma as any).googleReview
-    ) {
+    if (globalForPrisma.prisma && hasRequiredFields(globalForPrisma.prisma)) {
         return globalForPrisma.prisma
     }
 
     try {
-        // Clear node require cache to load newly generated PrismaClient
-        const key = require.resolve("@prisma/client")
-        delete require.cache[key]
+        if (typeof require !== "undefined" && require.cache) {
+            Object.keys(require.cache).forEach(k => {
+                if (k.includes("@prisma") || k.includes(".prisma")) {
+                    delete require.cache[k]
+                }
+            })
+        }
         const clientPkg = require("@prisma/client")
         const FreshClient = clientPkg.PrismaClient || PrismaClient
         const fresh = new FreshClient({

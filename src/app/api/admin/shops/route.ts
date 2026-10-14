@@ -56,116 +56,121 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json()
-        const {
-            // Owner account
-            ownerName, ownerEmail, ownerMobile, ownerPassword,
-            // Shop info
-            shopName, phone, email, address, city, state, gstin,
-        } = body
+            const {
+                // Owner account
+                ownerName, ownerEmail, ownerMobile, ownerPassword,
+                // Shop info
+                shopName, phone, email, address, city, state, gstin,
+                hasPdiAccess, hasInsuranceAccess,
+            } = body
 
-        if (!ownerName?.trim() || !ownerEmail?.trim() || !ownerPassword || !shopName?.trim()) {
-            return NextResponse.json({ error: "Owner name, email, password and shop name are required" }, { status: 400 })
-        }
-
-        const normalizedEmail = ownerEmail.trim().toLowerCase()
-        const normalizedMobile = ownerMobile?.trim() ? ownerMobile.trim() : null
-
-        // Check if email already exists
-        const existing = await db.user.findUnique({ where: { email: normalizedEmail } })
-        if (existing) {
-            return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 })
-        }
-
-        // Check if mobile already exists (if provided)
-        if (normalizedMobile) {
-            const existingMobile = await db.user.findUnique({ where: { mobile: normalizedMobile } })
-            if (existingMobile) {
-                return NextResponse.json({ error: "A user with this mobile number already exists" }, { status: 409 })
+            if (!ownerName?.trim() || !ownerEmail?.trim() || !ownerPassword || !shopName?.trim()) {
+                return NextResponse.json({ error: "Owner name, email, password and shop name are required" }, { status: 400 })
             }
+
+            const normalizedEmail = ownerEmail.trim().toLowerCase()
+            const normalizedMobile = ownerMobile?.trim() ? ownerMobile.trim() : null
+
+            // Check if email already exists
+            const existing = await db.user.findUnique({ where: { email: normalizedEmail } })
+            if (existing) {
+                return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 })
+            }
+
+            // Check if mobile already exists (if provided)
+            if (normalizedMobile) {
+                const existingMobile = await db.user.findUnique({ where: { mobile: normalizedMobile } })
+                if (existingMobile) {
+                    return NextResponse.json({ error: "A user with this mobile number already exists" }, { status: 409 })
+                }
+            }
+
+            const hashedPassword = await bcrypt.hash(ownerPassword, 12)
+
+            // Create user + shop + profile in one transaction
+            const result = await db.$transaction(async (tx) => {
+                const user = await tx.user.create({
+                    data: {
+                        name: ownerName.trim(),
+                        email: normalizedEmail,
+                        mobile: normalizedMobile,
+                        password: hashedPassword,
+                        role: "SHOP_OWNER",
+                        status: "APPROVED",
+                        emailVerified: true,
+                    }
+                })
+
+                const shop = await tx.shop.create({
+                    data: {
+                        name: shopName.trim(),
+                        ownerUserId: user.id,
+                        phone: phone?.trim() || null,
+                        email: email?.trim() || null,
+                        address: address?.trim() || null,
+                        city: city?.trim() || null,
+                        state: state?.trim() || null,
+                        gstin: gstin?.trim() || null,
+                        hasPdiAccess: Boolean(hasPdiAccess),
+                        hasInsuranceAccess: Boolean(hasInsuranceAccess),
+                    }
+                })
+
+                // Create empty billing profile for the shop
+                await tx.shopBillingProfile.create({
+                    data: {
+                        shopId: shop.id,
+                        businessName: shopName.trim(),
+                        phone: phone?.trim() || null,
+                        email: email?.trim() || null,
+                        address: address?.trim() || null,
+                        city: city?.trim() || null,
+                        state: state?.trim() || null,
+                        gstin: gstin?.trim() || null,
+                    }
+                })
+
+                return { user, shop }
+            })
+
+            return NextResponse.json({
+                success: true,
+                shop: result.shop,
+                message: `Shop "${shopName}" created successfully for ${ownerName}`
+            })
+        } catch (error: any) {
+            console.error("Error creating shop:", error)
+            return NextResponse.json({ error: error?.message || "Failed to create shop" }, { status: 500 })
         }
-
-        const hashedPassword = await bcrypt.hash(ownerPassword, 12)
-
-        // Create user + shop + profile in one transaction
-        const result = await db.$transaction(async (tx) => {
-            const user = await tx.user.create({
-                data: {
-                    name: ownerName.trim(),
-                    email: normalizedEmail,
-                    mobile: normalizedMobile,
-                    password: hashedPassword,
-                    role: "SHOP_OWNER",
-                    status: "APPROVED",
-                    emailVerified: true,
-                }
-            })
-
-            const shop = await tx.shop.create({
-                data: {
-                    name: shopName.trim(),
-                    ownerUserId: user.id,
-                    phone: phone?.trim() || null,
-                    email: email?.trim() || null,
-                    address: address?.trim() || null,
-                    city: city?.trim() || null,
-                    state: state?.trim() || null,
-                    gstin: gstin?.trim() || null,
-                }
-            })
-
-            // Create empty billing profile for the shop
-            await tx.shopBillingProfile.create({
-                data: {
-                    shopId: shop.id,
-                    businessName: shopName.trim(),
-                    phone: phone?.trim() || null,
-                    email: email?.trim() || null,
-                    address: address?.trim() || null,
-                    city: city?.trim() || null,
-                    state: state?.trim() || null,
-                    gstin: gstin?.trim() || null,
-                }
-            })
-
-            return { user, shop }
-        })
-
-        return NextResponse.json({
-            success: true,
-            shop: result.shop,
-            message: `Shop "${shopName}" created successfully for ${ownerName}`
-        })
-    } catch (error: any) {
-        console.error("Error creating shop:", error)
-        return NextResponse.json({ error: error?.message || "Failed to create shop" }, { status: 500 })
-    }
-}
-
-// PATCH update shop details or suspend/reactivate
-export async function PATCH(request: Request) {
-    if (!await checkAdminAuth()) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    try {
-        const body = await request.json()
-        const { id, status, name, phone, email, address, city, state, gstin } = body
+    // PATCH update shop details or suspend/reactivate
+    export async function PATCH(request: Request) {
+        if (!await checkAdminAuth()) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
 
-        if (!id) return NextResponse.json({ error: "Shop ID required" }, { status: 400 })
+        try {
+            const body = await request.json()
+            const { id, status, name, phone, email, address, city, state, gstin, hasPdiAccess, hasInsuranceAccess } = body
 
-        const shop = await db.shop.update({
-            where: { id },
-            data: {
-                ...(status && { status }),
-                ...(name && { name }),
-                ...(phone !== undefined && { phone }),
-                ...(email !== undefined && { email }),
-                ...(address !== undefined && { address }),
-                ...(city !== undefined && { city }),
-                ...(state !== undefined && { state }),
-                ...(gstin !== undefined && { gstin }),
-            }
-        })
+            if (!id) return NextResponse.json({ error: "Shop ID required" }, { status: 400 })
+
+            const shop = await db.shop.update({
+                where: { id },
+                data: {
+                    ...(status && { status }),
+                    ...(name && { name }),
+                    ...(phone !== undefined && { phone }),
+                    ...(email !== undefined && { email }),
+                    ...(address !== undefined && { address }),
+                    ...(city !== undefined && { city }),
+                    ...(state !== undefined && { state }),
+                    ...(gstin !== undefined && { gstin }),
+                    ...(hasPdiAccess !== undefined && { hasPdiAccess: Boolean(hasPdiAccess) }),
+                    ...(hasInsuranceAccess !== undefined && { hasInsuranceAccess: Boolean(hasInsuranceAccess) }),
+                }
+            })
 
         // If suspending/activating shop, also update owner user status
         if (status === "SUSPENDED") {

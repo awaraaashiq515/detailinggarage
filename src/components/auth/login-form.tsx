@@ -50,6 +50,10 @@ export function LoginForm() {
 
             // Role-based redirect
             const role = result.user?.role
+            if (role === "STAFF") {
+                router.push("/staff")
+                return
+            }
             if (role === "SHOP_OWNER") {
                 router.push("/shop/billing")
                 return

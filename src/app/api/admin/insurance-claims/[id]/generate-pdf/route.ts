@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth/jwt'
+import { db } from '@/lib/db'
 import { getInsuranceClaim } from '@/services/insurance-service'
 import { generateInsuranceClaimPDF } from '@/services/insurance/pdf/generator/insurance-pdf-generator'
 import { sendInsuranceClaimPDFEmail } from '@/lib/services/email'
@@ -7,7 +8,7 @@ import { sendInsuranceClaimPDFEmail } from '@/lib/services/email'
 type RouteParams = Promise<{ id: string }>
 
 /**
- * POST - Generate PDF for an insurance claim (admin only)
+ * POST - Generate PDF for an insurance claim (admin or permitted workshop owner)
  */
 export async function POST(
     request: NextRequest,
@@ -15,7 +16,16 @@ export async function POST(
 ) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        if (user.role === 'SHOP_OWNER') {
+            const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (!shop || !shop.hasInsuranceAccess) {
+                return NextResponse.json({ error: 'Insurance module is not enabled for your workshop' }, { status: 403 })
+            }
+        } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 })
         }
 
@@ -27,24 +37,36 @@ export async function POST(
             return NextResponse.json({ error: 'Claim not found' }, { status: 404 })
         }
 
+        // Workshop scoping check
+        if (user.role === 'SHOP_OWNER' && claim.shopId) {
+            const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (claim.shopId !== shop?.id) {
+                return NextResponse.json({ error: 'Access denied to this claim' }, { status: 403 })
+            }
+        }
+
         // Generate PDF
         const pdfUrl = await generateInsuranceClaimPDF(id)
 
-        // Send email notification to client
+        // Send email notification to client (non-blocking)
         if (claim.user?.email) {
-            const vehicleInfo = `${claim.vehicleMake} ${claim.vehicleModel}`
-            await sendInsuranceClaimPDFEmail(
-                claim.user.email,
-                claim.user.name,
-                claim.claimNumber,
-                vehicleInfo,
-                id
-            )
+            try {
+                const vehicleInfo = `${claim.vehicleMake} ${claim.vehicleModel}`
+                await sendInsuranceClaimPDFEmail(
+                    claim.user.email,
+                    claim.user.name,
+                    claim.claimNumber,
+                    vehicleInfo,
+                    id
+                )
+            } catch (emailErr) {
+                console.warn('Could not send insurance PDF email notification:', emailErr)
+            }
         }
 
         return NextResponse.json({
             success: true,
-            message: 'PDF generated successfully and client notified',
+            message: 'PDF generated successfully',
             pdfUrl
         })
     } catch (error: any) {

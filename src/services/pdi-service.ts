@@ -50,6 +50,7 @@ export interface PDIInspectionInput {
     images?: PDIImageInput[]
     digitalSignature?: string
     customerSignature?: string
+    shopId?: string | null
 }
 
 /**
@@ -194,6 +195,7 @@ export async function createPDIReport(data: PDIInspectionInput) {
                 customerName: data.customerName,
                 customerEmail: data.customerEmail,
                 customerPhone: data.customerPhone,
+                shopId: data.shopId || null,
                 inspectedBy: data.inspectedBy,
                 adminComments: data.adminComments,
                 vehicleDamageData: data.vehicleDamageData,
@@ -347,16 +349,36 @@ export async function getPDIInspection(id: string) {
                     name: true,
                     email: true
                 }
+            },
+            shop: {
+                select: {
+                    id: true,
+                    name: true
+                }
             }
         }
     })
 }
 
 /**
- * Fetches all PDI inspections
+ * Fetches all PDI inspections (with optional workshop filtering)
  */
-export async function getAllPDIInspections() {
+export async function getAllPDIInspections(filter?: { shopId?: string | null }) {
+    const where: any = {}
+    if (filter?.shopId !== undefined) {
+        where.shopId = filter.shopId
+    }
+
     return await (prisma as any).pDIInspection.findMany({
+        where,
+        include: {
+            shop: {
+                select: {
+                    id: true,
+                    name: true
+                }
+            }
+        },
         orderBy: { createdAt: 'desc' },
     })
 }

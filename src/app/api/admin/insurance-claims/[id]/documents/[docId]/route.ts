@@ -14,16 +14,36 @@ export async function DELETE(
 ) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
         const { id, docId } = await params
         const { db } = await import('@/lib/db')
 
+        const isSuperOrAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+        let isShopOwnerAllowed = false
+        let userShopId: string | null = null
+
+        if (user.role === 'SHOP_OWNER') {
+            const shop = await db.shop.findUnique({
+                where: { ownerUserId: user.userId },
+                select: { id: true, hasInsuranceAccess: true }
+            })
+            if (shop?.hasInsuranceAccess) {
+                isShopOwnerAllowed = true
+                userShopId = shop.id
+            }
+        }
+
+        if (!isSuperOrAdmin && !isShopOwnerAllowed) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
         // Find the document and verify it belongs to this claim
         const document = await db.insuranceDocument.findUnique({
-            where: { id: docId }
+            where: { id: docId },
+            include: { claim: true }
         })
 
         if (!document) {
@@ -32,6 +52,10 @@ export async function DELETE(
 
         if (document.claimId !== id) {
             return NextResponse.json({ error: 'Document does not belong to this claim' }, { status: 403 })
+        }
+
+        if (user.role === 'SHOP_OWNER' && document.claim?.shopId && document.claim.shopId !== userShopId) {
+            return NextResponse.json({ error: 'Unauthorized for this claim' }, { status: 403 })
         }
 
         // Delete file from filesystem

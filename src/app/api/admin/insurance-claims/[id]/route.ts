@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth/jwt'
+import { db } from '@/lib/db'
 import { getInsuranceClaim, updateClaimStatus, addClaimDocuments } from '@/services/insurance-service'
 import { sendInsuranceClaimStatusEmail } from '@/lib/services/email'
 
 type RouteParams = Promise<{ id: string }>
 
+async function checkInsuranceAuth(user: any) {
+    if (!user) return false
+    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true
+    if (user.role === 'SHOP_OWNER') {
+        const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
+        return Boolean(shop?.hasInsuranceAccess)
+    }
+    return false
+}
+
 /**
- * GET - Get a specific insurance claim detail (admin)
+ * GET - Get a specific insurance claim detail (admin or permitted shop owner)
  */
 export async function GET(
     request: NextRequest,
@@ -14,7 +25,7 @@ export async function GET(
 ) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+        if (!await checkInsuranceAuth(user)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
@@ -23,6 +34,13 @@ export async function GET(
 
         if (!claim) {
             return NextResponse.json({ error: 'Claim not found' }, { status: 404 })
+        }
+
+        if (user && user.role === 'SHOP_OWNER') {
+            const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (claim.shopId && claim.shopId !== shop?.id) {
+                return NextResponse.json({ error: 'Access denied to this claim' }, { status: 403 })
+            }
         }
 
         return NextResponse.json(claim)
@@ -40,11 +58,20 @@ export async function PATCH(
 ) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
-            return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 })
+        if (!user || !await checkInsuranceAuth(user)) {
+            return NextResponse.json({ error: 'Unauthorized - Access denied' }, { status: 401 })
         }
 
         const { id } = await params
+
+        if (user.role === 'SHOP_OWNER') {
+            const existingClaim = await getInsuranceClaim(id)
+            const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (existingClaim?.shopId && existingClaim.shopId !== shop?.id) {
+                return NextResponse.json({ error: 'Access denied to this claim' }, { status: 403 })
+            }
+        }
+
         const body = await request.json()
 
         const { status, adminNotes, documents } = body
@@ -91,8 +118,8 @@ export async function PUT(
 ) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
-            return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 })
+        if (!await checkInsuranceAuth(user)) {
+            return NextResponse.json({ error: 'Unauthorized - Access denied' }, { status: 401 })
         }
 
         const { id } = await params
@@ -144,6 +171,13 @@ export async function PUT(
         // Job / Part fields
         if (body.invoiceNumber !== undefined) updateData.invoiceNumber = body.invoiceNumber || null
 
+        // Surveyor fields
+        if (body.surveyorName !== undefined) updateData.surveyorName = body.surveyorName || null
+        if (body.surveyorEmail !== undefined) updateData.surveyorEmail = body.surveyorEmail || null
+        if (body.surveyorPhone !== undefined) updateData.surveyorPhone = body.surveyorPhone || null
+        if (body.surveyorCompany !== undefined) updateData.surveyorCompany = body.surveyorCompany || null
+        if (body.surveyorNotes !== undefined) updateData.surveyorNotes = body.surveyorNotes || null
+
         if (body.claimType) updateData.claimType = body.claimType
         if (body.estimatedDamage !== undefined) updateData.estimatedDamage = body.estimatedDamage || null
         if (body.idvValue !== undefined) updateData.idvValue = body.idvValue || null
@@ -175,16 +209,43 @@ export async function PUT(
 
         updateData.updatedAt = new Date()
 
-        const updatedClaim = await db.insuranceClaim.update({
-            where: { id },
-            data: updateData,
-            include: {
-                user: {
-                    select: { id: true, name: true, email: true, mobile: true }
-                },
-                documents: true
+        let updatedClaim: any
+        try {
+            updatedClaim = await db.insuranceClaim.update({
+                where: { id },
+                data: updateData,
+                include: {
+                    user: {
+                        select: { id: true, name: true, email: true, mobile: true }
+                    },
+                    documents: true
+                }
+            })
+        } catch (err: any) {
+            console.warn('[Insurance Update] Prisma update fallback for surveyor fields:', err.message)
+            const { surveyorName, surveyorEmail, surveyorPhone, surveyorCompany, surveyorNotes, ...safeData } = updateData
+            updatedClaim = await db.insuranceClaim.update({
+                where: { id },
+                data: safeData,
+                include: {
+                    user: {
+                        select: { id: true, name: true, email: true, mobile: true }
+                    },
+                    documents: true
+                }
+            })
+            if (surveyorName !== undefined || surveyorEmail !== undefined || surveyorPhone !== undefined || surveyorCompany !== undefined || surveyorNotes !== undefined) {
+                await db.$executeRawUnsafe(
+                    `UPDATE InsuranceClaim SET surveyorName = COALESCE(?, surveyorName), surveyorEmail = COALESCE(?, surveyorEmail), surveyorPhone = COALESCE(?, surveyorPhone), surveyorCompany = COALESCE(?, surveyorCompany), surveyorNotes = COALESCE(?, surveyorNotes) WHERE id = ?`,
+                    surveyorName !== undefined ? (surveyorName || null) : null,
+                    surveyorEmail !== undefined ? (surveyorEmail || null) : null,
+                    surveyorPhone !== undefined ? (surveyorPhone || null) : null,
+                    surveyorCompany !== undefined ? (surveyorCompany || null) : null,
+                    surveyorNotes !== undefined ? (surveyorNotes || null) : null,
+                    id
+                )
             }
-        })
+        }
 
         // Send notification if status changed or admin message added
         const statusChanged = body.status && body.status !== currentClaim.status

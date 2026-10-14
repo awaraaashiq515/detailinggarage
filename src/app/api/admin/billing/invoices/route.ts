@@ -51,6 +51,9 @@ export async function GET(request: Request) {
                     client: true,
                     items: true,
                     payments: true,
+                    assignedStaff: {
+                        select: { id: true, name: true, role: true, phone: true }
+                    },
                     shop: {
                         include: {
                             billingProfile: true
@@ -98,6 +101,9 @@ export async function GET(request: Request) {
                 client: true,
                 items: true,
                 payments: true,
+                assignedStaff: {
+                    select: { id: true, name: true, role: true, phone: true }
+                },
             },
             orderBy: { date: "desc" },
         })
@@ -137,7 +143,7 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json()
-        const { clientId, type, date, dueDate, items, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer, prefix: customPrefix } = body
+        const { clientId, type, date, dueDate, items, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer, prefix: customPrefix, assignedStaffId } = body
 
         if (!clientId || !items || items.length === 0) {
             return NextResponse.json({ error: "Client and at least one item are required" }, { status: 400 })
@@ -252,12 +258,76 @@ export async function POST(request: Request) {
                 vehicleRegNo: vehicleRegNo || null,
                 vehicleChassis: vehicleChassis || null,
                 odometer: odometer || null,
+                assignedStaffId: assignedStaffId || null,
                 items: {
                     create: processedItems
                 }
             },
             include: { client: true, items: true }
         })
+
+        // Auto-record commission for assigned staff if commissionRate > 0
+        if (assignedStaffId && (docType === "INVOICE" || docType === "TAX_INVOICE")) {
+            try {
+                const staff = await db.shopStaff.findUnique({ where: { id: assignedStaffId } })
+                if (staff) {
+                    if (staff.commissionRate > 0) {
+                        const commAmt = Math.round((subTotal * staff.commissionRate) / 100)
+                        if (commAmt > 0) {
+                            await db.staffCommission.create({
+                                data: {
+                                    staffId: staff.id,
+                                    invoiceId: invoice.id,
+                                    shopId: ctx.shopId || null,
+                                    amount: commAmt,
+                                    rate: staff.commissionRate,
+                                    status: "PENDING",
+                                    notes: `Commission on ${invoice.invoiceNumber} (${staff.commissionRate}%)`
+                                }
+                            })
+                        }
+                    }
+
+                    // Auto-create StaffJobCard for this staff member
+                    const taskChecklist = processedItems.length > 0
+                        ? processedItems.map((item: any, idx: number) => ({
+                            id: String(idx + 1),
+                            task: `${item.name}${item.quantity > 1 ? ` (Qty: ${item.quantity})` : ""}`,
+                            isDone: false
+                        }))
+                        : [
+                            { id: "1", task: "Initial Vehicle Inspection", isDone: false },
+                            { id: "2", task: "Perform Assigned Service / Repair", isDone: false },
+                            { id: "3", task: "Final Quality Check & Wipe", isDone: false }
+                        ]
+
+                    await db.staffJobCard.create({
+                        data: {
+                            jobNumber: `JC-${invoice.invoiceNumber}`,
+                            shopId: ctx.shopId || null,
+                            staffId: staff.id,
+                            invoiceId: invoice.id,
+                            vehicleName: vehicleName || "Client Vehicle",
+                            vehicleRegNo: vehicleRegNo || "UNREGISTERED",
+                            vehicleChassis: vehicleChassis || null,
+                            odometer: odometer || null,
+                            clientName: invoice.client?.name || "Customer",
+                            clientPhone: invoice.client?.phone || null,
+                            jobCategory: "DETAILING",
+                            priority: "NORMAL",
+                            status: "ASSIGNED",
+                            checklist: JSON.stringify(taskChecklist),
+                            workSummary: `Assigned via invoice #${invoice.invoiceNumber}. Services: ${processedItems.map((x: any) => x.name).join(", ")}`,
+                            partsConsumed: "[]",
+                            workImages: "[]",
+                            commissionAmount: staff.commissionRate > 0 ? Math.round((subTotal * staff.commissionRate) / 100) : 0
+                        }
+                    })
+                }
+            } catch (commErr) {
+                console.error("Failed to auto-record staff commission and job card:", commErr)
+            }
+        }
 
         // Automatically deduct stock for matching catalog products
         if (docType === "INVOICE" || docType === "TAX_INVOICE") {
@@ -421,7 +491,7 @@ export async function PUT(request: Request) {
 
     try {
         const body = await request.json()
-        const { id, clientId, type, date, dueDate, status, items, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer } = body
+        const { id, clientId, type, date, dueDate, status, items, discount, notes, terms, vehicleName, vehicleRegNo, vehicleChassis, odometer, assignedStaffId } = body
 
         if (!id) {
             return NextResponse.json({ error: "Invoice ID required" }, { status: 400 })
@@ -541,11 +611,12 @@ export async function PUT(request: Request) {
                     vehicleRegNo: vehicleRegNo !== undefined ? vehicleRegNo : existingInvoice.vehicleRegNo,
                     vehicleChassis: vehicleChassis !== undefined ? vehicleChassis : existingInvoice.vehicleChassis,
                     odometer: odometer !== undefined ? odometer : existingInvoice.odometer,
+                    assignedStaffId: assignedStaffId !== undefined ? (assignedStaffId || null) : existingInvoice.assignedStaffId,
                     items: {
                         create: processedItems
                     }
                 },
-                include: { client: true, items: true }
+                include: { client: true, items: true, assignedStaff: true }
             })
         })
 

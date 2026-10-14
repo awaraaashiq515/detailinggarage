@@ -5,7 +5,7 @@ import {
     Store, Plus, Search, MoreVertical, Edit2, Trash2,
     CheckCircle, XCircle, Users, FileText, TrendingUp,
     Phone, Mail, MapPin, Building2, Shield, Eye, RefreshCw,
-    ChevronRight, AlertTriangle, X, Save, Loader2, Copy, Check
+    ChevronRight, AlertTriangle, X, Save, Loader2, Copy, Check, ClipboardCheck
 } from "lucide-react"
 
 interface Shop {
@@ -18,6 +18,8 @@ interface Shop {
     state?: string
     gstin?: string
     status: string
+    hasPdiAccess?: boolean
+    hasInsuranceAccess?: boolean
     createdAt: string
     owner: {
         id: string
@@ -34,7 +36,8 @@ interface Shop {
 function CreateShopModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
     const [form, setForm] = useState({
         ownerName: "", ownerEmail: "", ownerMobile: "", ownerPassword: "",
-        shopName: "", phone: "", email: "", address: "", city: "", state: "", gstin: ""
+        shopName: "", phone: "", email: "", address: "", city: "", state: "", gstin: "",
+        hasPdiAccess: false, hasInsuranceAccess: false
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
@@ -242,6 +245,40 @@ function CreateShopModal({ onClose, onCreated }: { onClose: () => void; onCreate
                                 />
                             </div>
                         </div>
+
+                        {/* Module Access Toggles in Creation Modal */}
+                        <div className="mt-5 p-4 rounded-xl bg-white/[0.02] border border-white/8 space-y-3">
+                            <p className="text-xs font-bold text-white uppercase tracking-wider flex items-center justify-between">
+                                <span>Module Permissions</span>
+                                <span className="text-[10px] text-[#16acd4] font-normal">Superadmin Assigned</span>
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <label className="flex items-center gap-2.5 p-3 rounded-xl border border-white/8 bg-white/5 cursor-pointer hover:border-[#16acd4]/40 transition-all">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.hasPdiAccess}
+                                        onChange={e => setForm(f => ({ ...f, hasPdiAccess: e.target.checked }))}
+                                        className="w-4 h-4 rounded text-[#16acd4] accent-[#16acd4] cursor-pointer"
+                                    />
+                                    <div>
+                                        <span className="text-xs font-bold text-white block">PDI Inspections</span>
+                                        <span className="text-[10px] text-zinc-400 block">Pre-delivery inspection module</span>
+                                    </div>
+                                </label>
+                                <label className="flex items-center gap-2.5 p-3 rounded-xl border border-white/8 bg-white/5 cursor-pointer hover:border-[#16acd4]/40 transition-all">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.hasInsuranceAccess}
+                                        onChange={e => setForm(f => ({ ...f, hasInsuranceAccess: e.target.checked }))}
+                                        className="w-4 h-4 rounded text-[#16acd4] accent-[#16acd4] cursor-pointer"
+                                    />
+                                    <div>
+                                        <span className="text-xs font-bold text-white block">Insurance Claims</span>
+                                        <span className="text-[10px] text-zinc-400 block">Accident claims & report module</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     {error && (
@@ -273,6 +310,23 @@ function CreateShopModal({ onClose, onCreated }: { onClose: () => void; onCreate
 function ShopCard({ shop, onRefresh }: { shop: Shop; onRefresh: () => void }) {
     const [menuOpen, setMenuOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [updatingModule, setUpdatingModule] = useState<string | null>(null)
+
+    const toggleModuleAccess = async (moduleKey: "hasPdiAccess" | "hasInsuranceAccess", nextVal: boolean) => {
+        setUpdatingModule(moduleKey)
+        try {
+            await fetch("/api/admin/shops", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: shop.id, [moduleKey]: nextVal })
+            })
+            onRefresh()
+        } catch (err) {
+            console.error("Failed to update module access:", err)
+        } finally {
+            setUpdatingModule(null)
+        }
+    }
 
     const toggleStatus = async () => {
         setLoading(true)
@@ -388,8 +442,73 @@ function ShopCard({ shop, onRefresh }: { shop: Shop; onRefresh: () => void }) {
                     </div>
                 </div>
 
+                {/* Module Permissions (PDI & Insurance Access) */}
+                <div className="mt-4 pt-3.5 border-t border-white/6 space-y-2">
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold flex items-center justify-between">
+                        <span>Module Access</span>
+                        <span className="text-[9px] text-[#16acd4] font-semibold">Admin Grant</span>
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                        {/* PDI Module Toggle */}
+                        <button
+                            type="button"
+                            onClick={() => toggleModuleAccess("hasPdiAccess", !shop.hasPdiAccess)}
+                            disabled={updatingModule === "hasPdiAccess"}
+                            className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-1.5 ${
+                                shop.hasPdiAccess
+                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-sm"
+                                    : "bg-white/5 border-white/8 text-zinc-500 hover:text-zinc-400"
+                            }`}
+                            title="Toggle PDI Inspection module for this workshop"
+                        >
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                    <ClipboardCheck className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="text-xs font-bold truncate">PDI</span>
+                                </div>
+                                <span className="block text-[9px] font-semibold opacity-80 mt-0.5">
+                                    {shop.hasPdiAccess ? "✓ Enabled" : "✕ Disabled"}
+                                </span>
+                            </div>
+                            <div className={`w-7 h-4 rounded-full transition-colors flex items-center px-0.5 shrink-0 ${
+                                shop.hasPdiAccess ? "bg-emerald-500 justify-end" : "bg-zinc-700 justify-start"
+                            }`}>
+                                <div className="w-3 h-3 rounded-full bg-white shadow-sm" />
+                            </div>
+                        </button>
+
+                        {/* Insurance Module Toggle */}
+                        <button
+                            type="button"
+                            onClick={() => toggleModuleAccess("hasInsuranceAccess", !shop.hasInsuranceAccess)}
+                            disabled={updatingModule === "hasInsuranceAccess"}
+                            className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-1.5 ${
+                                shop.hasInsuranceAccess
+                                    ? "bg-blue-500/10 border-blue-500/30 text-blue-300 shadow-sm"
+                                    : "bg-white/5 border-white/8 text-zinc-500 hover:text-zinc-400"
+                            }`}
+                            title="Toggle Insurance Claims module for this workshop"
+                        >
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                    <Shield className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="text-xs font-bold truncate">Insurance</span>
+                                </div>
+                                <span className="block text-[9px] font-semibold opacity-80 mt-0.5">
+                                    {shop.hasInsuranceAccess ? "✓ Enabled" : "✕ Disabled"}
+                                </span>
+                            </div>
+                            <div className={`w-7 h-4 rounded-full transition-colors flex items-center px-0.5 shrink-0 ${
+                                shop.hasInsuranceAccess ? "bg-blue-500 justify-end" : "bg-zinc-700 justify-start"
+                            }`}>
+                                <div className="w-3 h-3 rounded-full bg-white shadow-sm" />
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
                 {/* Footer: Created date */}
-                <p className="text-[10px] text-zinc-700 mt-4">
+                <p className="text-[10px] text-zinc-700 mt-3">
                     Created {new Date(shop.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                 </p>
             </div>

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Save, FileText, Car, User, Wrench, Droplets, AlertCircle, CheckCircle2 } from "lucide-react"
 
@@ -58,6 +58,7 @@ interface PDIFormProps {
 
 export function PDIForm({ inspectionId, initialData }: PDIFormProps = {}) {
     const router = useRouter()
+    const pathname = usePathname()
     const isEditMode = Boolean(inspectionId && initialData)
     const [sections, setSections] = React.useState<PDISection[]>([])
     const [leakageItems, setLeakageItems] = React.useState<PDILeakageItem[]>([])
@@ -254,7 +255,10 @@ export function PDIForm({ inspectionId, initialData }: PDIFormProps = {}) {
 
             // Redirect to the PDI view page after success
             setTimeout(() => {
-                router.push(`/admin/pdi/view/${result.id}`)
+                const targetViewUrl = pathname?.startsWith('/shop/billing')
+                    ? `/shop/billing/pdi/view/${result.id}`
+                    : `/admin/pdi/view/${result.id}`
+                router.push(targetViewUrl)
             }, 1500)
 
         } catch (error: any) {
@@ -299,54 +303,80 @@ export function PDIForm({ inspectionId, initialData }: PDIFormProps = {}) {
     }
 
     return (
-        <div className="bg-slate-50 min-h-screen pb-12">
-            <div className="max-w-[1800px] mx-auto px-4 lg:px-8">
+        <div className="bg-slate-50 min-h-screen pb-12 max-w-full overflow-x-hidden">
+            <div className="max-w-[1800px] mx-auto px-3 sm:px-4 lg:px-8">
 
                 {/* Header */}
-                <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 -mx-4 lg:-mx-8 px-4 lg:px-8 py-4 mb-8 shadow-sm">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        {/* Title & Progress */}
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-accent flex items-center justify-center shadow-lg shadow-accent/30">
-                                <FileText className="w-6 h-6 text-white" />
+                <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 -mx-3 sm:-mx-4 lg:-mx-8 px-3 sm:px-4 lg:px-8 py-3 sm:py-4 mb-6 shadow-sm">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+                        {/* Title & Mobile Save Button */}
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-accent flex items-center justify-center shadow-lg shadow-accent/30 shrink-0">
+                                    <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
+                                        {isEditMode ? 'Edit PDI Inspection' : 'Pre-Delivery Inspection'}
+                                    </h1>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                                        {isEditMode ? 'Modify inspection details' : 'Vehicle Assessment'}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="text-xl font-black text-slate-900 tracking-tight">{isEditMode ? 'Edit PDI Inspection' : 'Pre-Delivery Inspection'}</h1>
-                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-0.5">{isEditMode ? 'Modify inspection details' : 'Professional Vehicle Assessment'}</p>
+
+                            {/* Desktop Save Action */}
+                            <div className="hidden lg:block">
+                                <Button
+                                    type="button"
+                                    onClick={form.handleSubmit(onSubmit)}
+                                    disabled={submitting}
+                                    className="bg-accent text-white hover:bg-accent/90 font-black uppercase tracking-widest text-[10px] px-8 h-12 rounded-2xl shadow-lg shadow-accent/25 transition-all active:scale-95"
+                                >
+                                    {submitting ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <>
+                                            <Save className="mr-2 h-4 w-4" />
+                                            {isEditMode ? 'Update Inspection' : 'Save Inspection'}
+                                        </>
+                                    )}
+                                </Button>
                             </div>
                         </div>
 
-                        {/* Progress Bar */}
-                        <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100 shadow-inner">
-                                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Checklist</span>
-                                <div className="w-32 h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                        {/* Progress Bar (Responsive, never overflows) */}
+                        <div className="flex flex-row items-center gap-2 sm:gap-4 w-full lg:w-auto">
+                            <div className="flex-1 lg:flex-initial flex items-center justify-between gap-2 bg-slate-50 rounded-xl px-2.5 sm:px-4 py-2 border border-slate-100 shadow-inner min-w-0">
+                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider shrink-0">Checklist</span>
+                                <div className="flex-1 lg:w-32 h-2 bg-slate-200 rounded-full overflow-hidden mx-1">
                                     <div
                                         className="h-full bg-accent transition-all duration-700 ease-out"
                                         style={{ width: `${totalChecklistItems > 0 ? (answeredChecklistItems / totalChecklistItems) * 100 : 0}%` }}
                                     />
                                 </div>
-                                <span className="text-[10px] text-slate-900 font-black font-mono">{answeredChecklistItems}/{totalChecklistItems}</span>
+                                <span className="text-[9px] text-slate-900 font-black font-mono shrink-0">{answeredChecklistItems}/{totalChecklistItems}</span>
                             </div>
-                            <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100 shadow-inner">
-                                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Leakage</span>
-                                <div className="w-20 h-2.5 bg-slate-200 rounded-full overflow-hidden">
+
+                            <div className="flex-1 lg:flex-initial flex items-center justify-between gap-2 bg-slate-50 rounded-xl px-2.5 sm:px-4 py-2 border border-slate-100 shadow-inner min-w-0">
+                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider shrink-0">Leakage</span>
+                                <div className="flex-1 lg:w-20 h-2 bg-slate-200 rounded-full overflow-hidden mx-1">
                                     <div
                                         className="h-full bg-slate-400 transition-all duration-700 ease-out"
                                         style={{ width: `${totalLeakageItems > 0 ? (answeredLeakageItems / totalLeakageItems) * 100 : 0}%` }}
                                     />
                                 </div>
-                                <span className="text-[10px] text-slate-900 font-black font-mono">{answeredLeakageItems}/{totalLeakageItems}</span>
+                                <span className="text-[9px] text-slate-900 font-black font-mono shrink-0">{answeredLeakageItems}/{totalLeakageItems}</span>
                             </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-3">
+                        {/* Mobile & Tablet Save Action (Full Width Button) */}
+                        <div className="block lg:hidden w-full">
                             <Button
                                 type="button"
                                 onClick={form.handleSubmit(onSubmit)}
                                 disabled={submitting}
-                                className="bg-accent text-white hover:bg-accent/90 font-black uppercase tracking-widest text-[10px] px-8 h-12 rounded-2xl shadow-lg shadow-accent/25 transition-all active:scale-95"
+                                className="w-full bg-accent text-white hover:bg-accent/90 font-black uppercase tracking-widest text-[11px] h-11 rounded-xl shadow-md shadow-accent/25 transition-all active:scale-95"
                             >
                                 {submitting ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />

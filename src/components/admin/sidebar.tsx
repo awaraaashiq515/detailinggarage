@@ -28,6 +28,7 @@ import {
     Search,
     Boxes,
     Facebook,
+    LayoutGrid,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 
@@ -48,6 +49,7 @@ const menuGroups: MenuGroup[] = [
         label: "Overview",
         items: [
             { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+            { name: "All Pages Hub", href: "/admin/portal", icon: LayoutGrid },
         ]
     },
     {
@@ -130,24 +132,30 @@ export function AdminSidebar() {
     const isActive = (href: string) =>
         href === "/admin" ? pathname === "/admin" : pathname.startsWith(href)
 
+    // Listen for global open sidebar event from bottom navigation
+    useEffect(() => {
+        const handleOpen = () => setIsOpen(true)
+        window.addEventListener("dg_open_mobile_sidebar", handleOpen)
+        return () => window.removeEventListener("dg_open_mobile_sidebar", handleOpen)
+    }, [])
+
     return (
         <>
-            {/* Mobile Toggle Button */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="lg:hidden fixed top-4 left-4 z-50 p-2.5 rounded-xl transition-all bg-[#121214] border border-white/10"
-            >
-                {isOpen ? (
-                    <X className="w-5 h-5 text-white" />
-                ) : (
-                    <Menu className="w-5 h-5 text-white" />
-                )}
-            </button>
+            {/* Mobile Toggle Button (only when closed) */}
+            {!isOpen && (
+                <button
+                    onClick={() => setIsOpen(true)}
+                    className="lg:hidden fixed top-4 left-4 z-40 p-2.5 rounded-xl transition-all bg-[#121214] border border-white/10 shadow-xl text-white"
+                    aria-label="Open sidebar"
+                >
+                    <Menu className="w-5 h-5" />
+                </button>
+            )}
 
             {/* Mobile Overlay */}
             {isOpen && (
                 <div
-                    className="lg:hidden fixed inset-0 z-40 backdrop-blur-sm bg-black/60"
+                    className="lg:hidden fixed inset-0 z-[998] backdrop-blur-md bg-black/75 animate-in fade-in duration-200"
                     onClick={() => setIsOpen(false)}
                 />
             )}
@@ -155,15 +163,15 @@ export function AdminSidebar() {
             {/* Sidebar */}
             <aside
                 className={`
-                    fixed lg:sticky top-0 inset-y-0 left-0 z-40 h-screen flex flex-col
-                    transition-all duration-300 ease-in-out flex-shrink-0 bg-[#09090b] border-r border-white/5
+                    fixed lg:sticky top-0 inset-y-0 left-0 z-[999] h-screen flex flex-col
+                    transition-all duration-300 ease-in-out flex-shrink-0 bg-[#09090b] border-r border-white/10 shadow-2xl
                     ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                     ${collapsed ? 'lg:w-[76px]' : 'lg:w-[280px]'}
-                    w-[280px]
+                    w-[290px]
                 `}
             >
-                {/* Logo */}
-                <div className="h-20 flex items-center justify-between px-4 flex-shrink-0 border-b border-white/5 bg-[#121214]">
+                {/* Logo Header */}
+                <div className="h-20 flex items-center justify-between px-5 flex-shrink-0 border-b border-white/5 bg-[#121214]">
                     {!collapsed ? (
                         <>
                             <Link href="/admin" className="flex items-center" onClick={() => setIsOpen(false)}>
@@ -171,6 +179,17 @@ export function AdminSidebar() {
                                     Detailing <span className="text-[#16acd4]">Garage</span>
                                 </div>
                             </Link>
+
+                            {/* Mobile Close Button (on the right) */}
+                            <button
+                                onClick={() => setIsOpen(false)}
+                                className="lg:hidden p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-zinc-400 hover:text-white"
+                                title="Close Sidebar"
+                            >
+                                <X className="w-5 h-5 text-white" />
+                            </button>
+
+                            {/* Desktop Collapse Button */}
                             <button
                                 onClick={toggleCollapsed}
                                 className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-zinc-400 hover:text-white shrink-0 ml-2"

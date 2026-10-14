@@ -58,8 +58,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Only ADMIN / SUPER_ADMIN can create PDI reports
-        if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+        let shopId: string | null = null
+        if (user.role === 'SHOP_OWNER') {
+            const { db } = await import('@/lib/db')
+            const shop = await db.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (!shop || !shop.hasPdiAccess) {
+                return NextResponse.json({ error: 'PDI module is not enabled for your workshop' }, { status: 403 })
+            }
+            shopId = shop.id
+        } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
         }
 
@@ -68,11 +75,17 @@ export async function POST(req: Request) {
 
         console.log(`📸 Images received: ${validated.images?.length || 0}`)
 
-        // Add userId to input if explicitly provided in request, otherwise leave null for auto-lookup
+        // If admin specifies a target workshop, honor it
+        if (!shopId && json.shopId) {
+            shopId = json.shopId
+        }
+
+        // Add userId and shopId to input
         const input: PDIInspectionInput = {
             ...validated,
             userId: (json as any).userId || null,
-            skipPackageDeduction: true  // Admin creating PDI, no package deduction needed
+            shopId,
+            skipPackageDeduction: true  // Admin or workshop creating PDI
         }
 
         const result = await createPDIReport(input)

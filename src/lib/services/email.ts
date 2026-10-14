@@ -2,10 +2,18 @@ import nodemailer from 'nodemailer';
 import { db } from '@/lib/db';
 import { otpEmailTemplate, approvalEmailTemplate, rejectionEmailTemplate, testEmailTemplate, pdiRequestAdminTemplate, pdiStatusUpdateTemplate } from './email-templates';
 
+interface EmailAttachment {
+    filename: string;
+    path?: string;
+    content?: any;
+    contentType?: string;
+}
+
 interface EmailOptions {
     to: string;
     subject: string;
     html: string;
+    attachments?: EmailAttachment[];
 }
 
 /**
@@ -21,12 +29,20 @@ async function getTransporter() {
         throw new Error('SMTP settings not configured. Please configure SMTP in admin settings.');
     }
 
+    let host = (smtpSettings.host || '').trim();
+    if (host.includes('@')) {
+        if (host.endsWith('gmail.com') || host.endsWith('googlemail.com')) {
+            host = 'smtp.gmail.com';
+        }
+    }
+    const pass = (smtpSettings.password || '').replace(/\s+/g, '');
+
     const transportConfig: any = {
-        host: smtpSettings.host,
+        host: host,
         port: smtpSettings.port,
         auth: {
-            user: smtpSettings.username,
-            pass: smtpSettings.password,
+            user: smtpSettings.username.trim(),
+            pass: pass,
         },
     };
 
@@ -46,7 +62,7 @@ async function getTransporter() {
 /**
  * Send email using configured SMTP settings
  */
-async function sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
+async function sendEmail({ to, subject, html, attachments }: EmailOptions): Promise<boolean> {
     try {
         const transporter = await getTransporter();
         const smtpSettings = await db.sMTPSettings.findFirst({
@@ -63,6 +79,7 @@ async function sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> 
             to,
             subject,
             html,
+            attachments,
         });
 
         return true;
@@ -318,4 +335,69 @@ export async function sendInsuranceClaimStatusEmail(email: string, name: string,
         return false;
     }
 }
+
+/**
+ * Send insurance claim PDF and dossier to Insurance Surveyor
+ */
+export async function sendSurveyorInsurancePDFEmail({
+    to,
+    surveyorName,
+    claim,
+    attachments,
+    customMessage,
+    workshopName
+}: {
+    to: string;
+    surveyorName?: string;
+    claim: any;
+    attachments: Array<{ filename: string; path?: string; content?: any; contentType?: string }>;
+    customMessage?: string;
+    workshopName?: string;
+}): Promise<boolean> {
+    try {
+        const { surveyorInsuranceClaimTemplate } = await import('./email-templates');
+        const pdfDownloadUrl = claim.pdfUrl 
+            ? `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}${claim.pdfUrl}`
+            : undefined;
+
+        const incidentDateFormatted = claim.incidentDate
+            ? new Date(claim.incidentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            : undefined;
+
+        const html = surveyorInsuranceClaimTemplate({
+            surveyorName,
+            claimNumber: claim.claimNumber,
+            vehicleMake: claim.vehicleMake,
+            vehicleModel: claim.vehicleModel,
+            vehicleVariant: claim.vehicleVariant,
+            vehicleYear: claim.vehicleYear,
+            registrationNumber: claim.registrationNumber,
+            policyNumber: claim.policyNumber,
+            insuranceCompany: claim.insuranceCompany,
+            estimatedDamage: claim.estimatedDamage,
+            incidentDate: incidentDateFormatted,
+            incidentLocation: claim.incidentLocation,
+            incidentDescription: claim.incidentDescription,
+            customerName: claim.user?.name,
+            customerMobile: claim.user?.mobile,
+            isEv: claim.isEv,
+            customMessage,
+            pdfDownloadUrl,
+            workshopName
+        });
+
+        await sendEmail({
+            to,
+            subject: `🚨 Insurance Claim Dossier & Assessment: ${claim.claimNumber} [${claim.registrationNumber} - ${claim.vehicleMake} ${claim.vehicleModel}]`,
+            html,
+            attachments
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Failed to send surveyor insurance email:', error);
+        throw error;
+    }
+}
+
 

@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import {
     Shield, ArrowLeft, FileText, Car, User, Calendar, MapPin,
     DollarSign, FileCheck, RefreshCw, Download, CheckCircle,
-    XCircle, Clock, AlertTriangle, Send, Edit
+    XCircle, Clock, AlertTriangle, Send, Edit, Upload, Trash2,
+    ExternalLink, Image as ImageIcon, Plus, Check
 } from "lucide-react"
 
 interface InsuranceClaim {
@@ -71,6 +72,87 @@ export default function ClaimDetailPage({ params }: { params: Promise<{ id: stri
     const [newStatus, setNewStatus] = useState('')
     const [adminNotes, setAdminNotes] = useState('')
 
+    // Document upload & management state
+    const [uploadingFiles, setUploadingFiles] = useState(false)
+    const [uploadDocType, setUploadDocType] = useState('DAMAGE_PHOTOS')
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+    const [deletingDocId, setDeletingDocId] = useState<string | null>(null)
+
+    const isImageDoc = (fileUrl: string, fileName: string) => {
+        const url = (fileUrl || '').toLowerCase()
+        const name = (fileName || '').toLowerCase()
+        return url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') || url.endsWith('.webp') ||
+               name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.webp')
+    }
+
+    const handleFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setSelectedFiles(Array.from(e.target.files))
+        }
+    }
+
+    const handleUploadDocuments = async () => {
+        if (selectedFiles.length === 0) {
+            alert('Please select at least one file to upload')
+            return
+        }
+
+        try {
+            setUploadingFiles(true)
+            const formData = new FormData()
+            selectedFiles.forEach(file => formData.append('files', file))
+            formData.append('documentType', uploadDocType)
+            formData.append('claimId', id)
+            if (claim?.incidentLocation) {
+                formData.append('location', claim.incidentLocation)
+            }
+
+            const res = await fetch('/api/admin/upload', {
+                method: 'POST',
+                body: formData
+            })
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}))
+                alert(`Upload failed: ${err.error || 'Unknown error'}`)
+                return
+            }
+
+            setSelectedFiles([])
+            await fetchClaim()
+            alert('Photos uploaded successfully! Click "Regenerate PDF" to include them in the PDF.')
+        } catch (err: any) {
+            console.error('Upload error:', err)
+            alert(`Failed to upload: ${err.message}`)
+        } finally {
+            setUploadingFiles(false)
+        }
+    }
+
+    const handleDeleteDoc = async (docId: string, docName: string) => {
+        if (!confirm(`Are you sure you want to delete "${docName}"?`)) return
+
+        try {
+            setDeletingDocId(docId)
+            const res = await fetch(`/api/admin/insurance-claims/${id}/documents/${docId}`, {
+                method: 'DELETE'
+            })
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}))
+                alert(`Failed to delete: ${err.error || 'Unknown error'}`)
+                return
+            }
+
+            await fetchClaim()
+        } catch (err: any) {
+            console.error('Delete error:', err)
+            alert(`Failed to delete: ${err.message}`)
+        } finally {
+            setDeletingDocId(null)
+        }
+    }
+
     const fetchClaim = async () => {
         try {
             setLoading(true)
@@ -127,14 +209,14 @@ export default function ClaimDetailPage({ params }: { params: Promise<{ id: stri
 
             if (response.ok) {
                 await fetchClaim()
-                alert('PDF generated successfully! Client has been notified.')
+                alert('PDF generated successfully!')
             } else {
-                const error = await response.json()
-                alert(`Error: ${error.message}`)
+                const error = await response.json().catch(() => ({}))
+                alert(`Error: ${error.error || error.message || 'Failed to generate PDF'}`)
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error generating PDF:', error)
-            alert('Failed to generate PDF')
+            alert(`Error: ${error.message || 'Failed to generate PDF'}`)
         } finally {
             setGeneratingPdf(false)
         }
@@ -404,35 +486,170 @@ export default function ClaimDetailPage({ params }: { params: Promise<{ id: stri
                         </div>
                     </div>
 
-                    {/* Documents */}
-                    {claim.documents && claim.documents.length > 0 && (
-                        <div className="rounded-xl p-6" style={{ backgroundColor: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
-                            <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-                                <FileText className="w-5 h-5" style={{ color: '#60a5fa' }} />
-                                Attached Documents ({claim.documents.length})
-                            </h3>
-                            <div className="space-y-2">
-                                {claim.documents.map(doc => (
-                                    <a
-                                        key={doc.id}
-                                        href={doc.fileUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-between p-3 rounded-lg transition-colors hover:bg-white/5"
-                                        style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+                    {/* Documents & Photo Gallery */}
+                    <div className="rounded-xl p-6" style={{ backgroundColor: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                            <div>
+                                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                    <ImageIcon className="w-5 h-5" style={{ color: '#60a5fa' }} />
+                                    Attached Evidence &amp; Photos ({claim.documents?.length || 0})
+                                </h3>
+                                <p className="text-xs mt-1" style={{ color: '#6b7080' }}>
+                                    Photos and documents uploaded here will appear directly inside the generated PDF report.
+                                </p>
+                            </div>
+                            {claim.documents && claim.documents.length > 0 && (
+                                <button
+                                    onClick={handleGeneratePdf}
+                                    disabled={generatingPdf}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #16acd4, #3b82f6)',
+                                        color: '#fff'
+                                    }}
+                                >
+                                    <RefreshCw className={`w-3.5 h-3.5 ${generatingPdf ? 'animate-spin' : ''}`} />
+                                    {generatingPdf ? 'Updating PDF...' : 'Regenerate PDF with Photos'}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Upload Controls */}
+                        <div className="p-4 rounded-xl mb-6" style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.12)' }}>
+                            <p className="text-xs font-semibold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <Plus className="w-4 h-4" style={{ color: '#16acd4' }} /> Add Photos or Documents
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                                <div className="sm:col-span-4">
+                                    <label className="text-xs block mb-1" style={{ color: '#6b7080' }}>Document Category</label>
+                                    <select
+                                        value={uploadDocType}
+                                        onChange={(e) => setUploadDocType(e.target.value)}
+                                        className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+                                        style={{
+                                            backgroundColor: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            color: '#d8d8d8'
+                                        }}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <FileText className="w-4 h-4" style={{ color: '#6b7080' }} />
-                                            <span className="text-sm text-white">{doc.fileName}</span>
-                                        </div>
-                                        <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#6b7080' }}>
-                                            {doc.fileType}
-                                        </span>
-                                    </a>
-                                ))}
+                                        <option value="DAMAGE_PHOTOS">Damage Photos</option>
+                                        <option value="UNDER_REPAIRING_PHOTOS">Under Repair Photos</option>
+                                        <option value="AFTER_REPAIR_PHOTOS">After Repair Photos</option>
+                                        <option value="RC_BOOK">RC Book / Registration</option>
+                                        <option value="POLICY">Insurance Policy</option>
+                                        <option value="FIR">FIR Document</option>
+                                        <option value="PAN_CARD">PAN Card</option>
+                                        <option value="AADHAAR">Aadhaar Card</option>
+                                        <option value="DRIVING_LICENSE">Driving License</option>
+                                        <option value="BANK_PASSBOOK">Bank Passbook</option>
+                                        <option value="OTHER">Other Evidence</option>
+                                    </select>
+                                </div>
+                                <div className="sm:col-span-5">
+                                    <label className="text-xs block mb-1" style={{ color: '#6b7080' }}>Select Files (JPG, PNG, WebP, PDF)</label>
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                                        onChange={handleFilesSelect}
+                                        className="w-full text-xs text-gray-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer"
+                                    />
+                                </div>
+                                <div className="sm:col-span-3">
+                                    <button
+                                        onClick={handleUploadDocuments}
+                                        disabled={uploadingFiles || selectedFiles.length === 0}
+                                        className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                                            color: '#fff'
+                                        }}
+                                    >
+                                        {uploadingFiles ? (
+                                            <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Uploading...</>
+                                        ) : (
+                                            <><Upload className="w-3.5 h-3.5" /> Upload ({selectedFiles.length})</>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    )}
+
+                        {/* Existing Document & Photos Grid */}
+                        {claim.documents && claim.documents.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {claim.documents.map(doc => {
+                                    const isImg = isImageDoc(doc.fileUrl, doc.fileName)
+                                    return (
+                                        <div
+                                            key={doc.id}
+                                            className="group relative rounded-xl overflow-hidden flex flex-col justify-between transition-all hover:border-white/20"
+                                            style={{
+                                                backgroundColor: 'rgba(255,255,255,0.03)',
+                                                border: '1px solid rgba(255,255,255,0.08)'
+                                            }}
+                                        >
+                                            {isImg ? (
+                                                <div className="relative w-full h-32 bg-black/40 overflow-hidden">
+                                                    <img
+                                                        src={doc.fileUrl}
+                                                        alt={doc.fileName}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                    />
+                                                    <a
+                                                        href={doc.fileUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-2"
+                                                    >
+                                                        <span className="text-xs text-white font-medium bg-black/60 px-2 py-1 rounded flex items-center gap-1">
+                                                            <ExternalLink className="w-3 h-3" /> View Full
+                                                        </span>
+                                                    </a>
+                                                </div>
+                                            ) : (
+                                                <div className="w-full h-32 flex flex-col items-center justify-center p-4 bg-white/5">
+                                                    <FileText className="w-10 h-10 mb-2" style={{ color: '#60a5fa' }} />
+                                                    <span className="text-[10px] text-gray-400 font-mono text-center truncate max-w-full">
+                                                        {doc.fileName}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <div className="p-3">
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(96, 165, 250, 0.1)', color: '#60a5fa' }}>
+                                                        {doc.fileType.replace(/_/g, ' ')}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleDeleteDoc(doc.id, doc.fileName)}
+                                                        disabled={deletingDocId === doc.id}
+                                                        title="Delete document"
+                                                        className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                                                    >
+                                                        {deletingDocId === doc.id ? (
+                                                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                <p className="text-xs text-white truncate font-medium" title={doc.fileName}>
+                                                    {doc.fileName}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <div className="py-8 text-center" style={{ color: '#6b7080' }}>
+                                <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                                <p className="text-sm">No photos or documents attached yet.</p>
+                                <p className="text-xs mt-1">Select files above to attach damage photos, RC book, or policy documents.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Sidebar - Status Update */}

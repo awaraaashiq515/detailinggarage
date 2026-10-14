@@ -14,7 +14,7 @@ function getJwtSecret(): Uint8Array {
 }
 
 // Valid roles in the system
-export type Role = "SUPER_ADMIN" | "ADMIN" | "CLIENT" | "DEALER" | "AGENT" | "COMPANY" | "ENTERPRISE" | "SHOP_OWNER"
+export type Role = "SUPER_ADMIN" | "ADMIN" | "CLIENT" | "DEALER" | "AGENT" | "COMPANY" | "ENTERPRISE" | "SHOP_OWNER" | "STAFF"
 
 export interface JWTPayload {
     userId: string

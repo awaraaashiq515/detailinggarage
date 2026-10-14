@@ -1,7 +1,7 @@
 import { renderToBuffer } from '@react-pdf/renderer'
 import { db as prisma } from '@/lib/db'
 import { InsuranceClaimTemplate, InsuranceClaimPDFData } from '../templates/insurance-claim-template'
-import { writeFileSync, mkdirSync, readFileSync } from 'fs'
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
 /**
@@ -35,7 +35,57 @@ export async function generateInsuranceClaimPDF(claimId: string): Promise<string
         const settings = await (prisma as any).systemSettings.findFirst()
         const watermarkEnabled = settings?.imageWatermarkEnabled ?? true
 
-        // 3. Prepare PDF data
+        // 3. Map documents with sharp image optimization for React-PDF
+        const processedDocuments = await Promise.all((claim.documents || []).map(async (doc: any) => {
+            try {
+                const decodedUrl = decodeURIComponent(doc.fileUrl)
+                const relativePath = decodedUrl.startsWith('/') ? decodedUrl.slice(1) : decodedUrl
+                const absolutePath = join(process.cwd(), 'public', relativePath)
+
+                if (!existsSync(absolutePath)) {
+                    console.warn(`[PDF Generator] File not found on disk: ${absolutePath}`)
+                    return null
+                }
+
+                const isPdf = doc.fileName?.toLowerCase().endsWith('.pdf') || doc.fileType === 'application/pdf'
+                const uploadedAt = doc.uploadedAt
+                    ? (doc.uploadedAt instanceof Date ? doc.uploadedAt.toISOString() : new Date(doc.uploadedAt).toISOString())
+                    : (doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString())
+
+                if (isPdf) {
+                    return {
+                        fileName: doc.fileName,
+                        fileType: doc.fileType,
+                        fileUrl: '',
+                        isPdf: true,
+                        uploadedAt
+                    }
+                }
+
+                const imageBuffer = readFileSync(absolutePath)
+                const sharp = (await import('sharp')).default
+                const jpegBuffer = await sharp(imageBuffer)
+                    .rotate()
+                    .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+                    .jpeg({ quality: 85 })
+                    .toBuffer()
+
+                const base64 = jpegBuffer.toString('base64')
+                const base64DataUri = `data:image/jpeg;base64,${base64}`
+
+                return {
+                    fileName: doc.fileName,
+                    fileType: doc.fileType,
+                    fileUrl: base64DataUri,
+                    isPdf: false,
+                    uploadedAt
+                }
+            } catch (error) {
+                console.error(`[PDF Generator] Error processing document [${doc.fileName} / ${doc.fileUrl}]:`, error)
+                return null
+            }
+        }))
+
         const reportData: InsuranceClaimPDFData = {
             claim: {
                 claimNumber: claim.claimNumber,
@@ -54,38 +104,48 @@ export async function generateInsuranceClaimPDF(claimId: string): Promise<string
                 vehicleColor: claim.vehicleColor,
                 registrationNumber: claim.registrationNumber,
                 rcNumber: claim.rcNumber,
-                registrationDate: claim.registrationDate?.toISOString(),
+                registrationDate: claim.registrationDate ? claim.registrationDate.toISOString() : undefined,
                 usageType: claim.usageType,
                 odometerReading: claim.odometerReading,
                 chassisNumber: claim.chassisNumber,
                 engineNumber: claim.engineNumber,
 
+                // EV Details
+                isEv: Boolean(claim.isEv || claim.fuelType === 'Electric'),
+                batteryCapacity: claim.batteryCapacity,
+                batterySerialNumber: claim.batterySerialNumber,
+                batteryHealthSoH: claim.batteryHealthSoH,
+                motorNumber: claim.motorNumber,
+                chargerType: claim.chargerType,
+                chargerSerialNumber: claim.chargerSerialNumber,
+                evSpecificCover: claim.evSpecificCover,
+
                 // Insurance Details
                 policyNumber: claim.policyNumber,
                 insuranceCompany: claim.insuranceCompany,
                 policyType: claim.policyType,
-                policyStartDate: claim.policyStartDate?.toISOString(),
-                policyEndDate: claim.policyEndDate?.toISOString(),
-                policyExpiryDate: claim.policyExpiryDate?.toISOString(),
+                policyStartDate: claim.policyStartDate ? claim.policyStartDate.toISOString() : undefined,
+                policyEndDate: claim.policyEndDate ? claim.policyEndDate.toISOString() : undefined,
+                policyExpiryDate: claim.policyExpiryDate ? claim.policyExpiryDate.toISOString() : undefined,
                 idvValue: claim.idvValue,
                 vehicleConditionBefore: claim.vehicleConditionBefore,
                 previousAccidentHistory: claim.previousAccidentHistory,
 
-                // Claim Details
+                // Incident Details
                 claimType: claim.claimType,
-                incidentDate: claim.incidentDate?.toISOString() || '',
+                incidentDate: claim.incidentDate ? claim.incidentDate.toISOString() : (claim.createdAt ? claim.createdAt.toISOString() : new Date().toISOString()),
                 incidentLocation: claim.incidentLocation,
                 incidentDescription: claim.incidentDescription,
                 damageAreas: claim.damageAreas,
                 estimatedDamage: claim.estimatedDamage,
 
-                // Customer Details
+                // Customer Details (for walk-in)
                 customerCity: claim.customerCity,
 
                 // Admin
                 adminNotes: claim.adminNotes,
                 reviewedBy: claim.reviewedBy,
-                reviewedAt: claim.reviewedAt?.toISOString(),
+                reviewedAt: claim.reviewedAt ? claim.reviewedAt.toISOString() : undefined,
                 showWatermark: watermarkEnabled,
 
                 // Job Details
@@ -96,40 +156,7 @@ export async function generateInsuranceClaimPDF(claimId: string): Promise<string
                 email: claim.user.email,
                 mobile: claim.user.mobile
             },
-            documents: claim.documents.map((doc: any) => {
-                // Convert image to base64 data URI for PDF embedding
-                try {
-                    // Important: decode the URL in case it has %20 (spaces) or other encoded characters
-                    const decodedUrl = decodeURIComponent(doc.fileUrl)
-                    const absolutePath = join(process.cwd(), 'public', decodedUrl)
-
-                    const imageBuffer = readFileSync(absolutePath)
-                    const base64 = imageBuffer.toString('base64')
-
-                    const ext = doc.fileName.split('.').pop()?.toLowerCase()
-                    let mimeType = 'image/jpeg'
-                    if (ext === 'png') mimeType = 'image/png'
-                    if (ext === 'webp') mimeType = 'image/webp' // React-PDF might not support webp fully, but added for safety
-
-                    const base64DataUri = `data:${mimeType};base64,${base64}`
-
-                    return {
-                        fileName: doc.fileName,
-                        fileType: doc.fileType,
-                        fileUrl: base64DataUri,
-                        uploadedAt: doc.createdAt?.toISOString()  // pass upload timestamp for caption
-                    }
-                } catch (error) {
-                    console.error(`Failed to load document image [${doc.fileName} / ${doc.fileUrl}]:`, error)
-                    return {
-                        fileName: doc.fileName,
-                        fileType: doc.fileType,
-                        // Provide an empty/transparent 1x1 base64 GIF as a fallback so layout doesn't break, or leave empty
-                        fileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-                        uploadedAt: doc.createdAt?.toISOString()
-                    }
-                }
-            })
+            documents: (processedDocuments.filter(Boolean) as any[])
         }
 
         // 3. Generate PDF using react-pdf

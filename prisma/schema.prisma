@@ -78,6 +78,7 @@ model User {
 
   // Billing system links
   billingClients    BillingClient[] @relation("UserBillingClient")
+  staffProfile      ShopStaff?      @relation("UserStaffProfile")
 }
 
 
@@ -333,11 +334,17 @@ model PDIInspection {
   digitalSignature   String?  // Optional: base64 encoded signature image
   customerSignature  String?  // Optional: customer signature image
   
+  // Link to Workshop (Multi-tenant shop scoping)
+  shopId         String?
+  shop           Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
   responses          PDIResponse[]
   leakageResponses   PDILeakageResponse[]
   images             PDIImage[]
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  @@index([shopId])
 }
 
 model PDIResponse {
@@ -590,6 +597,16 @@ model InsuranceClaim {
   chassisNumber       String?  // VIN
   engineNumber   String?
   
+  // EV (Electric Vehicle) Specific fields
+  isEv                Boolean  @default(false)
+  batteryCapacity     String?  // e.g. "40.5 kWh"
+  batterySerialNumber String?  // e.g. "BAT-2026-X88"
+  batteryHealthSoH    String?  // e.g. "98%"
+  motorNumber         String?  // Electric Drive Motor ID
+  chargerType         String?  // CCS2, Type 2, 7.2kW Home Wallbox, Portable
+  chargerSerialNumber String?
+  evSpecificCover     String?  // JSON array of EV add-on covers
+  
   // Insurance Policy Details (expanded)
   policyNumber        String
   insuranceCompany    String
@@ -619,6 +636,15 @@ model InsuranceClaim {
   // Job / Part Details (added for PDF report)
   invoiceNumber       String?
   
+  // Surveyor Details (Insurance Surveyor assigned)
+  surveyorName          String?
+  surveyorEmail         String?
+  surveyorPhone         String?
+  surveyorCompany       String?
+  surveyorNotes         String?
+  pdfSentToSurveyorAt   DateTime?
+  surveyorLastEmailedTo String?
+
   // Generated PDF
   pdfUrl              String?
   pdfGeneratedAt      DateTime?
@@ -627,9 +653,15 @@ model InsuranceClaim {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   
+  // Link to Workshop (Multi-tenant shop scoping)
+  shopId              String?
+  shop                Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
   // Related documents
   documents           InsuranceDocument[]
   notifications       Notification[]
+
+  @@index([shopId])
 }
 
 // Insurance Document - attached files
@@ -1562,10 +1594,15 @@ model EVPDIInspection {
   adasData             String?
   roadTestData         String?
   images               String?
+  // Link to Workshop (Multi-tenant shop scoping)
+  shopId               String?
+  shop                 Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   @@index([userId])
+  @@index([shopId])
 }
 
 
@@ -1591,6 +1628,16 @@ model Shop {
   // Status
   status        String    @default("ACTIVE") // ACTIVE, SUSPENDED
 
+  // GPS Geofence Settings for Staff Auto Attendance
+  latitude              Float?
+  longitude             Float?
+  geofenceRadius        Float?    @default(150) // Radius in meters
+  autoAttendanceEnabled Boolean   @default(true)
+
+  // Module Access Flags (Configured by Superadmin)
+  hasPdiAccess          Boolean   @default(false)
+  hasInsuranceAccess    Boolean   @default(false)
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -1600,6 +1647,15 @@ model Shop {
   invoices       Invoice[]
   billingItems   BillingItem[]
   servicePackages ServicePackage[]
+  staff          ShopStaff[]
+  staffJobCards  StaffJobCard[]
+  staffSalaries  StaffSalaryPayment[]
+  staffAdvances  StaffAdvance[]
+
+  // Module Relations — scoped to this shop
+  pdiInspections       PDIInspection[]
+  evPdiInspections     EVPDIInspection[]
+  insuranceClaims      InsuranceClaim[]
 
   @@index([ownerUserId])
   @@index([status])
@@ -1799,6 +1855,12 @@ model Invoice {
   items         InvoiceItem[]
   payments      InvoicePayment[]
   
+  // Staff / Technician assignment
+  assignedStaffId String?
+  assignedStaff   ShopStaff? @relation("StaffInvoices", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  staffCommissions StaffCommission[]
+  jobCards        StaffJobCard[]
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -1806,6 +1868,7 @@ model Invoice {
   @@index([shopId])
   @@index([invoiceNumber])
   @@index([status])
+  @@index([assignedStaffId])
 }
 
 model InvoiceItem {
@@ -1947,3 +2010,198 @@ model GoogleReview {
   @@index([isVisible])
   @@index([rating])
 }
+
+// ─── Shop Staff & Technician Management ──────────────────────────────────────
+model ShopStaff {
+  id             String   @id @default(cuid())
+  name           String
+  phone          String?
+  email          String?
+  role           String   @default("TECHNICIAN") // TECHNICIAN, DETAILER, PPF_INSTALLER, PAINTER, DENTER, MECHANIC, WASHER, MANAGER, HELPER
+  specialization String?  // e.g., "Ceramic & PPF Expert", "Paint Correction", "Interior Deep Clean"
+  salaryType     String   @default("MONTHLY") // MONTHLY, DAILY, COMMISSION, PER_JOB
+  salary         Float    @default(0) // Base salary or daily rate
+  commissionRate Float    @default(0) // Default % commission on assigned jobs
+  status         String   @default("ACTIVE") // ACTIVE, INACTIVE, ON_LEAVE
+  joinedDate     DateTime @default(now())
+  aadharOrId     String?
+  address        String?
+  notes          String?
+  
+  // Multi-tenant shop scoping
+  shopId         String?
+  shop           Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  // User login account link
+  userId         String?  @unique
+  user           User?    @relation("UserStaffProfile", fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Relations
+  invoices       Invoice[] @relation("StaffInvoices")
+  attendance     StaffAttendance[]
+  commissions    StaffCommission[]
+  jobCards       StaffJobCard[]
+  salaries       StaffSalaryPayment[]
+  advances       StaffAdvance[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([status])
+}
+
+model StaffAttendance {
+  id        String    @id @default(cuid())
+  staffId   String
+  staff     ShopStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  shopId    String?
+  date      String    // Format: YYYY-MM-DD
+  status    String    @default("PRESENT") // PRESENT, ABSENT, HALF_DAY, LEAVE
+  checkIn        String?   // e.g. "09:30 AM"
+  checkOut       String?   // e.g. "07:00 PM"
+  punchMethod    String?   @default("MANUAL") // AUTO_GEOFENCE, GPS_VERIFIED, MANUAL, SELF_PUNCH
+  latitude       Float?
+  longitude      Float?
+  distanceMeters Float?
+  notes          String?
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([staffId, date])
+  @@index([shopId, date])
+}
+
+model StaffCommission {
+  id         String    @id @default(cuid())
+  staffId    String
+  staff      ShopStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  invoiceId  String?
+  invoice    Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  shopId     String?
+  amount     Float     // Calculated or manual commission amount in ₹
+  rate       Float     @default(0) // Commission % rate applied
+  status     String    @default("PENDING") // PENDING, PAID
+  paidAt     DateTime?
+  notes      String?
+  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([staffId])
+  @@index([shopId])
+  @@index([invoiceId])
+}
+
+// ─── Staff Job Card (Granular Vehicle Work Tracking) ────────────────────────
+model StaffJobCard {
+  id              String      @id @default(cuid())
+  jobNumber       String      // e.g. "JOB-2026-001"
+  shopId          String?
+  shop            Shop?       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  // Assigned Staff Member
+  staffId         String
+  staff           ShopStaff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  // Linked Invoice (optional)
+  invoiceId       String?
+  invoice         Invoice?    @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  
+  // Vehicle & Customer Info
+  vehicleName     String      // e.g. "Toyota Fortuner Legender"
+  vehicleRegNo    String      // e.g. "HR 26 DQ 1234"
+  vehicleChassis  String?
+  odometer        String?
+  clientName      String      // Customer Name
+  clientPhone     String?     // Customer Contact
+  
+  // Work Details
+  jobCategory     String      @default("DETAILING") // DETAILING, MECHANICAL, PPF_WRAP, CERAMIC, PAINT_DENT, WASHING, ELECTRICAL
+  priority        String      @default("NORMAL") // NORMAL, HIGH, URGENT
+  status          String      @default("ASSIGNED") // ASSIGNED, IN_PROGRESS, COMPLETED, DELIVERED
+  
+  // Granular Task Checklist (JSON array string: [{ id, task, isDone, doneAt, notes }])
+  checklist       String?     
+  
+  // Detailed Technician Work Report
+  workSummary     String?     // e.g. "Deep rub and polish done, ceramic 2 coats cured, minor bumper scratch removed"
+  partsConsumed   String?     // JSON array string: [{ name: "9H Ceramic Bottle", qty: 1, unit: "BOTTLE" }]
+  workImages      String?     // JSON array string: ["url1", "url2"]
+  
+  // Time & Commission Tracking
+  startedAt       DateTime?
+  completedAt     DateTime?
+  estimatedHours  Float?
+  actualHours     Float?
+  commissionAmount Float?     @default(0)
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([staffId])
+  @@index([shopId])
+  @@index([status])
+}
+
+// ─── Staff Salary & Payroll Management ──────────────────────────────────────
+model StaffSalaryPayment {
+  id              String      @id @default(cuid())
+  staffId         String
+  staff           ShopStaff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  shopId          String?
+  shop            Shop?       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  month           Int         // 1 - 12
+  year            Int         // e.g. 2026
+  period          String      // e.g. "2026-10"
+  
+  baseSalary      Float       @default(0) // Fixed base salary for the month
+  bonus           Float       @default(0) // Overtime / incentives / festival bonus
+  offDutyDays     Float       @default(0) // Days staff was off-duty or absent
+  offDutyDeduction Float      @default(0) // Money deducted for off-duty / absent days
+  advanceDeducted Float       @default(0) // Amount deducted from outstanding advances
+  otherDeductions Float       @default(0) // Penalty or other deductions
+  netPaid         Float       @default(0) // Net amount paid to staff
+  
+  status          String      @default("PAID") // PAID, PARTIAL, UNPAID
+  paymentMethod   String      @default("CASH") // CASH, UPI, BANK_TRANSFER, CHEQUE
+  paymentDate     DateTime    @default(now())
+  transactionRef  String?     // Bank UTR or UPI Reference
+  notes           String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([staffId])
+  @@index([shopId])
+  @@index([period])
+}
+
+// ─── Staff Advance Payments (Advance / Khata Tracking) ───────────────────────
+model StaffAdvance {
+  id              String      @id @default(cuid())
+  staffId         String
+  staff           ShopStaff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  shopId          String?
+  shop            Shop?       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  amount          Float       // Advance amount taken (₹)
+  advanceDate     DateTime    @default(now())
+  reason          String?     // e.g. "Family emergency", "Festival", "Medical"
+  paymentMethod   String      @default("CASH") // CASH, UPI, BANK_TRANSFER
+  
+  status          String      @default("PENDING") // PENDING, PARTIALLY_RECOVERED, DEDUCTED
+  recoveredAmount Float       @default(0) // Amount recovered so far from monthly salaries
+  
+  notes           String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([staffId])
+  @@index([shopId])
+  @@index([status])
+}
+

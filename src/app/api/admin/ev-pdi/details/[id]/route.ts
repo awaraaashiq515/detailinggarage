@@ -1,18 +1,42 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db as prisma } from "@/lib/db"
+import { getCurrentUser } from "@/lib/auth/jwt"
 
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const user = await getCurrentUser()
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
         const { id } = await params
         const inspection = await prisma.eVPDIInspection.findUnique({
             where: { id },
+            include: {
+                shop: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
+            }
         })
 
         if (!inspection) {
             return NextResponse.json({ error: "EV PDI Inspection not found" }, { status: 404 })
+        }
+
+        if (user.role === "SHOP_OWNER") {
+            const shop = await prisma.shop.findUnique({ where: { ownerUserId: user.userId } })
+            if (!shop || !shop.hasPdiAccess) {
+                return NextResponse.json({ error: "PDI module is not enabled for your workshop" }, { status: 403 })
+            }
+            if (inspection.shopId && inspection.shopId !== shop.id) {
+                return NextResponse.json({ error: "Access denied to this inspection report" }, { status: 403 })
+            }
+        } else if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
         // Parse JSON fields

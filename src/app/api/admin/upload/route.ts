@@ -13,7 +13,27 @@ import exifReader from 'exif-reader'
 export async function POST(request: NextRequest) {
     try {
         const user = await getCurrentUser()
-        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        const isSuperOrAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+        let isShopOwnerAllowed = false
+        let userShopId: string | null = null
+
+        if (user.role === 'SHOP_OWNER') {
+            const { db } = await import('@/lib/db')
+            const shop = await (db as any).shop.findUnique({
+                where: { ownerUserId: user.userId },
+                select: { id: true, hasInsuranceAccess: true }
+            })
+            if (shop?.hasInsuranceAccess) {
+                isShopOwnerAllowed = true
+                userShopId = shop.id
+            }
+        }
+
+        if (!isSuperOrAdmin && !isShopOwnerAllowed) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
@@ -25,6 +45,18 @@ export async function POST(request: NextRequest) {
 
         console.log(`[UploadAPI] START: Processing ${files.length} files for Claim ID: ${claimId}`)
         console.log(`[UploadAPI] INFO: documentType=${documentType}, locationValue="${location}"`)
+
+        // Ensure SHOP_OWNER cannot upload documents to another workshop's claim
+        if (claimId && user.role === 'SHOP_OWNER') {
+            const { db } = await import('@/lib/db')
+            const claim = await (db as any).insuranceClaim.findUnique({
+                where: { id: claimId },
+                select: { shopId: true }
+            })
+            if (claim && claim.shopId && claim.shopId !== userShopId) {
+                return NextResponse.json({ error: 'Unauthorized: Claim belongs to another workshop' }, { status: 403 })
+            }
+        }
 
         // If location is not provided but claimId exists, try to get it from the DB
         if ((!location || location === 'undefined') && claimId) {

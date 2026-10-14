@@ -27,6 +27,16 @@ export interface InsuranceClaimPDFData {
         chassisNumber?: string
         engineNumber?: string
 
+        // EV Details
+        isEv?: boolean
+        batteryCapacity?: string
+        batterySerialNumber?: string
+        batteryHealthSoH?: string
+        motorNumber?: string
+        chargerType?: string
+        chargerSerialNumber?: string
+        evSpecificCover?: string
+
         // Insurance Details
         policyNumber: string
         insuranceCompany: string
@@ -68,6 +78,7 @@ export interface InsuranceClaimPDFData {
         fileType: string
         fileUrl: string
         uploadedAt?: string
+        isPdf?: boolean
     }>
 }
 
@@ -702,7 +713,14 @@ export function InsuranceClaimTemplate({ data }: { data: InsuranceClaimPDFData }
 
                 {/* ── Title Bar ─────────────────────────────────────── */}
                 <View style={s.titleRow}>
-                    <Text style={s.reportTitle}>INSURANCE CLAIM REPORT</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={s.reportTitle}>INSURANCE CLAIM REPORT</Text>
+                        {data.claim.isEv && (
+                            <View style={{ backgroundColor: '#00d4ff', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 2 }}>
+                                <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#000000' }}>⚡ EV ELECTRIC VEHICLE</Text>
+                            </View>
+                        )}
+                    </View>
                     <View style={s.claimBadge}>
                         <Text style={s.claimBadgeText}>{data.claim.claimNumber}</Text>
                     </View>
@@ -780,9 +798,25 @@ export function InsuranceClaimTemplate({ data }: { data: InsuranceClaimPDFData }
                         </View>
                         <View style={s.fieldRowLast} wrap={false}>
                             <Field label="Chassis Number (VIN)" value={data.claim.chassisNumber || '—'} flex={1.5} />
-                            <Field label="Engine Number" value={data.claim.engineNumber || '—'} isLast />
+                            <Field label={data.claim.isEv ? "Drive Motor ID" : "Engine Number"} value={data.claim.motorNumber || data.claim.engineNumber || '—'} isLast />
                         </View>
                     </Section>
+
+                    {/* ── EV Powertrain & Battery Specifications ─────────────────── */}
+                    {data.claim.isEv && (
+                        <Section title="⚡ EV Powertrain & Battery System Specifications">
+                            <View style={s.fieldRow} wrap={false}>
+                                <Field label="Battery Capacity" value={data.claim.batteryCapacity || '—'} />
+                                <Field label="Battery Serial Number" value={data.claim.batterySerialNumber || '—'} />
+                                <Field label="State of Health (SoH)" value={data.claim.batteryHealthSoH || '—'} isLast />
+                            </View>
+                            <View style={s.fieldRowLast} wrap={false}>
+                                <Field label="Drive Motor ID" value={data.claim.motorNumber || '—'} />
+                                <Field label="Charger Type / Spec" value={data.claim.chargerType || '—'} />
+                                <Field label="Charger Serial Number" value={data.claim.chargerSerialNumber || '—'} isLast />
+                            </View>
+                        </Section>
+                    )}
 
                     {/* ── Insurance Details ─────────────────────────── */}
                     <Section title="Insurance Details">
@@ -844,15 +878,17 @@ export function InsuranceClaimTemplate({ data }: { data: InsuranceClaimPDFData }
                     {/* ── Official Declaration (Page 1) ───────────────────────────────── */}
 
 
-                    {/* ── Attached Documents ────────────────────────── */}
-                    {data.documents && data.documents.length > 0 && (
+                    {/* ── Attached Photos & Documents ────────────────────────── */}
+                    {data.documents && data.documents.filter(d => !d.isPdf && d.fileUrl && !d.fileUrl.startsWith('data:image/gif')).length > 0 && (
                         <View style={{ marginTop: 8 }}>
                             <View style={[s.sectionHeader, { borderWidth: 1, borderColor: C.borderMedium }]} wrap={false}>
-                                <Text style={s.sectionTitle}>ATTACHED DOCUMENTS ({data.documents.length})</Text>
+                                <Text style={s.sectionTitle}>
+                                    ATTACHED EVIDENCE &amp; VEHICLE PHOTOS ({data.documents.filter(d => !d.isPdf && d.fileUrl && !d.fileUrl.startsWith('data:image/gif')).length})
+                                </Text>
                             </View>
 
                             <View style={{ paddingTop: 8 }}>
-                                {chunkArray(data.documents, 2).map((rowDocs, rowIdx) => (
+                                {chunkArray(data.documents.filter(d => !d.isPdf && d.fileUrl && !d.fileUrl.startsWith('data:image/gif')), 2).map((rowDocs, rowIdx) => (
                                     <View key={rowIdx} style={s.docRow} wrap={false}>
                                         {rowDocs.map((doc, colIdx) => (
                                             <View key={colIdx} style={s.docImageBox}>
@@ -882,6 +918,25 @@ export function InsuranceClaimTemplate({ data }: { data: InsuranceClaimPDFData }
                                             </View>
                                         ))}
                                         {rowDocs.length === 1 && <View style={s.docImageBoxEmpty} />}
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                    )}
+
+                    {/* PDF and other document attachments */}
+                    {data.documents && data.documents.filter(d => d.isPdf).length > 0 && (
+                        <View style={{ marginTop: 8 }} wrap={false}>
+                            <View style={[s.sectionHeader, { borderWidth: 1, borderColor: C.borderMedium }]}>
+                                <Text style={s.sectionTitle}>
+                                    OTHER ATTACHED DOCUMENTS ({data.documents.filter(d => d.isPdf).length})
+                                </Text>
+                            </View>
+                            <View style={{ padding: 6, backgroundColor: C.bgPrimary, borderWidth: 1, borderColor: C.borderLight, borderTopWidth: 0 }}>
+                                {data.documents.filter(d => d.isPdf).map((doc, idx) => (
+                                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, borderBottomWidth: 0.5, borderBottomColor: C.borderLight }}>
+                                        <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.dark }}>{doc.fileName}</Text>
+                                        <Text style={{ fontSize: 6.5, color: C.primary, textTransform: 'uppercase' }}>{doc.fileType.replace(/_/g, ' ')}</Text>
                                     </View>
                                 ))}
                             </View>

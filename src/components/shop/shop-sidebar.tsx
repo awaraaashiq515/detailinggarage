@@ -10,18 +10,30 @@ import {
     Boxes,
     Store,
     Sparkles,
+    UserCheck,
+    CalendarCheck,
+    Smartphone,
     Menu,
     X,
+    Wrench,
     ChevronLeft,
     ChevronRight,
+    Navigation,
+    MapPin,
+    ClipboardCheck,
+    Shield,
+    Banknote,
+    Mail,
+    Car,
 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { LogoutButton } from "@/components/dashboard/logout-button"
 
 interface MenuItem {
     name: string
     href: string
     icon: React.ComponentType<{ className?: string }>
+    badge?: string
 }
 
 interface MenuGroup {
@@ -34,6 +46,17 @@ const shopMenuGroups: MenuGroup[] = [
         label: "Overview",
         items: [
             { name: "Dashboard", href: "/shop/billing", icon: LayoutDashboard },
+        ]
+    },
+    {
+        label: "Workshop Operations",
+        items: [
+            { name: "Workshop Jobs", href: "/shop/billing/jobs", icon: Wrench },
+            { name: "Vehicle Records", href: "/shop/billing/vehicles", icon: Car, badge: "Records" },
+            { name: "Staff & Team", href: "/shop/billing/staff", icon: UserCheck },
+            { name: "Staff Attendance", href: "/shop/billing/staff/attendance", icon: CalendarCheck },
+            { name: "Live Locations", href: "/shop/billing/staff/locations", icon: Navigation, badge: "Live" },
+            { name: "Staff App Portal", href: "/staff", icon: Smartphone, badge: "App" },
         ]
     },
     {
@@ -50,20 +73,66 @@ const shopMenuGroups: MenuGroup[] = [
         label: "Settings",
         items: [
             { name: "Shop Profile", href: "/shop/billing/profile", icon: Store },
+            { name: "Email / SMTP", href: "/shop/billing/settings/smtp", icon: Mail, badge: "SMTP" },
         ]
     }
 ]
 
 export function ShopSidebar({
     shopName,
-    userName
+    userName,
+    hasPdiAccess = false,
+    hasInsuranceAccess = false,
 }: {
     shopName: string
     userName: string
+    hasPdiAccess?: boolean
+    hasInsuranceAccess?: boolean
 }) {
     const pathname = usePathname()
     const [isOpen, setIsOpen] = useState(false)
     const [collapsed, setCollapsed] = useState(false)
+
+    // Dynamic menu groups depending on granted module permissions
+    const menuGroups: MenuGroup[] = useMemo(() => [
+        {
+            label: "Overview",
+            items: [
+                { name: "Dashboard", href: "/shop/billing", icon: LayoutDashboard },
+            ]
+        },
+        {
+            label: "Workshop Operations",
+            items: [
+                { name: "Workshop Jobs", href: "/shop/billing/jobs", icon: Wrench },
+                { name: "Vehicle Records", href: "/shop/billing/vehicles", icon: Car, badge: "Records" },
+                ...(hasPdiAccess ? [{ name: "PDI Inspections", href: "/shop/billing/pdi", icon: ClipboardCheck, badge: "PDI" }] : []),
+                ...(hasInsuranceAccess ? [{ name: "Insurance Claims", href: "/shop/billing/insurance", icon: Shield, badge: "Claim" }] : []),
+                { name: "Staff & Team", href: "/shop/billing/staff", icon: UserCheck },
+                { name: "Salary & Advance", href: "/shop/billing/staff/salary", icon: Banknote, badge: "Payroll" },
+                { name: "Staff Attendance", href: "/shop/billing/staff/attendance", icon: CalendarCheck },
+                { name: "Live Locations", href: "/shop/billing/staff/locations", icon: Navigation, badge: "Live" },
+                { name: "Staff App Portal", href: "/staff", icon: Smartphone, badge: "App" },
+            ]
+        },
+        {
+            label: "Billing & Finance",
+            items: [
+                { name: "Invoices", href: "/shop/billing/invoices", icon: Receipt },
+                { name: "Quotations", href: "/shop/billing/quotations", icon: FileText },
+                { name: "Clients", href: "/shop/billing/clients", icon: Users },
+                { name: "Services & Packages", href: "/shop/billing/services", icon: Sparkles },
+                { name: "Stock / Inventory", href: "/shop/billing/items", icon: Boxes },
+            ]
+        },
+        {
+            label: "Settings",
+            items: [
+                { name: "Shop Profile", href: "/shop/billing/profile", icon: Store },
+                { name: "Email / SMTP", href: "/shop/billing/settings/smtp", icon: Mail, badge: "SMTP" },
+            ]
+        }
+    ], [hasPdiAccess, hasInsuranceAccess])
 
     // Close mobile menu on route change
     useEffect(() => {
@@ -90,6 +159,11 @@ export function ShopSidebar({
     const isActive = (href: string) => {
         if (href === "/shop/billing") return pathname === "/shop/billing"
         return pathname.startsWith(href)
+    }
+
+    // Hide sidebar completely when viewing /shop/billing launcher (after all hooks have executed)
+    if (pathname === "/shop/billing") {
+        return null
     }
 
     return (
@@ -142,7 +216,7 @@ export function ShopSidebar({
 
                 {/* Navigation Links */}
                 <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-7 custom-scrollbar">
-                    {shopMenuGroups.map((group) => (
+                    {menuGroups.map((group) => (
                         <div key={group.label}>
                             {!collapsed && (
                                 <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3 px-3 text-zinc-500">
@@ -176,6 +250,18 @@ export function ShopSidebar({
                                                 <span className="text-sm tracking-wide flex-1 truncate">
                                                     {item.name}
                                                 </span>
+                                            )}
+                                            {!collapsed && item.badge && (
+                                                item.badge === 'Live' ? (
+                                                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-[#34d399]/15 text-[#34d399] border border-[#34d399]/30">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse" />
+                                                        {item.badge}
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-[#16acd4]/15 text-[#16acd4] border border-[#16acd4]/30">
+                                                        {item.badge}
+                                                    </span>
+                                                )
                                             )}
                                         </Link>
                                     )
@@ -259,7 +345,7 @@ export function ShopSidebar({
 
                 {/* Drawer Navigation */}
                 <nav className="flex-1 overflow-y-auto py-5 px-4 space-y-6">
-                    {shopMenuGroups.map((group) => (
+                    {menuGroups.map((group) => (
                         <div key={group.label}>
                             <p className="text-[10px] font-bold uppercase tracking-[2.5px] mb-2.5 px-3 text-zinc-500">
                                 {group.label}

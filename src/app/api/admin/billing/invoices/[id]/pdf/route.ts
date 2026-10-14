@@ -50,6 +50,7 @@ export async function GET(
                 client: true,
                 items: true,
                 payments: true,
+                assignedStaff: true,
                 shop: {
                     include: {
                         billingProfile: true
@@ -403,13 +404,14 @@ export async function GET(
         </div>
     </div>
 
-    <!-- Vehicle Details (if available) -->
-    ${(invoice.vehicleName || invoice.vehicleRegNo || invoice.vehicleChassis || invoice.odometer) ? `
+    <!-- Vehicle Details & Assigned Technician (if available) -->
+    ${(invoice.vehicleName || invoice.vehicleRegNo || invoice.vehicleChassis || invoice.odometer || invoice.assignedStaff) ? `
     <div class="vehicle-band">
         ${invoice.vehicleName ? `<div><div class="v-label">Vehicle</div><div class="v-val">${invoice.vehicleName}</div></div>` : ""}
         ${invoice.vehicleRegNo ? `<div><div class="v-label">Reg No</div><div class="v-val">${invoice.vehicleRegNo}</div></div>` : ""}
-        ${invoice.vehicleChassis ? `<div><div class="v-label">Chassis / VIN</div><div class="v-val">${invoice.vehicleChassis}</div></div>` : ""}
+        ${invoice.assignedStaff ? `<div><div class="v-label">Serviced By</div><div class="v-val">${invoice.assignedStaff.name} (${invoice.assignedStaff.role})</div></div>` : ""}
         ${invoice.odometer ? `<div><div class="v-label">Odometer</div><div class="v-val">${invoice.odometer}</div></div>` : ""}
+        ${invoice.vehicleChassis ? `<div><div class="v-label">Chassis / VIN</div><div class="v-val">${invoice.vehicleChassis}</div></div>` : ""}
     </div>
     ` : ""}
 

@@ -21,8 +21,10 @@ import {
     DollarSign,
     IndianRupee,
     ArrowDown,
-    ArrowUp
+    ArrowUp,
+    Sparkles
 } from "lucide-react"
+import { AiBillScannerModal } from "./ai-bill-scanner-modal"
 
 export type BillingItem = {
     id: string
@@ -107,6 +109,9 @@ export function StockInventoryView({
     const [editingItem, setEditingItem] = useState<BillingItem | null>(null)
     const [form, setForm] = useState(emptyItemForm)
     const [saving, setSaving] = useState(false)
+
+    // AI Bill Scanner Modal
+    const [showAiScanModal, setShowAiScanModal] = useState(false)
 
     // Restock Modal
     const [showRestockModal, setShowRestockModal] = useState(false)
@@ -329,7 +334,15 @@ export function StockInventoryView({
                     </h1>
                     <p className="text-xs text-zinc-400 mt-1">{subtitle}</p>
                 </div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                        onClick={() => setShowAiScanModal(true)}
+                        className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs uppercase tracking-wider transition-all rounded-lg shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] border border-white/20 active:scale-[0.98]"
+                        title="Auto-scan GST purchasing invoices, challans or cash bills to restock & add products using Free AI"
+                    >
+                        <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                        AI Bill Scan & Stock Add
+                    </button>
                     <button
                         onClick={openAdd}
                         className="flex items-center gap-2 px-4 py-2.5 bg-[#16acd4] hover:bg-white text-black font-bold uppercase tracking-wider text-xs transition-colors rounded-lg shadow-[0_0_20px_rgba(22,172,212,0.2)]"
@@ -1086,6 +1099,15 @@ export function StockInventoryView({
                     </div>
                 </div>
             )}
+
+            {/* AI Bill Scanner Modal */}
+            <AiBillScannerModal
+                isOpen={showAiScanModal}
+                onClose={() => setShowAiScanModal(false)}
+                onSuccess={() => {
+                    fetchItems()
+                }}
+            />
         </div>
     )
 }
