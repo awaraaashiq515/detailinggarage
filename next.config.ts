@@ -1,10 +1,19 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
-  // Keep Playwright and its native Node.js dependencies external from the bundle.
-  // Without this, Next.js tries to bundle playwright and breaks its native bindings,
-  // causing the API route to crash silently with an empty response body.
-  serverExternalPackages: ["playwright", "playwright-core", "@playwright/browser-chromium"],
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
+
+  // Keep heavy native/worker dependencies external from the Turbopack bundle.
+  serverExternalPackages: [
+    "playwright",
+    "playwright-core",
+    "@playwright/browser-chromium",
+    "sharp",
+    "tesseract.js"
+  ],
 
   experimental: {
     serverActions: {

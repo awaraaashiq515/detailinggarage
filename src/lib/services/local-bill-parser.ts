@@ -1,4 +1,4 @@
-import { execFile } from "child_process"
+import { exec } from "child_process"
 import fs from "fs"
 import path from "path"
 import os from "os"
@@ -33,7 +33,7 @@ export async function parseInvoiceWithLocalOCR(imageBuffer: Buffer): Promise<Par
     const runnerScript = path.resolve(process.cwd(), "src/lib/services/ocr-process.mjs")
 
     return new Promise<ParsedBillResult>((resolve, reject) => {
-        execFile("node", [runnerScript, tempFile], { maxBuffer: 10 * 1024 * 1024, timeout: 25000 }, (error, stdout, stderr) => {
+        exec(`node "${runnerScript}" "${tempFile}"`, { maxBuffer: 10 * 1024 * 1024, timeout: 25000 }, (error, stdout, stderr) => {
             try {
                 fs.unlinkSync(tempFile)
             } catch {}
