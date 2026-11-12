@@ -16,7 +16,8 @@ import {
     CheckCircle2,
     Edit3,
     X,
-    Save
+    Save,
+    Share2
 } from "lucide-react"
 import Link from "next/link"
 
@@ -209,6 +210,12 @@ export default function AdminPostsPage() {
                     <p className="text-zinc-400 mt-1">Manage, edit, and delete posts that appear on your homepage and portfolio.</p>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Link
+                        href="/admin/social"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all text-sm"
+                    >
+                        <Share2 className="w-4 h-4" /> 1-Click Multi-Social Broadcast
+                    </Link>
                     <Link
                         href="/admin/settings/facebook"
                         className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl border border-white/10 transition-all text-sm"

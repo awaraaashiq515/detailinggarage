@@ -29,6 +29,7 @@ import {
     Boxes,
     Facebook,
     LayoutGrid,
+    Share2,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 
@@ -59,6 +60,7 @@ const menuGroups: MenuGroup[] = [
 
             { name: "PDI Packages", href: "/admin/packages", icon: FileText },
             { name: "Payments", href: "/admin/payments", icon: CreditCard },
+            { name: "Social Broadcast", href: "/admin/social", icon: Share2 },
             { name: "Social Showcase", href: "/admin/posts", icon: ImageIcon },
             { name: "Facebook Feed Sync", href: "/admin/settings/facebook", icon: Facebook },
         ]

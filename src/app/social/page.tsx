@@ -44,8 +44,8 @@ export default function SocialPage() {
                         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-[#16acd4]/30 bg-[#16acd4]/10 text-[#16acd4] text-xs font-bold uppercase tracking-wider mb-4">
                             <Sparkles className="w-3.5 h-3.5" /> Studio Stories & Deliveries
                         </div>
-                        <h1 className="text-4xl md:text-6xl font-display font-bold mb-4 text-white">Latest Work & Updates</h1>
-                        <p className="text-zinc-400">Our recent master detailing projects, ceramic coatings, PPF installations, and verified deliveries.</p>
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-3 tracking-tight text-white">Latest Work & Updates</h1>
+                        <p className="text-zinc-400 text-sm md:text-base">Our recent master detailing projects, ceramic coatings, PPF installations, and verified deliveries.</p>
                     </div>
 
                     <Link 

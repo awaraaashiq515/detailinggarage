@@ -14,10 +14,10 @@ export default function HomeFooter() {
 
                     {/* 1. Brand & Social */}
                     <div className="space-y-6">
-                        <Link href="/" className="font-sans text-3xl font-black tracking-tight text-white flex items-center">
+                        <Link href="/" className="font-display text-2xl font-bold tracking-tight text-white flex items-center">
                             Detailing<span className="text-[#16acd4]">Garage</span>
                         </Link>
-                        <p className="text-zinc-400 text-sm font-light leading-relaxed">
+                        <p className="text-zinc-400 text-xs sm:text-sm font-normal leading-relaxed">
                             Himachal’s premier studio for certified PDI pre-delivery inspections, multi-stage paint correction, 9H ceramic coatings, and precision PPF installations.
                         </p>
                         
@@ -65,7 +65,7 @@ export default function HomeFooter() {
 
                     {/* 2. Quick Links */}
                     <div className="space-y-6">
-                        <h4 className="text-sm font-black uppercase tracking-widest text-white">Services & Explore</h4>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-white">Services & Explore</h4>
                         <ul className="space-y-3">
                             {[
                                 { name: 'PDI Pre-Delivery Inspection', href: '/pdi' },
@@ -74,6 +74,8 @@ export default function HomeFooter() {
                                 { name: 'Multi-Stage Paint Correction', href: '/#services' },
                                 { name: 'Studio Deliveries & Stories', href: '/social' },
                                 { name: 'Client Portal', href: '/portal' },
+                                { name: 'Privacy Policy', href: '/privacy-policy' },
+                                { name: 'Terms of Service', href: '/terms' },
                             ].map((item) => (
                                 <li key={item.name}>
                                     <Link href={item.href} className="text-zinc-400 hover:text-[#16acd4] transition-colors text-sm font-medium flex items-center gap-2 group">
@@ -87,7 +89,7 @@ export default function HomeFooter() {
 
                     {/* 3. Primary Locations in Mandi */}
                     <div className="space-y-6">
-                        <h4 className="text-sm font-black uppercase tracking-widest text-white">Locations in Mandi</h4>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-white">Locations in Mandi</h4>
                         <div className="space-y-4">
                             {/* Location 1 */}
                             <div className="flex items-start gap-3">
@@ -125,7 +127,7 @@ export default function HomeFooter() {
 
                     {/* 4. Contact & Inquiries */}
                     <div className="space-y-6">
-                        <h4 className="text-sm font-black uppercase tracking-widest text-white">Direct Inquiries</h4>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-white">Direct Inquiries</h4>
                         <ul className="space-y-4">
                             {/* Email */}
                             <li>
@@ -186,7 +188,7 @@ export default function HomeFooter() {
                         © {new Date().getFullYear()} DETAILING GARAGE. ALL RIGHTS RESERVED.
                     </p>
                     <div className="flex items-center gap-6">
-                        <Link href="/privacy" className="text-zinc-500 hover:text-white transition-colors text-xs font-semibold tracking-wider uppercase">
+                        <Link href="/privacy-policy" className="text-zinc-500 hover:text-white transition-colors text-xs font-semibold tracking-wider uppercase">
                             Privacy Policy
                         </Link>
                         <Link href="/terms" className="text-zinc-500 hover:text-white transition-colors text-xs font-semibold tracking-wider uppercase">

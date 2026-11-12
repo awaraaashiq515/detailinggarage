@@ -46,8 +46,8 @@ export default function PublicFeedPage() {
                         <span className="w-8 h-0.5 rounded bg-[#16acd4]" />
                         <span className="text-xs font-semibold tracking-[2.5px] uppercase text-[#16acd4]">Real-time Updates</span>
                     </div>
-                    <h1 className="font-display text-[clamp(40px,6vw,64px)] tracking-[3px] text-white">Dealer <span className="text-[#16acd4]">Community</span> Feed</h1>
-                    <p className="text-gray-500 max-w-xl mt-4 leading-relaxed font-medium">
+                    <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white">Dealer <span className="text-[#16acd4]">Community</span> Feed</h1>
+                    <p className="text-gray-400 max-w-xl mt-3 text-sm md:text-base leading-relaxed font-normal">
                         Explore the latest announcements, exclusive offers, and vehicle updates from our network of verified dealers.
                     </p>
                 </div>

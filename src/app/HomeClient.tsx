@@ -1,640 +1,1198 @@
 "use client"
 
-import { Navbar } from "@/components/layout/navbar"
-import HomeFooter from "@/components/home/HomeFooter"
-import GoogleReviewsSection from "@/components/home/GoogleReviewsSection"
-import { ArrowRight, Shield, ShieldCheck, Sparkles, Droplets, CheckCircle2, Play, ExternalLink, Radio, X, Calendar } from "lucide-react"
-import { motion, useScroll, useTransform } from "framer-motion"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { Navbar } from "@/components/layout/navbar"
+import { WebsiteContent, defaultWebsiteContent } from "@/lib/website-content.types"
 
-type Post = {
+// ─── Helper Icons ─────────────────────────────────────────────────────────────
+function CheckIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" style={{ color: "#5fd6e4", flex: "none", marginTop: 3 }}>
+            <path d="M4 12l5 5L20 6" />
+        </svg>
+    )
+}
+
+function WAIcon({ size = 20 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.5-.3z" />
+        </svg>
+    )
+}
+
+function ArrowRightIcon({ size = 18 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+    )
+}
+
+function InstagramIcon({ size = 16 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" />
+            <circle cx="12" cy="12" r="4.2" />
+            <circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none" />
+        </svg>
+    )
+}
+
+function FacebookIcon({ size = 16 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M13.5 22v-8.2h2.8l.4-3.3h-3.2V8.4c0-.9.3-1.6 1.6-1.6h1.7V3.9a23 23 0 0 0-2.5-.1c-2.5 0-4.2 1.5-4.2 4.3v2.4H7.3v3.3h2.8V22z" />
+        </svg>
+    )
+}
+
+// ─── Hero Section ─────────────────────────────────────────────────────────────
+function HeroSection({ hero }: { hero: WebsiteContent["hero"] }) {
+    return (
+        <section style={{ position: "relative", overflow: "hidden", borderBottom: "1px solid #1a2328", isolation: "isolate" }}>
+            <div style={{ position: "absolute", inset: 0, zIndex: -1 }}>
+                {hero.bgImageUrl && (
+                    <img 
+                        src={hero.bgImageUrl} 
+                        alt="Detailing Garage studio" 
+                        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "60% 50%" }} 
+                        onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                    />
+                )}
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(7,9,11,.96) 0%, rgba(7,9,11,.82) 42%, rgba(7,9,11,.35) 100%), linear-gradient(0deg, rgba(7,9,11,.95) 0%, transparent 40%)" }} />
+            </div>
+
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                <div style={{ display: "grid", gap: 24, paddingBlock: "clamp(120px, 15vw, 175px) clamp(48px, 7vw, 88px)", maxWidth: "44rem" }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>
+                        {hero.eyebrow}
+                    </span>
+                    <h1 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(3rem, 8.6vw, 6.6rem)", fontWeight: 800, textTransform: "uppercase", lineHeight: 0.92, margin: 0 }}>
+                        <span style={{ display: "block" }}>{hero.titleLine1}</span>
+                        <span style={{ display: "block", color: "#5fd6e4" }}>{hero.titleLine2}</span>
+                        <span style={{ display: "block" }}>{hero.titleLine3}</span>
+                    </h1>
+                    <p style={{ color: "#c3d0d5", fontSize: "1.12rem", maxWidth: "54ch", margin: 0, lineHeight: 1.6 }}>
+                        {hero.description}
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                        <a href={hero.primaryCtaLink || "#contact"} style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#5fd6e4", color: "#07090b", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.06em", textTransform: "uppercase", padding: "14px 26px", borderRadius: 2, textDecoration: "none" }}>
+                            {hero.primaryCtaText} <ArrowRightIcon />
+                        </a>
+                        <a href={hero.secondaryCtaLink || "#services"} style={{ display: "inline-flex", alignItems: "center", gap: 10, border: "1px solid rgba(238,244,246,.25)", color: "#eef4f6", background: "rgba(7,9,11,.4)", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.06em", textTransform: "uppercase", padding: "14px 26px", borderRadius: 2, textDecoration: "none" }}>
+                            {hero.secondaryCtaText}
+                        </a>
+                    </div>
+                    {/* Dynamic Stats */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "24px 40px", paddingTop: 24, borderTop: "1px solid rgba(238,244,246,.15)", marginTop: 8 }}>
+                        {hero.stats.map(s => (
+                            <div key={s.label}>
+                                <b style={{ display: "block", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "2rem", fontWeight: 700, lineHeight: 1 }}>{s.value}</b>
+                                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6" }}>{s.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </section>
+    )
+}
+
+// ─── Ticker Marquee Strip ─────────────────────────────────────────────────────
+function TickerStrip({ items }: { items: string[] }) {
+    const list = items && items.length > 0 ? items : defaultWebsiteContent.ticker.items
+    const doubled = [...list, ...list]
+    return (
+        <div style={{ background: "#5fd6e4", color: "#07090b", overflow: "hidden", whiteSpace: "nowrap" }} aria-hidden="true">
+            <div className="dg-strip-track" style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif" }}>
+                {doubled.map((t, i) => (
+                    <span key={i}>{t}<span style={{ marginLeft: 48, opacity: 0.45 }}>/</span></span>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+// ─── PDI Section with Ritchie & Sample Reports ────────────────────────────────
+function PDISection({ pdi, onOpenLightbox }: { pdi: WebsiteContent["pdi"]; onOpenLightbox: (src: string, alt: string) => void }) {
+    return (
+        <section style={{ padding: "clamp(64px, 9vw, 112px) 0" }} id="pdi">
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                <div style={{ display: "grid", gap: 48, alignItems: "start" }} className="dg-pdi-top">
+                    <div>
+                        <div style={{ display: "grid", gap: 14, maxWidth: "48rem", marginBottom: "clamp(32px, 5vw, 52px)" }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{pdi.eyebrow}</span>
+                            <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{pdi.heading}</h2>
+                            <p style={{ color: "#8d9ea6", fontSize: "1.05rem", maxWidth: "62ch", margin: 0, lineHeight: 1.6 }}>
+                                {pdi.description}
+                            </p>
+                        </div>
+
+                        {/* Dynamic Fuel Cards */}
+                        <div style={{ display: "grid", gap: 1, background: "#1a2328", border: "1px solid #1a2328", gridTemplateColumns: "repeat(3, 1fr)" }} className="dg-fuel-grid">
+                            {pdi.fuelTypes.map(f => (
+                                <div key={f.title} style={{ background: "#07090b", padding: "22px 20px", display: "grid", gap: 8, alignContent: "start" }}>
+                                    <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.5rem", textTransform: "uppercase", margin: 0 }}>
+                                        {f.title}
+                                        <small style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.68rem", letterSpacing: "0.12em", color: "#5fd6e4", display: "block", marginTop: 4, fontWeight: 400 }}>{f.subtitle}</small>
+                                    </h3>
+                                    <ul style={{ listStyle: "none", margin: 0, padding: 0, color: "#8d9ea6", fontSize: "0.92rem", display: "grid", gap: 4 }}>
+                                        {f.items.map(i => <li key={i}>{i}</li>)}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Dynamic Equipment Tools */}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginTop: 28 }} className="dg-tools">
+                            {pdi.tools.map(t => (
+                                <div key={t.name}>
+                                    <b style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.15rem", color: "#5fd6e4", textTransform: "uppercase", display: "block" }}>{t.name}</b>
+                                    <span style={{ fontSize: "0.88rem", color: "#8d9ea6" }}>{t.description}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Dynamic Pricing Card */}
+                    <aside style={{ background: "#07090b", border: "1px solid #5fd6e4", padding: 28, display: "grid", gap: 18 }}>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{pdi.pricing.eyebrow}</span>
+                        <div style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "3.4rem", fontWeight: 800, lineHeight: 1 }}>
+                            {pdi.pricing.amount}<small style={{ fontSize: "1.1rem", color: "#8d9ea6", fontWeight: 600, marginLeft: 6 }}>{pdi.pricing.travelNote}</small>
+                        </div>
+                        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8, fontSize: "0.95rem" }}>
+                            {pdi.pricing.features.map(f => (
+                                <li key={f} style={{ display: "flex", gap: 10 }}><CheckIcon />{f}</li>
+                            ))}
+                        </ul>
+                        <p style={{ fontSize: "0.85rem", color: "#8d9ea6", borderTop: "1px solid #1a2328", paddingTop: 14, margin: 0 }}>
+                            {pdi.pricing.footnote}
+                        </p>
+                        <a href={pdi.pricing.ctaLink || "#contact"} style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#5fd6e4", color: "#07090b", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.06em", textTransform: "uppercase", padding: "14px 26px", borderRadius: 2, textDecoration: "none", justifySelf: "start" }}>
+                            {pdi.pricing.ctaText || "Get a quote"}
+                        </a>
+                    </aside>
+                </div>
+
+                {/* Dynamic 8 Check Areas */}
+                <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.5rem", textTransform: "uppercase", fontWeight: 700, margin: "56px 0 20px", display: "flex", alignItems: "center", gap: 16, color: "#eef4f6" }}>
+                    What we check
+                    <span style={{ flex: 1, height: 1, background: "#1a2328" }} />
+                </h3>
+
+                <div style={{ display: "grid", gap: 1, background: "#1a2328", border: "1px solid #1a2328", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+                    {pdi.checkAreas.map(a => (
+                        <div key={a.index} style={{ background: "#07090b", padding: "22px 20px", display: "grid", gap: 10, alignContent: "start", minWidth: 0 }}>
+                            <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.15rem", textTransform: "uppercase", margin: 0, display: "flex", gap: 10, alignItems: "baseline" }}>
+                                <i style={{ fontStyle: "normal", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", color: "#5fd6e4" }}>{a.index}</i>
+                                {a.title}
+                            </h3>
+                            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4, fontSize: "0.86rem", color: "#8d9ea6" }}>
+                                {a.items.map(item => (
+                                    <li key={item} style={{ position: "relative", paddingLeft: "1.4em" }}>
+                                        <span style={{ position: "absolute", left: 0, color: "#5fd6e4" }}>+</span> {item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Ritchie Profile */}
+                <div style={{ display: "grid", gap: 28, alignItems: "center", background: "#07090b", border: "1px solid #1a2328", marginTop: 56 }} className="dg-ritchie">
+                    {pdi.ritchie.imageUrl && (
+                        <img 
+                            src={pdi.ritchie.imageUrl} 
+                            alt={pdi.ritchie.name} 
+                            style={{ width: "100%", height: "100%", aspectRatio: "4/5", objectFit: "cover", objectPosition: "40% 20%" }} 
+                            onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                        />
+                    )}
+                    <div style={{ display: "grid", gap: 14, padding: "28px 36px 28px 0" }} className="dg-ritchie-copy">
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{pdi.ritchie.eyebrow}</span>
+                        <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "2.2rem", textTransform: "uppercase", margin: 0 }}>{pdi.ritchie.name}</h3>
+                        <blockquote style={{ margin: 0, fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.4rem", color: "#5fd6e4", lineHeight: 1.2 }}>
+                            {pdi.ritchie.quote}
+                        </blockquote>
+                        <p style={{ color: "#8d9ea6", maxWidth: "60ch", margin: 0, lineHeight: 1.6 }}>
+                            {pdi.ritchie.description}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Sample Reports */}
+                <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.5rem", textTransform: "uppercase", fontWeight: 700, margin: "56px 0 20px", display: "flex", alignItems: "center", gap: 16, color: "#eef4f6" }}>
+                    Sample reports
+                    <span style={{ flex: 1, height: 1, background: "#1a2328" }} />
+                </h3>
+                <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+                    {pdi.sampleReports.map(doc => (
+                        <button key={doc.title} onClick={() => onOpenLightbox(doc.imageUrl, doc.title)}
+                            style={{ padding: 0, border: "1px solid #1a2328", background: "#07090b", cursor: "zoom-in", textAlign: "left", color: "#eef4f6", display: "grid", borderRadius: 2, overflow: "hidden", font: "inherit", transition: "border-color .2s" }}
+                            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = "#5fd6e4")}
+                            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = "#1a2328")}>
+                            <img src={doc.imageUrl} alt={doc.title} style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover", objectPosition: "top" }} />
+                            <span style={{ padding: "14px 16px", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", borderTop: "1px solid #1a2328" }}>
+                                {doc.title}
+                                <small style={{ display: "block", fontFamily: "'Manrope', sans-serif", textTransform: "none", letterSpacing: 0, color: "#8d9ea6", fontWeight: 400, marginTop: 4 }}>{doc.subtitle}</small>
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <style>{`
+                @media(min-width:940px){ .dg-pdi-top { grid-template-columns: 1.1fr .9fr; } }
+                @media(max-width:559px){ .dg-fuel-grid { grid-template-columns: 1fr !important; } }
+                @media(max-width:559px){ .dg-tools { grid-template-columns: repeat(2,1fr) !important; } }
+                @media(min-width:760px){ .dg-ritchie { grid-template-columns: 280px 1fr !important; } }
+                @media(max-width:759px){ .dg-ritchie-copy { padding: 8px 28px 28px !important; } }
+            `}</style>
+        </section>
+    )
+}
+
+// ─── Services Section ─────────────────────────────────────────────────────────
+function ServicesSection({ services, onOpenLightbox }: { services: WebsiteContent["services"]; onOpenLightbox: (src: string, alt: string) => void }) {
+    return (
+        <section style={{ padding: "clamp(64px, 9vw, 112px) 0", background: "#0e1316", borderBlock: "1px solid #1a2328" }} id="services">
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                <div style={{ display: "grid", gap: 14, maxWidth: "48rem", marginBottom: "clamp(32px, 5vw, 52px)" }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{services.eyebrow}</span>
+                    <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{services.heading}</h2>
+                    <p style={{ color: "#8d9ea6", fontSize: "1.05rem", maxWidth: "62ch", margin: 0, lineHeight: 1.6 }}>
+                        {services.description}
+                    </p>
+                </div>
+
+                <div style={{ display: "grid", gap: 1, background: "#1a2328", border: "1px solid #1a2328" }} className="dg-services-grid">
+                    {services.primaryList.filter(s => s.isActive !== false).map(s => (
+                        <article key={s.id} style={{ background: "#0e1316", padding: "30px 26px 28px", display: "grid", gap: 12, alignContent: "start", minWidth: 0, transition: "background .25s" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "#07090b")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "#0e1316")}>
+                            <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.5rem", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{s.title}</h3>
+                            <p style={{ color: "#8d9ea6", fontSize: "0.95rem", margin: 0 }}>{s.description}</p>
+                            <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0", display: "grid", gap: 6, fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.76rem" }}>
+                                {s.items.map(i => (
+                                    <li key={i} style={{ position: "relative", paddingLeft: "1.4em" }}>
+                                        <span style={{ position: "absolute", left: 0, color: "#5fd6e4" }}>+</span> {i}
+                                    </li>
+                                ))}
+                            </ul>
+                        </article>
+                    ))}
+                </div>
+
+                <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.5rem", textTransform: "uppercase", fontWeight: 700, margin: "56px 0 20px", display: "flex", alignItems: "center", gap: 16, color: "#eef4f6" }}>
+                    {services.solutionsHeading}
+                    <span style={{ flex: 1, height: 1, background: "#1a2328" }} />
+                </h3>
+
+                <div style={{ display: "grid", gap: 1, background: "#1a2328", border: "1px solid #1a2328" }} className="dg-services-grid">
+                    {services.solutionsList.filter(s => s.isActive !== false).map(s => (
+                        <article key={s.id} style={{ background: "#0e1316", padding: "30px 26px 28px", display: "grid", gap: 12, alignContent: "start", minWidth: 0, transition: "background .25s" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "#07090b")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "#0e1316")}>
+                            <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.5rem", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{s.title}</h3>
+                            <p style={{ color: "#8d9ea6", fontSize: "0.95rem", margin: 0 }}>{s.description}</p>
+                            {s.fine && <p style={{ fontSize: "0.8rem", color: "#8d9ea6", fontStyle: "italic", margin: 0 }}>{s.fine}</p>}
+                            {s.items && (
+                                <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0", display: "grid", gap: 6, fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.76rem" }}>
+                                    {s.items.map(i => (
+                                        <li key={i} style={{ position: "relative", paddingLeft: "1.4em" }}>
+                                            <span style={{ position: "absolute", left: 0, color: "#5fd6e4" }}>+</span> {i}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </article>
+                    ))}
+                </div>
+
+                {services.poster && (
+                    <div style={{ marginTop: 40, display: "grid", gap: 24, alignItems: "center" }} className="dg-poster-grid">
+                        <button onClick={() => onOpenLightbox(services.poster.imageUrl, services.poster.heading)}
+                            style={{ padding: 0, border: "1px solid #1a2328", background: "none", cursor: "zoom-in", borderRadius: 2, overflow: "hidden" }}>
+                            <img src={services.poster.imageUrl} alt={services.poster.heading} style={{ width: "100%", height: "auto" }} />
+                        </button>
+                        <div style={{ display: "grid", gap: 14 }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{services.poster.eyebrow}</span>
+                            <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(1.8rem, 3.6vw, 2.6rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>
+                                {services.poster.heading}
+                            </h2>
+                            <p style={{ color: "#8d9ea6", fontSize: "1.05rem", margin: 0, lineHeight: 1.6 }}>
+                                {services.poster.description}
+                            </p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <style>{`
+                @media(min-width:640px){ .dg-services-grid { grid-template-columns: repeat(2,1fr) !important; } }
+                @media(min-width:1000px){ .dg-services-grid { grid-template-columns: repeat(3,1fr) !important; } }
+                @media(min-width:860px){ .dg-poster-grid { grid-template-columns: 1.3fr 1fr !important; } }
+            `}</style>
+        </section>
+    )
+}
+
+// ─── Packages Section ─────────────────────────────────────────────────────────
+function PackagesSection({ packages }: { packages: WebsiteContent["packages"] }) {
+    return (
+        <section style={{ padding: "clamp(64px, 9vw, 112px) 0" }} id="packages">
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                <div style={{ display: "grid", gap: 14, maxWidth: "48rem", marginBottom: "clamp(32px, 5vw, 52px)" }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{packages.eyebrow}</span>
+                    <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{packages.heading}</h2>
+                    <p style={{ color: "#8d9ea6", fontSize: "1.05rem", maxWidth: "62ch", margin: 0 }}>{packages.description}</p>
+                </div>
+
+                <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+                    {packages.list.map(p => (
+                        <div key={p.id} style={{ border: `1px solid ${p.isHighlighted ? "#5fd6e4" : "#1a2328"}`, padding: "26px 22px", display: "grid", gap: 14, alignContent: "start", background: "#07090b" }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#5fd6e4" }}>{p.forText}</span>
+                            <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.5rem", textTransform: "uppercase", margin: 0 }}>{p.name}</h3>
+                            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 6, fontSize: "0.92rem", color: "#8d9ea6" }}>
+                                {p.items.map(i => <li key={i}><span style={{ color: "#5fd6e4" }}>✓ </span>{i}</li>)}
+                            </ul>
+                            <a href={p.ctaLink || "#contact"} style={{ marginTop: 6, justifySelf: "start", display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 2, fontFamily: "'Saira Semi Condensed', sans-serif", fontWeight: 700, fontSize: "0.95rem", textTransform: "uppercase", textDecoration: "none", background: p.isHighlighted ? "#5fd6e4" : "rgba(7,9,11,.4)", color: p.isHighlighted ? "#07090b" : "#eef4f6", border: p.isHighlighted ? "none" : "1px solid rgba(238,244,246,.25)" }}>
+                                {p.ctaText || "Ask for price"}
+                            </a>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    )
+}
+
+// ─── Customers Section (Dynamic Deliveries & Real Facebook Posts) ────────────
+interface SocialPost {
     id: string
     type: string
     url: string
     caption: string | null
     link: string | null
-    source?: string
-    sharesCount?: number
-    publishedAt?: string
+    source: string
+    publishedAt: string | null
+    likesCount?: number
+    commentsCount?: number
 }
 
-type FacebookInfo = {
-    pageName: string | null
-    pageId: string | null
-    isConnected: boolean
-    showOnHome: boolean
-    homeSectionTitle: string | null
-    homeSectionDesc: string | null
-    fallbackEmbedUrl: string | null
-    lastSyncedAt: string | null
-}
-
-const FADE_UP: any = {
-    hidden: { opacity: 0, y: 40 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
-}
-
-const STAGGER: any = {
-    visible: { transition: { staggerChildren: 0.1 } }
-}
-
-export default function HomeClient() {
-    const { scrollY } = useScroll()
-    const heroY = useTransform(scrollY, [0, 1000], [0, 250])
-    const heroOpacity = useTransform(scrollY, [0, 500], [1, 0])
+function parseDeliveryCaption(caption: string | null) {
+    if (!caption) return { customer: "Verified Customer", car: "Detailing Garage Delivery", dealer: "Detailing Garage Mandi", excerpt: "Professional PDI inspection completed with 100+ checkpoints." }
+    const lines = caption.split("\n").map(l => l.trim()).filter(Boolean)
+    const congratsLine = lines.find(l => /congratulations/i.test(l)) || lines[0] || ""
+    const cleanLine = congratsLine.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, "").replace(/\s+/g, " ").replace(/[.!\s]+$/, "").trim()
     
-    const [socialPosts, setSocialPosts] = useState<Post[]>([])
-    const [facebookInfo, setFacebookInfo] = useState<FacebookInfo | null>(null)
-    const [selectedPost, setSelectedPost] = useState<Post | null>(null)
+    // Pattern: Congratulations to [Customer] on [taking] delivery of [his/her/their/brand-new] [Car] [from Dealer]
+    const match = cleanLine.match(/to\s+([^,]+?)\s+on\s+(?:taking\s+)?(?:the\s+)?delivery\s+of\s+(?:his\s+|her\s+|their\s+|brand-new\s+|the\s+)*(.+?)(?:\s+from\s+(.+))?$/i)
+    if (match) {
+        return {
+            customer: match[1]?.trim() || "Verified Customer",
+            car: match[2]?.trim() || "Customer Vehicle",
+            dealer: match[3]?.trim() || "",
+            excerpt: cleanLine
+        }
+    }
+    return {
+        customer: "Verified Customer",
+        car: cleanLine || "Customer Delivery",
+        dealer: "",
+        excerpt: cleanLine
+    }
+}
 
-    useEffect(() => {
-        fetch("/api/public/posts")
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    setSocialPosts(data.posts || [])
-                    if (data.facebook) {
-                        setFacebookInfo(data.facebook)
-                    }
-                }
-            })
-            .catch(() => {})
-    }, [])
+function CustomersSection({ 
+    customers, 
+    posts, 
+    onOpenLightbox 
+}: { 
+    customers: WebsiteContent["customers"]; 
+    posts: SocialPost[]; 
+    onOpenLightbox: (src: string, alt: string, caption?: string, link?: string) => void 
+}) {
+    const [visibleCount, setVisibleCount] = useState(8)
+    
+    // Filter to Facebook posts or delivery posts
+    const fbDeliveries = (posts && posts.length > 0)
+        ? posts.filter(p => p.source === "FACEBOOK" || p.caption?.toLowerCase().includes("customer") || p.caption?.toLowerCase().includes("delivery"))
+        : []
+    
+    const useFb = customers.useFacebookPosts !== false && fbDeliveries.length > 0
+    const displayedFbPosts = fbDeliveries.slice(0, visibleCount)
 
     return (
-        <div className="min-h-screen bg-[#09090b] text-[#e4e4e7] selection:bg-[#16acd4] selection:text-black font-sans overflow-x-hidden">
+        <section style={{ padding: "clamp(64px, 9vw, 112px) 0", background: "#0e1316", borderBlock: "1px solid #1a2328" }} id="customers">
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                {/* Header row with Title and Live Facebook Badge */}
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: 24, marginBottom: "clamp(32px, 5vw, 48px)" }}>
+                    <div style={{ display: "grid", gap: 14, maxWidth: "48rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>
+                                {customers.eyebrow}
+                            </span>
+                            {useFb && (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(24, 119, 242, 0.15)", border: "1px solid rgba(24, 119, 242, 0.4)", color: "#5ea6ff", padding: "3px 10px", borderRadius: 999, fontSize: "0.7rem", fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.06em", fontWeight: 600 }}>
+                                    <FacebookIcon size={12} />
+                                    LIVE FACEBOOK SYNC ({fbDeliveries.length} DELIVERIES)
+                                </span>
+                            )}
+                        </div>
+                        <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>
+                            {customers.heading}
+                        </h2>
+                        <p style={{ color: "#8d9ea6", fontSize: "1.05rem", maxWidth: "62ch", margin: 0 }}>
+                            {customers.description}
+                        </p>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                        <a 
+                            href={customers.facebookPageUrl || "https://www.facebook.com/detailinggarage.in"} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 18px", background: "#1877F2", color: "#fff", textDecoration: "none", fontFamily: "'Saira Semi Condensed', sans-serif", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.06em", textTransform: "uppercase", borderRadius: 2, transition: "opacity .15s" }}
+                            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = "0.9")}
+                            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = "1")}
+                        >
+                            <FacebookIcon size={15} />
+                            Facebook Page ↗
+                        </a>
+                        <Link 
+                            href="/feed"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", border: "1px solid #1a2328", background: "#07090b", color: "#8d9ea6", textDecoration: "none", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.78rem", letterSpacing: "0.06em", textTransform: "uppercase", borderRadius: 2, transition: "color .2s, border-color .2s" }}
+                            onMouseEnter={e => {
+                                (e.currentTarget as HTMLElement).style.borderColor = "#5fd6e4";
+                                (e.currentTarget as HTMLElement).style.color = "#eef4f6";
+                            }}
+                            onMouseLeave={e => {
+                                (e.currentTarget as HTMLElement).style.borderColor = "#1a2328";
+                                (e.currentTarget as HTMLElement).style.color = "#8d9ea6";
+                            }}
+                        >
+                            Social Feed
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Delivery Cards Grid */}
+                <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+                    {useFb ? (
+                        displayedFbPosts.map(post => {
+                            const parsed = parseDeliveryCaption(post.caption)
+                            const dateLabel = post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : ""
+                            
+                            return (
+                                <div key={post.id}
+                                    style={{ border: "1px solid #1a2328", background: "#07090b", display: "flex", flexDirection: "column", borderRadius: 2, overflow: "hidden", transition: "border-color .2s, transform .2s" }}
+                                    onMouseEnter={e => {
+                                        (e.currentTarget as HTMLElement).style.borderColor = "#5fd6e4";
+                                        (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)";
+                                    }}
+                                    onMouseLeave={e => {
+                                        (e.currentTarget as HTMLElement).style.borderColor = "#1a2328";
+                                        (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                                    }}
+                                >
+                                    {/* Image with zoom click */}
+                                    <div 
+                                        onClick={() => onOpenLightbox(post.url, `${parsed.car} - ${parsed.customer}`, post.caption || undefined, post.link || undefined)}
+                                        style={{ position: "relative", aspectRatio: "1", background: "#040608", overflow: "hidden", cursor: "zoom-in" }}
+                                    >
+                                        <img 
+                                            src={post.url} 
+                                            alt={parsed.car} 
+                                            style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", transition: "transform .4s ease" }}
+                                            onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.04)")}
+                                            onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
+                                        />
+                                        
+                                        {/* Overlay Badges */}
+                                        <div style={{ position: "absolute", top: 10, left: 10, display: "flex", gap: 6, alignItems: "center" }}>
+                                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(24,119,242,0.92)", color: "#fff", padding: "3px 8px", borderRadius: 2, fontSize: "0.68rem", fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, letterSpacing: "0.06em" }}>
+                                                <FacebookIcon size={11} />
+                                                DELIVERY
+                                            </span>
+                                            {dateLabel && (
+                                                <span style={{ background: "rgba(7,9,11,0.82)", backdropFilter: "blur(4px)", color: "#eef4f6", padding: "3px 8px", borderRadius: 2, fontSize: "0.68rem", fontFamily: "'IBM Plex Mono', monospace" }}>
+                                                    {dateLabel}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.7)", color: "#5fd6e4", padding: "2px 7px", borderRadius: 2, fontSize: "0.7rem", fontFamily: "'IBM Plex Mono', monospace" }}>
+                                            🔍 Tap to view
+                                        </div>
+                                    </div>
+
+                                    {/* Content info */}
+                                    <div style={{ padding: "18px 18px 14px", display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                            <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", color: "#5fd6e4", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                                                {parsed.customer}
+                                            </code>
+                                            <span style={{ fontSize: "0.68rem", color: "#22c55e", fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>
+                                                ✓ 100+ PTS PDI
+                                            </span>
+                                        </div>
+                                        
+                                        <b style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.22rem", textTransform: "uppercase", lineHeight: 1.15, color: "#eef4f6" }}>
+                                            {parsed.car}
+                                        </b>
+
+                                        {parsed.dealer ? (
+                                            <span style={{ color: "#8d9ea6", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: 4 }}>
+                                                📍 {parsed.dealer}
+                                            </span>
+                                        ) : (
+                                            <span style={{ color: "#8d9ea6", fontSize: "0.85rem" }}>
+                                                Detailing Garage Verified Delivery
+                                            </span>
+                                        )}
+
+                                        {/* Bottom Action buttons */}
+                                        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginTop: "auto", paddingTop: 12, borderTop: "1px solid #1a2328" }}>
+                                            <button 
+                                                onClick={() => onOpenLightbox(post.url, `${parsed.car} - ${parsed.customer}`, post.caption || undefined, post.link || undefined)}
+                                                style={{ border: "1px solid #1a2328", background: "#0e1316", color: "#eef4f6", padding: "7px 12px", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.06em", textTransform: "uppercase", borderRadius: 2, cursor: "pointer", textAlign: "center", transition: "border-color .2s" }}
+                                                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = "#5fd6e4")}
+                                                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = "#1a2328")}
+                                            >
+                                                Inspection Details
+                                            </button>
+                                            {post.link && (
+                                                <a 
+                                                    href={post.link} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#1877F2", color: "#fff", padding: "7px 12px", fontSize: "0.72rem", fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, textDecoration: "none", borderRadius: 2 }}
+                                                    title="View original post on Facebook"
+                                                >
+                                                    <FacebookIcon size={12} />
+                                                    FB ↗
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })
+                    ) : (
+                        customers.list.map(c => (
+                            <button key={c.id} onClick={() => onOpenLightbox(c.imageUrl, `${c.carModel} - ${c.customerDetails}`)}
+                                style={{ padding: 0, border: "1px solid #1a2328", background: "#0e1316", cursor: "zoom-in", textAlign: "left", color: "#eef4f6", display: "grid", gridTemplateRows: "auto 1fr", borderRadius: 2, overflow: "hidden", font: "inherit", transition: "border-color .2s" }}
+                                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = "#5fd6e4")}
+                                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = "#1a2328")}>
+                                <div style={{ aspectRatio: "1", background: "#07090b", overflow: "hidden" }}>
+                                    <img src={c.imageUrl} alt={c.customerDetails} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                                </div>
+                                <div style={{ padding: "16px 18px", display: "grid", gap: 4, alignContent: "start" }}>
+                                    <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", color: "#5fd6e4", letterSpacing: "0.08em", textTransform: "uppercase" }}>{c.brand}</code>
+                                    <b style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.25rem", textTransform: "uppercase", lineHeight: 1.1 }}>{c.carModel}</b>
+                                    <span style={{ color: "#8d9ea6", fontSize: "0.9rem" }}>{c.customerDetails}</span>
+                                </div>
+                            </button>
+                        ))
+                    )}
+                </div>
+
+                {/* Show more button if Facebook deliveries exceed visible count */}
+                {useFb && fbDeliveries.length > 8 && (
+                    <div style={{ textAlign: "center", marginTop: 32 }}>
+                        {visibleCount < fbDeliveries.length ? (
+                            <button
+                                onClick={() => setVisibleCount(prev => Math.min(prev + 8, fbDeliveries.length))}
+                                style={{ border: "1px solid #5fd6e4", background: "transparent", color: "#5fd6e4", fontFamily: "'Saira Semi Condensed', sans-serif", fontWeight: 700, fontSize: "0.95rem", textTransform: "uppercase", letterSpacing: "0.08em", padding: "10px 28px", borderRadius: 2, cursor: "pointer", transition: "all .2s" }}
+                                onMouseEnter={e => {
+                                    (e.currentTarget as HTMLElement).style.background = "#5fd6e4";
+                                    (e.currentTarget as HTMLElement).style.color = "#07090b";
+                                }}
+                                onMouseLeave={e => {
+                                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                                    (e.currentTarget as HTMLElement).style.color = "#5fd6e4";
+                                }}
+                            >
+                                Show More Deliveries ({visibleCount} of {fbDeliveries.length}) ↓
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setVisibleCount(8)}
+                                style={{ border: "1px solid #1a2328", background: "transparent", color: "#8d9ea6", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.08em", padding: "8px 20px", borderRadius: 2, cursor: "pointer" }}
+                            >
+                                Show Less ↑
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* Brand badges at bottom */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 36, alignItems: "center", paddingTop: 24, borderTop: "1px solid #1a2328" }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", color: "#5fd6e4", letterSpacing: "0.08em", textTransform: "uppercase", marginRight: 8 }}>
+                        Inspected Brands:
+                    </span>
+                    {customers.brands.map(b => (
+                        <span key={b} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.74rem", letterSpacing: "0.08em", textTransform: "uppercase", border: "1px solid #1a2328", padding: "5px 10px", color: "#8d9ea6", background: "#07090b" }}>{b}</span>
+                    ))}
+                </div>
+            </div>
+        </section>
+    )
+}
+
+// ─── Video Reels (Watch Us Work) ──────────────────────────────────────────────
+function VideoSection({ videos }: { videos: WebsiteContent["videos"] }) {
+    return (
+        <section style={{ padding: "clamp(64px, 9vw, 112px) 0" }} id="watch">
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                <div style={{ display: "grid", gap: 14, maxWidth: "48rem", marginBottom: "clamp(32px, 5vw, 52px)" }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{videos.eyebrow}</span>
+                    <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{videos.heading}</h2>
+                    <p style={{ color: "#8d9ea6", fontSize: "1.05rem", maxWidth: "62ch", margin: 0 }}>{videos.description}</p>
+                </div>
+
+                <div style={{ display: "grid", gap: 16 }} className="dg-reels">
+                    {videos.reels.map(reel => (
+                        <figure key={reel.id} style={{ position: "relative", margin: 0, border: "1px solid #1a2328", background: "#07090b", overflow: "hidden", borderRadius: 2 }}>
+                            <video src={reel.videoUrl} poster={reel.posterUrl} muted loop playsInline autoPlay style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", aspectRatio: "9/15", cursor: "pointer" }} onClick={(e) => { const v = e.currentTarget; v.paused ? v.play() : v.pause(); }} />
+                            <figcaption style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "40px 16px 14px", background: "linear-gradient(transparent, rgba(7,9,11,.9))", display: "grid", gap: 2, pointerEvents: "none" }}>
+                                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#5fd6e4" }}>{reel.tag}</span>
+                                <b style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.25rem", textTransform: "uppercase" }}>{reel.title}</b>
+                            </figcaption>
+                        </figure>
+                    ))}
+
+                    {videos.sideCard && (
+                        <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
+                            <figure style={{ position: "relative", margin: 0, border: "1px solid #1a2328", background: "#07090b", overflow: "hidden", borderRadius: 2 }}>
+                                <video src={videos.sideCard.videoUrl} poster={videos.sideCard.posterUrl} muted loop playsInline autoPlay style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", aspectRatio: "16/9", cursor: "pointer" }} onClick={(e) => { const v = e.currentTarget; v.paused ? v.play() : v.pause(); }} />
+                            </figure>
+                            <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.9rem", textTransform: "uppercase", margin: 0 }}>{videos.sideCard.heading}</h3>
+                            <p style={{ color: "#8d9ea6", margin: 0, lineHeight: 1.6 }}>{videos.sideCard.description}</p>
+                            <div>
+                                <a href={videos.sideCard.ctaLink || "#contact"} style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#5fd6e4", color: "#07090b", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.06em", textTransform: "uppercase", padding: "14px 26px", borderRadius: 2, textDecoration: "none" }}>
+                                    {videos.sideCard.ctaText || "Book a slot"}
+                                </a>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <style>{`
+                @media(min-width:900px){ .dg-reels { grid-template-columns: 1fr 1fr 1.25fr !important; } }
+            `}</style>
+        </section>
+    )
+}
+
+// ─── Studio / About Section ───────────────────────────────────────────────────
+function StudioSection({ studio }: { studio: WebsiteContent["studio"] }) {
+    return (
+        <section style={{ padding: "clamp(64px, 9vw, 112px) 0", background: "#0e1316", borderBlock: "1px solid #1a2328" }} id="studio">
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                <div style={{ display: "grid", gap: 48, alignItems: "center" }} className="dg-about-grid">
+                    <div style={{ display: "grid", gap: 18, minWidth: 0 }}>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{studio.eyebrow}</span>
+                        <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{studio.heading}</h2>
+                        <p style={{ color: "#eef4f6", fontSize: "1.2rem", margin: 0, maxWidth: "60ch" }}>
+                            {studio.leadText}
+                        </p>
+                        <p style={{ color: "#8d9ea6", maxWidth: "60ch", margin: 0 }}>
+                            {studio.description}
+                        </p>
+                        <p style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.6rem", color: "#5fd6e4", lineHeight: 1.2, margin: 0 }}>
+                            {studio.taglineHindi}
+                        </p>
+                        <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", marginTop: 6 }}>
+                            {studio.values.map(v => (
+                                <div key={v.title} style={{ borderTop: "2px solid #5fd6e4", paddingTop: 12 }}>
+                                    <b style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.15rem", textTransform: "uppercase", display: "block" }}>{v.title}</b>
+                                    <span style={{ color: "#8d9ea6", fontSize: "0.88rem" }}>{v.description}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        {studio.photos.main && <img src={studio.photos.main} alt="Studio storefront" style={{ gridColumn: "span 2", width: "100%", height: "100%", aspectRatio: "16/10", objectFit: "cover", borderRadius: 2 }} />}
+                        {studio.photos.sub1 && <img src={studio.photos.sub1} alt="Studio lounge window" style={{ width: "100%", height: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: 2 }} />}
+                        {studio.photos.sub2 && <img src={studio.photos.sub2} alt="Studio lounge interior" style={{ width: "100%", height: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: 2 }} />}
+                    </div>
+                </div>
+
+                <div style={{ display: "grid", gap: 28, marginTop: 64, paddingTop: 40, borderTop: "1px solid #1a2328" }} className="dg-region-grid">
+                    <div>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{studio.region.eyebrow}</span>
+                        <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "2rem", textTransform: "uppercase", margin: "6px 0 0" }}>{studio.region.heading}</h3>
+                        <p style={{ color: "#8d9ea6", marginTop: 10, margin: "10px 0 0" }}>{studio.region.description}</p>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {studio.region.districts.map(d => (
+                            <span key={d.name} style={{ border: `1px solid ${d.isHighlighted ? "#5fd6e4" : "#1a2328"}`, color: d.isHighlighted ? "#5fd6e4" : "#eef4f6", padding: "8px 14px", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.9rem" }}>
+                                {d.name}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <style>{`
+                @media(min-width:900px){ .dg-about-grid { grid-template-columns: 1fr 1fr !important; } }
+                @media(min-width:860px){ .dg-region-grid { grid-template-columns: 1fr 2fr !important; align-items: start; } }
+            `}</style>
+        </section>
+    )
+}
+
+// ─── Creators Program ─────────────────────────────────────────────────────────
+function CreatorsSection({ creators }: { creators: WebsiteContent["creators"] }) {
+    return (
+        <section style={{ padding: "clamp(64px, 9vw, 112px) 0" }} id="creators">
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                <div style={{ display: "grid", gap: 14, maxWidth: "48rem", marginBottom: "clamp(32px, 5vw, 52px)" }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{creators.eyebrow}</span>
+                    <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{creators.heading}</h2>
+                    <p style={{ color: "#8d9ea6", fontSize: "1.05rem", maxWidth: "62ch", margin: 0, lineHeight: 1.6 }}>
+                        {creators.description}
+                    </p>
+                </div>
+
+                <div style={{ display: "grid", gap: 1, background: "#1a2328", border: "1px solid #1a2328", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+                    {creators.roles.map(r => (
+                        <div key={r.title} style={{ background: "#07090b", padding: "26px 22px", display: "grid", gap: 10, alignContent: "start" }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#5fd6e4" }}>{r.roleNum}</span>
+                            <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.4rem", textTransform: "uppercase", margin: 0 }}>{r.title}</h3>
+                            <p style={{ color: "#8d9ea6", fontSize: "0.92rem", margin: 0 }}>{r.description}</p>
+                            <div style={{ fontSize: "0.85rem", color: "#eef4f6", borderTop: "1px solid #1a2328", paddingTop: 10 }}>{r.bestFit}</div>
+                        </div>
+                    ))}
+                </div>
+
+                <div style={{ display: "grid", gap: 40, marginTop: 48 }} className="dg-creator-grid">
+                    <div>
+                        <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.5rem", textTransform: "uppercase", margin: "0 0 20px" }}>Who we're looking for</h3>
+                        <dl style={{ display: "grid", borderTop: "1px solid #1a2328", margin: 0 }}>
+                            {creators.requirements.map(item => (
+                                <div key={item.label} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 16, padding: "12px 0", borderBottom: "1px solid #1a2328", fontSize: "0.94rem" }}>
+                                    <dt style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8d9ea6", paddingTop: 3 }}>{item.label}</dt>
+                                    <dd style={{ margin: 0 }}>{item.value}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
+                        <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.6rem", textTransform: "uppercase", margin: 0 }}>How to apply</h3>
+                        <p style={{ color: "#8d9ea6", margin: 0 }}>
+                            {creators.applicationText}
+                        </p>
+                        <ul style={{ margin: 0, paddingLeft: 20, color: "#8d9ea6", display: "grid", gap: 4 }}>
+                            {creators.applicationBullets.map(b => (
+                                <li key={b}>{b}</li>
+                            ))}
+                        </ul>
+                        <div>
+                            <a href={`https://wa.me/${creators.whatsappNumber}?text=Influencer%20Application%20-%20`} target="_blank" rel="noopener" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#5fd6e4", color: "#07090b", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.06em", textTransform: "uppercase", padding: "14px 26px", borderRadius: 2, textDecoration: "none" }}>
+                                <WAIcon /> Apply on WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style>{`
+                @media(min-width:900px){ .dg-creator-grid { grid-template-columns: 1fr 1fr !important; } }
+            `}</style>
+        </section>
+    )
+}
+
+// ─── FAQ Section ──────────────────────────────────────────────────────────────
+function FAQSection({ faq }: { faq: WebsiteContent["faq"] }) {
+    return (
+        <section style={{ padding: "clamp(64px, 9vw, 112px) 0", background: "#0e1316", borderBlock: "1px solid #1a2328" }} id="faq">
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                <div style={{ display: "grid", gap: 14, maxWidth: "48rem", marginBottom: "clamp(32px, 5vw, 52px)" }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{faq.eyebrow}</span>
+                    <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{faq.heading}</h2>
+                </div>
+
+                <div style={{ display: "grid", borderTop: "1px solid #1a2328", maxWidth: "52rem" }} className="dg-faq">
+                    {faq.items.map(f => (
+                        <details key={f.id} style={{ borderBottom: "1px solid #1a2328" }}>
+                            <summary style={{ cursor: "pointer", padding: "20px 40px 20px 0", position: "relative", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.25rem", fontWeight: 600, color: "#eef4f6" }}>
+                                {f.question}
+                            </summary>
+                            <p style={{ color: "#8d9ea6", padding: "0 0 22px", maxWidth: "64ch", margin: 0, lineHeight: 1.6 }}>{f.answer}</p>
+                        </details>
+                    ))}
+                </div>
+            </div>
+        </section>
+    )
+}
+
+// ─── Contact Section ──────────────────────────────────────────────────────────
+function ContactSection({ contact }: { contact: WebsiteContent["contact"] }) {
+    const [form, setForm] = useState({ name: "", phone: "", car: "", dealer: "", fuel: "Petrol", date: "", notes: "" })
+    const [services, setServices] = useState<string[]>(["Pre-Delivery Inspection"])
+    const [error, setError] = useState("")
+    const [confirmMsg, setConfirmMsg] = useState("")
+    const [waHref, setWaHref] = useState("")
+
+    const toggleService = (svc: string) => {
+        setServices(prev => prev.includes(svc) ? prev.filter(s => s !== svc) : [...prev, svc])
+    }
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        const missing: string[] = []
+        if (!form.name.trim()) missing.push("your name")
+        if (form.phone.replace(/\D/g, "").length < 10) missing.push("a 10-digit mobile number")
+        if (!form.car.trim()) missing.push("your car model")
+        if (!services.length) missing.push("at least one service")
+        if (missing.length) { setError("Please add " + missing.join(", ") + "."); return }
+        setError("")
+        const msg = [
+            "Booking request - Detailing Garage",
+            "Name: " + form.name,
+            "Mobile: " + form.phone,
+            "Car: " + form.car + " (" + form.fuel + ")",
+            form.dealer ? "Dealership / location: " + form.dealer : "",
+            "Services: " + services.join(", "),
+            form.date ? "Preferred date: " + form.date : "",
+            form.notes ? "Notes: " + form.notes : "",
+        ].filter(Boolean).join("\n")
+        setConfirmMsg(msg)
+        setWaHref(`https://wa.me/${contact.whatsappNumber}?text=` + encodeURIComponent(msg))
+    }
+
+    const svcOptions = contact.bookingServices && contact.bookingServices.length > 0 ? contact.bookingServices : defaultWebsiteContent.contact.bookingServices
+
+    return (
+        <section style={{ padding: "clamp(64px, 9vw, 112px) 0", background: "#0e1316", borderTop: "1px solid #1a2328" }} id="contact">
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px", display: "grid", gap: 40 }} className="dg-contact-grid">
+                <div>
+                    <div style={{ display: "grid", gap: 14, maxWidth: "48rem", marginBottom: "clamp(32px, 5vw, 52px)" }}>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#5fd6e4" }}>{contact.eyebrow}</span>
+                        <h2 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>{contact.heading}</h2>
+                        <p style={{ color: "#8d9ea6", fontSize: "1.05rem", maxWidth: "62ch", margin: 0 }}>{contact.description}</p>
+                    </div>
+
+                    <dl style={{ display: "grid", alignContent: "start", borderTop: "1px solid #1a2328", margin: 0 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 14, padding: "16px 0", borderBottom: "1px solid #1a2328", alignItems: "start" }}>
+                            <dt style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6", paddingTop: 4 }}>Phone</dt>
+                            <dd style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600, display: "grid", gap: 2 }}>
+                                {contact.phones.map(ph => (
+                                    <a key={ph} href={`tel:${ph.replace(/\s+/g, '')}`} style={{ color: "#eef4f6", textDecoration: "none" }}>{ph}</a>
+                                ))}
+                            </dd>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 14, padding: "16px 0", borderBottom: "1px solid #1a2328", alignItems: "start" }}>
+                            <dt style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6", paddingTop: 4 }}>WhatsApp</dt>
+                            <dd style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600 }}>
+                                <a href={`https://wa.me/${contact.whatsappNumber}`} target="_blank" rel="noopener" style={{ color: "#eef4f6", textDecoration: "none" }}>+{contact.whatsappNumber}</a>
+                            </dd>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 14, padding: "16px 0", borderBottom: "1px solid #1a2328", alignItems: "start" }}>
+                            <dt style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6", paddingTop: 4 }}>Email</dt>
+                            <dd style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600 }}>
+                                <a href={`mailto:${contact.email}`} style={{ color: "#eef4f6", textDecoration: "none" }}>{contact.email}</a>
+                            </dd>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 14, padding: "16px 0", borderBottom: "1px solid #1a2328", alignItems: "start" }}>
+                            <dt style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6", paddingTop: 4 }}>Studio</dt>
+                            <dd style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600 }}>{contact.address}</dd>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 14, padding: "16px 0", borderBottom: "1px solid #1a2328", alignItems: "start" }}>
+                            <dt style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6", paddingTop: 4 }}>Hours</dt>
+                            <dd style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600 }}>{contact.hours}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <form onSubmit={handleSubmit} noValidate style={{ background: "#0e1316", border: "1px solid #1a2328", padding: "clamp(22px, 4vw, 40px)", display: "grid", gap: 18, minWidth: 0 }}>
+                    <h3 style={{ fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontSize: "1.9rem", textTransform: "uppercase", margin: 0 }}>Request a booking</h3>
+
+                    <div style={{ display: "grid", gap: 16 }} className="dg-form-row-2">
+                        <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6" }}>Your name</label>
+                            <input placeholder="Full name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={{ width: "100%", fontFamily: "inherit", fontSize: "1rem", color: "#eef4f6", background: "#07090b", border: "1px solid #1a2328", borderRadius: 2, padding: "12px 14px", outline: "none", boxSizing: "border-box" }} />
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6" }}>Mobile number</label>
+                            <input placeholder="10-digit mobile" type="tel" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} style={{ width: "100%", fontFamily: "inherit", fontSize: "1rem", color: "#eef4f6", background: "#07090b", border: "1px solid #1a2328", borderRadius: 2, padding: "12px 14px", outline: "none", boxSizing: "border-box" }} />
+                        </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 16 }} className="dg-form-row-2">
+                        <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6" }}>Car make &amp; model</label>
+                            <input placeholder="e.g. Tata Sierra EV" value={form.car} onChange={e => setForm(p => ({ ...p, car: e.target.value }))} style={{ width: "100%", fontFamily: "inherit", fontSize: "1rem", color: "#eef4f6", background: "#07090b", border: "1px solid #1a2328", borderRadius: 2, padding: "12px 14px", outline: "none", boxSizing: "border-box" }} />
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6" }}>Dealership / location</label>
+                            <input placeholder="e.g. Surya Tata, Mandi" value={form.dealer} onChange={e => setForm(p => ({ ...p, dealer: e.target.value }))} style={{ width: "100%", fontFamily: "inherit", fontSize: "1rem", color: "#eef4f6", background: "#07090b", border: "1px solid #1a2328", borderRadius: 2, padding: "12px 14px", outline: "none", boxSizing: "border-box" }} />
+                        </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 16 }} className="dg-form-row-2">
+                        <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6" }}>Fuel type</label>
+                            <select value={form.fuel} onChange={e => setForm(p => ({ ...p, fuel: e.target.value }))} style={{ width: "100%", fontFamily: "inherit", fontSize: "1rem", color: "#eef4f6", background: "#07090b", border: "1px solid #1a2328", borderRadius: 2, padding: "12px 14px", outline: "none", boxSizing: "border-box" }}>
+                                {["Petrol", "Diesel", "EV", "CNG"].map(o => <option key={o}>{o}</option>)}
+                            </select>
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                            <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6" }}>Preferred date</label>
+                            <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} style={{ width: "100%", fontFamily: "inherit", fontSize: "1rem", color: "#eef4f6", background: "#07090b", border: "1px solid #1a2328", borderRadius: 2, padding: "12px 14px", outline: "none", boxSizing: "border-box" }} />
+                        </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 6 }}>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6" }}>Services</span>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                            {svcOptions.map(svc => {
+                                const checked = services.includes(svc)
+                                return (
+                                    <label key={svc} style={{ cursor: "pointer" }}>
+                                        <input type="checkbox" checked={checked} onChange={() => toggleService(svc)} style={{ position: "absolute", opacity: 0, pointerEvents: "none" }} />
+                                        <span style={{ display: "inline-block", padding: "8px 14px", border: `1px solid ${checked ? "#5fd6e4" : "#1a2328"}`, borderRadius: 2, fontSize: "0.9rem", cursor: "pointer", transition: "all .2s", background: checked ? "#5fd6e4" : "transparent", color: checked ? "#07090b" : "#eef4f6", userSelect: "none" }}>
+                                            {svc}
+                                        </span>
+                                    </label>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 6 }}>
+                        <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8d9ea6" }}>Anything else?</label>
+                        <textarea placeholder="Delivery date, concerns, questions..." value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} style={{ width: "100%", fontFamily: "inherit", fontSize: "1rem", color: "#eef4f6", background: "#07090b", border: "1px solid #1a2328", borderRadius: 2, padding: "12px 14px", outline: "none", minHeight: 90, resize: "vertical", boxSizing: "border-box" }} />
+                    </div>
+
+                    {error && <p style={{ color: "#ff9b9b", fontSize: "0.9rem", margin: 0 }}>{error}</p>}
+
+                    <div>
+                        <button type="submit" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#5fd6e4", color: "#07090b", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.06em", textTransform: "uppercase", padding: "14px 26px", borderRadius: 2, border: "none", cursor: "pointer" }}>
+                            Prepare WhatsApp message
+                        </button>
+                    </div>
+
+                    {confirmMsg && (
+                        <div style={{ border: "1px solid #5fd6e4", background: "rgba(95,214,228,.06)", padding: 20, display: "grid", gap: 12 }}>
+                            <strong>Your request is ready. Send it to us on WhatsApp.</strong>
+                            <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.8rem", background: "#07090b", border: "1px solid #1a2328", padding: 14, overflowX: "auto" }}>{confirmMsg}</pre>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                                <a href={waHref} target="_blank" rel="noopener" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#5fd6e4", color: "#07090b", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.06em", textTransform: "uppercase", padding: "14px 26px", borderRadius: 2, textDecoration: "none" }}>
+                                    <WAIcon /> Open WhatsApp
+                                </a>
+                                <button type="button" onClick={() => { navigator.clipboard?.writeText(confirmMsg) }} style={{ display: "inline-flex", alignItems: "center", gap: 10, border: "1px solid rgba(238,244,246,.25)", color: "#eef4f6", background: "rgba(7,9,11,.4)", fontFamily: "'Saira Semi Condensed', 'Arial Narrow', sans-serif", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.06em", textTransform: "uppercase", padding: "14px 26px", borderRadius: 2, cursor: "pointer" }}>
+                                    Copy message
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </form>
+            </div>
+
+            <style>{`
+                @media(min-width:940px){ .dg-contact-grid { grid-template-columns: .85fr 1.15fr !important; } }
+                @media(min-width:600px){ .dg-form-row-2 { grid-template-columns: 1fr 1fr !important; } }
+            `}</style>
+        </section>
+    )
+}
+
+// ─── SiteFooter ───────────────────────────────────────────────────────────────
+function SiteFooter({ footer, contact }: { footer: WebsiteContent["footer"]; contact: WebsiteContent["contact"] }) {
+    return (
+        <footer style={{ borderTop: "1px solid #1a2328", paddingBlock: "48px 32px", background: "#0e1316" }}>
+            <div style={{ maxWidth: "calc(1180px + 64px)", margin: "0 auto", padding: "0 32px" }}>
+                <div style={{ display: "grid", gap: 32 }} className="dg-footer-grid">
+                    <div style={{ display: "grid", gap: 14, alignContent: "start" }}>
+                        <img src="/images/logo.png" alt="Detailing Garage" style={{ height: 64, width: "auto" }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }} />
+                        <p style={{ color: "#8d9ea6", maxWidth: "40ch", margin: 0, lineHeight: 1.6 }}>{footer.aboutText}</p>
+                    </div>
+
+                    <div>
+                        <h4 style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#8d9ea6", margin: "0 0 12px", fontWeight: 500 }}>Services</h4>
+                        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8, fontSize: "0.94rem" }}>
+                            {["Pre-Delivery Inspection", "Ceramic & graphene coating", "Paint protection film", "Denting & painting", "Insurance claim help"].map(l => (
+                                <li key={l}><a href="#services" style={{ textDecoration: "none", color: "#eef4f6" }} onMouseEnter={e => (e.currentTarget.style.color = "#5fd6e4")} onMouseLeave={e => (e.currentTarget.style.color = "#eef4f6")}>{l}</a></li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#8d9ea6", margin: "0 0 12px", fontWeight: 500 }}>Company &amp; Pages</h4>
+                        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8, fontSize: "0.94rem" }}>
+                            {[
+                                { label: "Marketplace", href: "/marketplace" },
+                                { label: "Cars Stock", href: "/cars" },
+                                { label: "Bikes Stock", href: "/bikes" },
+                                { label: "Insurance Claims", href: "/insurance-claim" },
+                                { label: "Community Feed", href: "/feed" },
+                                { label: "Our Studio", href: "#studio" },
+                                { label: "Creators Program", href: "#creators" },
+                                { label: "Privacy Policy", href: "/privacy-policy" },
+                                { label: "Terms of Service", href: "/terms" },
+                            ].map(l => (
+                                <li key={l.label}><a href={l.href} style={{ textDecoration: "none", color: "#eef4f6" }} onMouseEnter={e => (e.currentTarget.style.color = "#5fd6e4")} onMouseLeave={e => (e.currentTarget.style.color = "#eef4f6")}>{l.label}</a></li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#8d9ea6", margin: "0 0 12px", fontWeight: 500 }}>Contact</h4>
+                        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8, fontSize: "0.94rem" }}>
+                            {contact.phones.map(ph => (
+                                <li key={ph}><a href={`tel:${ph.replace(/\s+/g, '')}`} style={{ textDecoration: "none", color: "#eef4f6" }}>{ph}</a></li>
+                            ))}
+                            <li><a href={`mailto:${contact.email}`} style={{ textDecoration: "none", color: "#eef4f6" }}>{contact.email}</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style={{ marginTop: 40, paddingTop: 20, borderTop: "1px solid #1a2328", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12, color: "#8d9ea6", fontSize: "0.85rem" }}>
+                    <span>© {new Date().getFullYear()} {footer.copyrightText}</span>
+                    <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+                        <a href="/privacy-policy" style={{ color: "#8d9ea6", textDecoration: "none" }} onMouseEnter={e => (e.currentTarget.style.color = "#5fd6e4")} onMouseLeave={e => (e.currentTarget.style.color = "#8d9ea6")}>Privacy Policy</a>
+                        <span style={{ opacity: 0.3 }}>•</span>
+                        <a href="/terms" style={{ color: "#8d9ea6", textDecoration: "none" }} onMouseEnter={e => (e.currentTarget.style.color = "#5fd6e4")} onMouseLeave={e => (e.currentTarget.style.color = "#8d9ea6")}>Terms of Service</a>
+                    </div>
+                    <span>{footer.tagline}</span>
+                </div>
+            </div>
+
+            <style>{`
+                @media(min-width:800px){ .dg-footer-grid { grid-template-columns: 1.4fr 1fr 1fr 1fr !important; } }
+            `}</style>
+        </footer>
+    )
+}
+
+// ─── WAFloat ──────────────────────────────────────────────────────────────────
+function WAFloat({ whatsappNumber }: { whatsappNumber: string }) {
+    return (
+        <a href={`https://wa.me/${whatsappNumber}?text=Hi%20Detailing%20Garage%2C%20I%27d%20like%20to%20book%20a%20service.`} target="_blank" rel="noopener" aria-label="Chat on WhatsApp"
+            style={{ position: "fixed", right: 18, bottom: 18, zIndex: 40, width: 56, height: 56, borderRadius: "50%", background: "#25d366", color: "#07090b", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 30px rgba(0,0,0,.5)", textDecoration: "none" }}>
+            <WAIcon size={30} />
+        </a>
+    )
+}
+
+// ─── Main Export ──────────────────────────────────────────────────────────────
+export default function HomeClient() {
+    const [content, setContent] = useState<WebsiteContent>(defaultWebsiteContent)
+    const [socialPosts, setSocialPosts] = useState<SocialPost[]>([])
+    const [lightbox, setLightbox] = useState<{ open: boolean; src: string; alt: string; caption?: string; link?: string }>({ open: false, src: "", alt: "" })
+
+    useEffect(() => {
+        // Fetch 100% dynamic website content from server
+        fetch("/api/public/website-content")
+            .then(r => r.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    setContent(res.data)
+                }
+            })
+            .catch(() => { })
+
+        // Fetch dynamic Facebook delivery posts from studio post database
+        fetch("/api/public/posts?limit=30")
+            .then(r => r.json())
+            .then(res => {
+                if (res.posts && Array.isArray(res.posts)) {
+                    setSocialPosts(res.posts)
+                }
+            })
+            .catch(() => { })
+    }, [])
+
+    const openLightbox = (src: string, alt: string, caption?: string, link?: string) => {
+        setLightbox({ open: true, src, alt, caption, link })
+    }
+
+    const closeLightbox = () => {
+        setLightbox({ open: false, src: "", alt: "", caption: "", link: "" })
+    }
+
+    return (
+        <div style={{ minHeight: "100vh", background: "#07090b", color: "#eef4f6", fontFamily: "'Manrope', 'Segoe UI', system-ui, sans-serif", fontSize: 16, lineHeight: 1.6, overflowX: "hidden" }}>
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+                *, *::before, *::after { box-sizing: border-box; }
+                img { display: block; max-width: 100%; }
+                :focus-visible { outline: 2px solid #5fd6e4; outline-offset: 3px; border-radius: 2px; }
+                input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); }
+            `}</style>
+
             <Navbar />
 
-            {/* 1. HERO - CINEMATIC PARALLAX */}
-            <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-                <motion.div 
-                    style={{ y: heroY, opacity: heroOpacity }}
-                    className="absolute inset-0 z-0 origin-top"
-                >
-                    <div className="absolute inset-0 bg-black/40 z-10" />
-                    <img 
-                        src="https://images.unsplash.com/photo-1601362840469-51e4d8d58785?q=80&w=2400&auto=format&fit=crop" 
-                        alt="Premium Detailing" 
-                        className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent z-20" />
-                </motion.div>
-                
-                <div className="relative z-30 w-full max-w-7xl mx-auto px-6 md:px-14 mt-20">
-                    <motion.div 
-                        initial="hidden" 
-                        animate="visible" 
-                        variants={STAGGER}
-                        className="max-w-4xl"
-                    >
-                        <motion.div variants={FADE_UP} className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-white/10 bg-black/20 backdrop-blur-md mb-8">
-                            <Sparkles className="w-4 h-4 text-[#16acd4]" />
-                            <span className="text-xs font-bold tracking-[0.25em] uppercase text-zinc-300">Elite Auto Protection Studio</span>
-                        </motion.div>
-                        
-                        <motion.h1 variants={FADE_UP} className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.95] mb-8 font-display text-white">
-                            We Don't Just Wash.<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#16acd4] via-[#e8f6fa] to-[#0f80a0]">We Restore Perfection.</span>
-                        </motion.h1>
-                        
-                        <motion.p variants={FADE_UP} className="text-lg md:text-2xl text-zinc-300 max-w-2xl mb-12 font-light leading-relaxed">
-                            Master-certified detailing, ceramic coatings, and paint protection film for those who demand the absolute best for their vehicles.
-                        </motion.p>
-                        
-                        <motion.div variants={FADE_UP} className="flex flex-col sm:flex-row gap-5">
-                            <Link href="#contact" className="px-8 py-4 bg-[#16acd4] text-black font-bold uppercase tracking-widest text-sm rounded-none hover:bg-white transition-all duration-300 flex items-center justify-center gap-3 group">
-                                Book Your Vehicle <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                            <button className="px-8 py-4 bg-transparent border border-white/20 text-white font-bold uppercase tracking-widest text-sm rounded-none hover:border-[#16acd4] hover:text-[#16acd4] transition-all duration-300 flex items-center justify-center gap-3 group backdrop-blur-sm">
-                                <Play className="w-4 h-4" /> View Showreel
-                            </button>
-                        </motion.div>
-                    </motion.div>
-                </div>
+            <main id="top">
+                <HeroSection hero={content.hero} />
+                <TickerStrip items={content.ticker.items} />
+                <PDISection pdi={content.pdi} onOpenLightbox={openLightbox} />
+                <ServicesSection services={content.services} onOpenLightbox={openLightbox} />
+                <PackagesSection packages={content.packages} />
+                <CustomersSection customers={content.customers} posts={socialPosts} onOpenLightbox={openLightbox} />
+                <VideoSection videos={content.videos} />
+                <StudioSection studio={content.studio} />
+                <CreatorsSection creators={content.creators} />
+                <FAQSection faq={content.faq} />
+                <ContactSection contact={content.contact} />
+            </main>
 
-                {/* Scroll Indicator */}
-                <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.5, duration: 1 }}
-                    className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-3"
-                >
-                    <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Scroll</span>
-                    <div className="w-[1px] h-12 bg-white/20 relative overflow-hidden">
-                        <motion.div 
-                            animate={{ y: [0, 48] }} 
-                            transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                            className="absolute top-0 left-0 w-full h-1/2 bg-[#16acd4]" 
-                        />
-                    </div>
-                </motion.div>
-            </section>
+            <SiteFooter footer={content.footer} contact={content.contact} />
+            <WAFloat whatsappNumber={content.contact.whatsappNumber} />
 
-            {/* 2. THE PHILOSOPHY */}
-            <section className="py-32 px-6 md:px-14 bg-[#09090b]">
-                <div className="max-w-7xl mx-auto">
-                    <motion.div 
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true, margin: "-100px" }}
-                        variants={STAGGER}
-                        className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center"
-                    >
-                        <motion.div variants={FADE_UP}>
-                            <div className="text-[#16acd4] font-bold uppercase tracking-widest text-sm mb-6 flex items-center gap-4">
-                                <span className="w-12 h-[1px] bg-[#16acd4]"></span>
-                                The Philosophy
-                            </div>
-                            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-8 font-display">
-                                Obsessive attention to every single detail.
-                            </h2>
-                            <p className="text-lg text-zinc-400 leading-relaxed mb-8 font-light">
-                                Operating from a state-of-the-art, climate-controlled facility, we utilize the industry's most advanced tools and exclusively formulated compounds. 
-                            </p>
-                            <p className="text-lg text-zinc-400 leading-relaxed mb-10 font-light">
-                                From 100-hour concourse paint corrections to bespoke interior restorations, we treat every vehicle not as a job, but as a masterpiece in the making.
-                            </p>
-                            
-                            <div className="grid grid-cols-2 gap-8 border-t border-white/10 pt-8">
-                                <div>
-                                    <div className="text-4xl font-display font-bold text-white mb-2">10+</div>
-                                    <div className="text-sm text-zinc-500 font-bold uppercase tracking-widest">Years Experience</div>
-                                </div>
-                                <div>
-                                    <div className="text-4xl font-display font-bold text-white mb-2">5k+</div>
-                                    <div className="text-sm text-zinc-500 font-bold uppercase tracking-widest">Vehicles Protected</div>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        <motion.div variants={FADE_UP} className="relative">
-                            <div className="absolute -inset-4 border border-white/10 rounded-none z-0 translate-x-4 translate-y-4" />
-                            <div className="relative z-10 aspect-[4/5] overflow-hidden">
-                                <img src="https://images.unsplash.com/photo-1552930294-6b595f4c2974?q=80&w=1000&auto=format&fit=crop" alt="Detailing Master" className="w-full h-full object-cover filter grayscale hover:grayscale-0 transition-all duration-1000 scale-105 hover:scale-100" />
-                            </div>
-                            <div className="absolute -bottom-8 -left-8 bg-[#09090b] p-6 border border-white/10 shadow-2xl z-20 max-w-xs">
-                                <Sparkles className="w-6 h-6 text-[#16acd4] mb-3" />
-                                <p className="text-sm text-zinc-300 font-medium">"The only acceptable standard is absolute perfection."</p>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* 3. LATEST PDI DELIVERIES & STORIES */}
-            <section className="py-24 px-6 md:px-14 bg-[#09090b] border-t border-white/5 relative overflow-hidden">
-                {/* Subtle ambient light */}
-                <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#16acd4]/5 rounded-full blur-[120px] pointer-events-none" />
-
-                <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-12 gap-6">
-                        <div>
-                            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-[#16acd4]/30 bg-[#16acd4]/10 backdrop-blur-md mb-4 text-[#16acd4]">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#16acd4] opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#16acd4]"></span>
-                                </span>
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-200">
-                                    Latest Updates &amp; Studio Stories
-                                </span>
-                            </div>
-                            
-                            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4 font-display text-white">
-                                {facebookInfo?.homeSectionTitle && !facebookInfo.homeSectionTitle.toLowerCase().includes("facebook") 
-                                    ? facebookInfo.homeSectionTitle 
-                                    : "Recent PDI Deliveries & Studio Stories"}
-                            </h2>
-                            <p className="text-zinc-400 max-w-2xl text-sm md:text-base font-light">
-                                Straight from our studio floor — certified PDI pre-delivery inspections, new customer car deliveries, ceramic transformations, and PPF protection.
-                            </p>
+            {/* Lightbox modal for sample reports, posters & customer deliveries */}
+            {lightbox.open && (
+                <div onClick={closeLightbox} style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(4,6,8,.96)", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+                    <div style={{ maxWidth: lightbox.caption ? 1040 : 900, width: "100%", maxHeight: "90vh", display: "grid", gridTemplateColumns: lightbox.caption ? "repeat(auto-fit, minmax(320px, 1fr))" : "1fr", background: "#0e1316", border: "1px solid #1a2328", borderRadius: 4, overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+                        <div style={{ background: "#07090b", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, minHeight: 320, maxHeight: "85vh", overflow: "hidden" }}>
+                            <img src={lightbox.src} alt={lightbox.alt} style={{ maxHeight: "80vh", maxWidth: "100%", objectFit: "contain" }} />
                         </div>
-
-                        <div className="flex flex-wrap items-center gap-3">
-                            <Link href="/social" className="px-6 py-3 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all flex items-center gap-2 text-zinc-300">
-                                Full Showcase <ArrowRight className="w-3.5 h-3.5" />
-                            </Link>
-                        </div>
-                    </div>
-
-                    {/* Auto-scrolling Continuous Carousel Container */}
-                    {(() => {
-                        const fallbackPosts: Post[] = [
-                            { id: "1", type: "IMAGE", url: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?q=80&w=800&auto=format&fit=crop", caption: "Ferrari 488 GTB - Full PPF & Ceramic Coating.", link: null, source: "STUDIO" },
-                            { id: "2", type: "VIDEO", url: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=800&auto=format&fit=crop", caption: "Paint correction magic. Swirls eradicated under studio lights.", link: null, source: "STUDIO" },
-                            { id: "3", type: "IMAGE", url: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=800&auto=format&fit=crop", caption: "Porsche 911 GT3 RS receiving hydrophobic shield.", link: null, source: "STUDIO" },
-                            { id: "4", type: "IMAGE", url: "https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c?q=80&w=800&auto=format&fit=crop", caption: "Bespoke interior restoration. Better than factory new.", link: null, source: "STUDIO" }
-                        ]
-
-                        const basePosts = socialPosts.length > 0 ? socialPosts : fallbackPosts
-                        // Repeat list to guarantee continuous smooth loop across all viewport sizes
-                        const repeatedPosts = basePosts.length < 5
-                            ? [...basePosts, ...basePosts, ...basePosts]
-                            : basePosts
-                        const marqueeList = [...repeatedPosts, ...repeatedPosts]
-
-                        return (
-                            <div className="relative w-full overflow-hidden group">
-                                {/* Gradient edge masks for sleek continuous transition */}
-                                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-r from-[#09090b] to-transparent z-20" />
-                                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-[#09090b] to-transparent z-20" />
-
-                                {/* Moving Track */}
-                                <div className="flex gap-6 py-4 animate-stories-scroll w-max group-hover:[animation-play-state:paused]">
-                                    {marqueeList.map((post, i) => (
-                                        <Link
-                                            key={`${post.id}-${i}`}
-                                            href={post.id && post.id.length > 3 ? `/posts/${post.id}` : `/social`}
-                                            className="block w-[280px] sm:w-[320px] md:w-[360px] shrink-0"
-                                        >
-                                            <div className="relative bg-[#121214] rounded-2xl overflow-hidden border border-white/10 hover:border-[#16acd4]/60 hover:shadow-2xl hover:shadow-[#16acd4]/20 transition-all duration-500 cursor-pointer aspect-[4/5] flex flex-col justify-end group/card">
-                                                <img 
-                                                    src={post.url} 
-                                                    alt={post.caption || "Detailing Garage Showcase"} 
-                                                    className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover/card:opacity-100 group-hover/card:scale-105 transition-all duration-700" 
-                                                />
-
-                                                {/* Media Type Icon */}
-                                                {(post.type === "VIDEO" || post.type === "REEL") && (
-                                                    <div className="absolute top-4 right-4 z-20 w-9 h-9 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 group-hover/card:bg-[#16acd4] group-hover/card:text-black transition-colors">
-                                                        <Play className="w-4 h-4 ml-0.5 fill-current" />
-                                                    </div>
-                                                )}
-
-                                                {/* Persistent bottom subtle overlay */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent opacity-80 group-hover/card:opacity-95 transition-opacity duration-300" />
-
-                                                {/* Card Content */}
-                                                <div className="relative z-20 p-5 space-y-3">
-                                                    {post.caption && (
-                                                        <p className="text-xs md:text-sm text-zinc-200 line-clamp-2 group-hover/card:line-clamp-4 transition-all duration-300 font-light leading-relaxed">
-                                                            {post.caption}
-                                                        </p>
-                                                    )}
-
-                                                    <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
-                                                        <span className="text-[11px] text-zinc-400 font-medium">
-                                                            {post.publishedAt 
-                                                                ? new Date(post.publishedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
-                                                                : "Studio Story"}
-                                                        </span>
-
-                                                        <span className="inline-flex items-center gap-1 text-[#16acd4] font-bold text-xs uppercase tracking-wider group-hover/card:translate-x-1 transition-transform">
-                                                            View Story <ArrowRight className="w-3 h-3" />
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-
-                                {/* View All Button Section */}
-                                <div className="mt-12 mb-2 flex flex-col items-center justify-center gap-3 relative z-10">
-                                    <Link 
-                                        href="/social"
-                                        className="group inline-flex items-center gap-3 px-10 py-4.5 rounded-full bg-[#16acd4] hover:bg-white text-black font-extrabold text-xs uppercase tracking-[0.22em] transition-all duration-300 shadow-2xl shadow-[#16acd4]/25 hover:shadow-white/20 hover:scale-[1.02] active:scale-[0.98]"
-                                    >
-                                        <span>View All Posts</span>
-                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
-                                    </Link>
-                                    <span className="text-[11px] text-zinc-500 font-medium uppercase tracking-wider">
-                                        All View • Total {basePosts.length} Updates Available
-                                    </span>
-                                </div>
-                            </div>
-                        )
-                    })()}
-                </div>
-            </section>
-
-            {/* 3.5 GOOGLE REVIEWS & CLIENT STORIES */}
-            <GoogleReviewsSection />
-
-            {/* 4. BENTO GRID SERVICES - LUXURY EDITION */}
-            <section className="py-32 px-6 md:px-14 bg-[#09090b] relative border-t border-white/5" id="services">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#16acd4]/5 blur-[150px] rounded-full pointer-events-none" />
-                
-                <div className="max-w-7xl mx-auto relative z-10">
-                    <motion.div 
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={FADE_UP}
-                        className="text-center mb-20"
-                    >
-                        <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 font-display">Signature Services</h2>
-                        <p className="text-lg text-zinc-400 max-w-2xl mx-auto">Engineered protection and flawless finishes for the uncompromising owner.</p>
-                    </motion.div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[320px]">
-                        
-                        {/* 1. Ceramic Coating (Large Square) */}
-                        <motion.div 
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6, delay: 0.1 }}
-                            className="md:col-span-8 group relative overflow-hidden bg-[#121214] border border-white/5 hover:border-[#16acd4]/30 transition-all duration-500"
-                        >
-                            <div className="absolute inset-0 z-0">
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10" />
-                                <img src="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1200&auto=format&fit=crop" className="w-full h-full object-cover opacity-50 group-hover:scale-105 group-hover:opacity-60 transition-all duration-700" alt="Ceramic Coating" />
-                            </div>
-                            <div className="absolute inset-0 p-10 flex flex-col justify-end z-20">
-                                <div className="w-12 h-12 bg-[#16acd4]/10 border border-[#16acd4]/20 rounded-full flex items-center justify-center mb-6 backdrop-blur-md">
-                                    <Droplets className="w-5 h-5 text-[#16acd4]" />
-                                </div>
-                                <h3 className="text-3xl md:text-4xl font-bold font-display mb-3">Ceramic Coating</h3>
-                                <p className="text-zinc-400 max-w-md text-sm leading-relaxed mb-6">Molecular-level 9H protection that creates a hydrophobic barrier, blocking UV rays and providing a mirror-like deep gloss that lasts for years.</p>
-                                <button className="self-start text-xs font-bold uppercase tracking-widest text-[#16acd4] flex items-center gap-2 group-hover:gap-4 transition-all">
-                                    Explore Packages <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </motion.div>
-
-                        {/* 2. Paint Correction (Tall Rectangle) */}
-                        <motion.div 
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6, delay: 0.2 }}
-                            className="md:col-span-4 md:row-span-2 group relative overflow-hidden bg-[#121214] border border-white/5 hover:border-[#16acd4]/30 transition-all duration-500"
-                        >
-                            <div className="absolute inset-0 z-0">
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent z-10" />
-                                <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover opacity-40 group-hover:scale-105 group-hover:opacity-50 transition-all duration-700" alt="Paint Correction" />
-                            </div>
-                            <div className="absolute inset-0 p-10 flex flex-col justify-end z-20">
-                                <div className="w-12 h-12 bg-[#16acd4]/10 border border-[#16acd4]/20 rounded-full flex items-center justify-center mb-6 backdrop-blur-md">
-                                    <Sparkles className="w-5 h-5 text-[#16acd4]" />
-                                </div>
-                                <h3 className="text-3xl font-bold font-display mb-3">Paint Correction</h3>
-                                <p className="text-zinc-400 text-sm leading-relaxed mb-6">Multi-stage machine polishing to permanently remove swirl marks, holograms, and light scratches, restoring factory clarity.</p>
-                                <button className="self-start text-xs font-bold uppercase tracking-widest text-[#16acd4] flex items-center gap-2 group-hover:gap-4 transition-all">
-                                    Learn More <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </motion.div>
-
-                        {/* 3. PPF (Small Square) */}
-                        <motion.div 
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6, delay: 0.3 }}
-                            className="md:col-span-4 group relative overflow-hidden bg-[#121214] border border-white/5 hover:border-[#16acd4]/30 transition-all duration-500"
-                        >
-                             <div className="absolute inset-0 z-0">
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
-                                <img src="https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover opacity-20 group-hover:scale-105 group-hover:opacity-30 transition-all duration-700 filter grayscale" alt="PPF" />
-                            </div>
-                            <div className="absolute inset-0 p-8 flex flex-col justify-end z-20">
-                                <Shield className="w-8 h-8 text-[#16acd4] mb-4" />
-                                <h3 className="text-2xl font-bold font-display mb-2">Protection Film (PPF)</h3>
-                                <p className="text-zinc-400 text-sm mb-4">Self-healing invisible armor.</p>
-                                <ArrowRight className="w-5 h-5 text-[#16acd4] group-hover:translate-x-2 transition-transform" />
-                            </div>
-                        </motion.div>
-
-                        {/* 4. Interior (Small Square) */}
-                        <motion.div 
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6, delay: 0.4 }}
-                            className="md:col-span-4 group relative overflow-hidden bg-[#121214] border border-white/5 hover:border-[#16acd4]/30 transition-all duration-500"
-                        >
-                            <div className="absolute inset-0 z-0 bg-zinc-900/50" />
-                            <div className="absolute inset-0 p-8 flex flex-col justify-end z-20">
-                                <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center mb-4">
-                                    <CheckCircle2 className="w-4 h-4 text-white" />
-                                </div>
-                                <h3 className="text-2xl font-bold font-display mb-2">Interior Restoration</h3>
-                                <p className="text-zinc-400 text-sm mb-4">Leather & fabric revitalization.</p>
-                                <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-2 transition-transform" />
-                            </div>
-                        </motion.div>
-
-                        {/* 5. PDI (Full Width) */}
-                        <motion.div 
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6, delay: 0.5 }}
-                            className="md:col-span-12 group relative overflow-hidden bg-[#121214] border border-white/5 hover:border-[#16acd4]/30 transition-all duration-500"
-                        >
-                            <div className="absolute inset-0 z-0">
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent z-10" />
-                                <img src="https://images.unsplash.com/photo-1542282088-fe8426682b8f?q=80&w=1200&auto=format&fit=crop" className="w-full h-full object-cover opacity-40 group-hover:scale-105 group-hover:opacity-50 transition-all duration-700" alt="Pre-Delivery Inspection" />
-                            </div>
-                            <div className="absolute inset-0 p-10 flex flex-col justify-end z-20">
-                                <div className="w-12 h-12 bg-[#16acd4]/10 border border-[#16acd4]/20 rounded-full flex items-center justify-center mb-6 backdrop-blur-md">
-                                    <Shield className="w-5 h-5 text-[#16acd4]" />
-                                </div>
-                                <h3 className="text-3xl md:text-4xl font-bold font-display mb-3">Pre-Delivery Inspection (PDI)</h3>
-                                <p className="text-zinc-400 max-w-2xl text-sm leading-relaxed mb-6">Don't let the dealership hide imperfections. Our comprehensive 150-point PDI uncovers factory defects, transport damage, and hidden repaints before you take delivery. We ensure your new vehicle is truly flawless from day one.</p>
-                                <button className="self-start text-xs font-bold uppercase tracking-widest text-[#16acd4] flex items-center gap-2 group-hover:gap-4 transition-all">
-                                    Book an Inspection <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </motion.div>
-
-                    </div>
-                </div>
-            </section>
-
-            {/* 5. HORIZONTAL MARQUEE / SHOWCASE */}
-            <section className="py-24 bg-[#09090b] overflow-hidden border-y border-white/5 flex flex-col justify-center">
-                <div className="mb-12 px-6 md:px-14">
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-500">Recent Masterpieces</h2>
-                </div>
-                <div className="relative flex overflow-x-hidden w-full group">
-                    <div className="py-4 animate-marquee whitespace-nowrap flex gap-6 px-6 items-center">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="relative w-[300px] md:w-[450px] aspect-[16/9] overflow-hidden rounded-none border border-white/10 shrink-0">
-                                <img src={`https://images.unsplash.com/photo-1601362840469-51e4d8d58785?q=80&w=800&auto=format&fit=crop&sig=${i}`} className="w-full h-full object-cover filter grayscale hover:grayscale-0 transition-all duration-500" alt={`Showcase ${i}`} />
-                            </div>
-                        ))}
-                    </div>
-                    {/* Duplicate for infinite loop */}
-                    <div className="py-4 animate-marquee2 whitespace-nowrap flex gap-6 px-6 items-center absolute top-0">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={`dup-${i}`} className="relative w-[300px] md:w-[450px] aspect-[16/9] overflow-hidden rounded-none border border-white/10 shrink-0">
-                                <img src={`https://images.unsplash.com/photo-1601362840469-51e4d8d58785?q=80&w=800&auto=format&fit=crop&sig=${i}`} className="w-full h-full object-cover filter grayscale hover:grayscale-0 transition-all duration-500" alt={`Showcase ${i}`} />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* 6. PROCESS TIMELINE */}
-            <section className="py-32 px-6 md:px-14 bg-[#09090b]">
-                <div className="max-w-4xl mx-auto">
-                    <motion.div 
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={FADE_UP}
-                        className="text-center mb-24"
-                    >
-                        <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 font-display">The Path to Perfection</h2>
-                        <p className="text-zinc-400">Our meticulous 3-step framework ensures flawless execution.</p>
-                    </motion.div>
-
-                    <div className="relative border-l border-white/10 ml-4 md:ml-0 md:border-l-0">
-                        {/* Vertical line for desktop */}
-                        <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[1px] bg-white/10 -translate-x-1/2" />
-                        
-                        {[
-                            { step: "01", title: "Consultation & Inspection", desc: "Detailed paint depth analysis, defect logging, and a bespoke package tailored to your exact expectations." },
-                            { step: "02", title: "The Transformation", desc: "Your vehicle undergoes our exhaustive multi-stage decontamination, correction, and protection process inside our clean-room." },
-                            { step: "03", title: "The Ultimate Reveal", desc: "Final quality assurance under sun-match lighting, followed by an unforgettable handover experience." }
-                        ].map((item, index) => (
-                            <motion.div 
-                                key={index}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true, margin: "-100px" }}
-                                transition={{ duration: 0.6, delay: index * 0.2 }}
-                                className={`relative flex flex-col md:flex-row items-start md:items-center gap-8 mb-16 last:mb-0 ${index % 2 === 0 ? 'md:flex-row-reverse text-left md:text-right' : 'text-left'}`}
-                            >
-                                {/* Center Node */}
-                                <div className="absolute left-[-21px] md:left-1/2 md:-translate-x-1/2 w-10 h-10 bg-[#09090b] border border-[#16acd4] rounded-full flex items-center justify-center z-10 shadow-[0_0_15px_rgba(22, 172, 212,0.3)]">
-                                    <div className="w-2 h-2 bg-[#16acd4] rounded-full" />
-                                </div>
-                                
-                                <div className="md:w-1/2 pl-8 md:pl-0" />
-                                <div className={`md:w-1/2 pl-8 md:pl-0 ${index % 2 === 0 ? 'md:pr-12' : 'md:pl-12'}`}>
-                                    <div className="text-5xl font-display font-black text-white/5 mb-2">{item.step}</div>
-                                    <h3 className="text-2xl font-bold mb-3 font-display">{item.title}</h3>
-                                    <p className="text-zinc-400 text-sm leading-relaxed">{item.desc}</p>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* 7. THE STUDIO (VIDEO FEATURE) */}
-            <section className="py-24 px-6 md:px-14 bg-[#09090b] border-t border-white/5">
-                <div className="max-w-7xl mx-auto">
-                    <motion.div 
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={FADE_UP}
-                        className="relative w-full aspect-video md:aspect-[21/9] rounded-3xl overflow-hidden group cursor-pointer border border-white/10"
-                    >
-                        <div className="absolute inset-0 bg-black/40 z-10 group-hover:bg-black/20 transition-colors duration-700" />
-                        <img 
-                            src="https://images.unsplash.com/photo-1605810230434-7631ac76ec81?q=80&w=2400&auto=format&fit=crop" 
-                            alt="The Studio" 
-                            className="w-full h-full object-cover scale-105 group-hover:scale-100 transition-transform duration-1000"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center z-20">
-                            <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:scale-110 group-hover:bg-[#16acd4]/90 transition-all duration-500">
-                                <Play className="w-8 h-8 md:w-10 md:h-10 text-white ml-2 group-hover:text-black transition-colors" />
-                            </div>
-                        </div>
-                        <div className="absolute bottom-10 left-10 z-20 hidden md:block">
-                            <h3 className="text-3xl font-bold font-display text-white">Inside The Studio</h3>
-                            <p className="text-zinc-300 font-light tracking-wide mt-2">Watch our master technicians at work.</p>
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* 5.5 FAQ ACCORDION */}
-            <section className="py-32 px-6 md:px-14 bg-[#09090b] border-t border-white/5">
-                <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 font-display">Client Inquiries</h2>
-                        <p className="text-zinc-400">Everything you need to know about our premium services.</p>
-                    </div>
-
-                    <div className="space-y-4">
-                        {[
-                            { q: "How long does a full ceramic coating process take?", a: "A professional 9H ceramic coating application, including multi-stage paint correction, typically requires 3 to 4 days. This allows for proper curing in our climate-controlled clean room." },
-                            { q: "Do you offer mobile detailing services?", a: "No. To maintain our strict quality control standards, all work is performed in our specialized studio where lighting, temperature, and dust levels are meticulously managed." },
-                            { q: "What is the difference between PPF and Ceramic Coating?", a: "PPF (Paint Protection Film) is a physical, self-healing vinyl wrap that prevents rock chips and deep scratches. Ceramic Coating is a liquid polymer that hardens to provide immense gloss, UV protection, and hydrophobic properties. They are often combined for ultimate protection." },
-                            { q: "How do I maintain my vehicle after a coating?", a: "We provide all clients with a bespoke maintenance guide. We also offer exclusive 'Maintenance Wash' programs specifically designed to safely clean and rejuvenate coated vehicles without degrading the protective layer." }
-                        ].map((faq, i) => (
-                            <div key={i} className="group border border-white/10 rounded-2xl bg-[#121214] overflow-hidden hover:border-[#16acd4]/30 transition-colors">
-                                <details className="w-full peer cursor-pointer">
-                                    <summary className="w-full flex items-center justify-between p-6 font-semibold text-lg text-zinc-200 list-none font-display">
-                                        {faq.q}
-                                        <span className="text-[#16acd4] group-open:rotate-45 transition-transform duration-300 text-2xl">+</span>
-                                    </summary>
-                                    <div className="px-6 pb-6 text-zinc-400 leading-relaxed text-sm">
-                                        {faq.a}
+                        {lightbox.caption && (
+                            <div style={{ padding: "28px 24px", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "#0e1316", borderLeft: "1px solid #1a2328", maxHeight: "85vh", overflowY: "auto" }}>
+                                <div style={{ display: "grid", gap: 14 }}>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#1877F2", fontSize: "0.78rem", fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>
+                                            <FacebookIcon size={15} />
+                                            VERIFIED FACEBOOK DELIVERY
+                                        </span>
                                     </div>
-                                </details>
+                                    <h3 style={{ margin: 0, fontFamily: "'Saira Semi Condensed', sans-serif", fontSize: "1.45rem", textTransform: "uppercase", color: "#eef4f6", lineHeight: 1.2 }}>
+                                        {lightbox.alt}
+                                    </h3>
+                                    <div style={{ color: "#a5b4bc", fontSize: "0.88rem", lineHeight: 1.6, whiteSpace: "pre-line", maxHeight: 340, overflowY: "auto", paddingRight: 8, borderTop: "1px solid #1a2328", paddingTop: 12 }}>
+                                        {lightbox.caption}
+                                    </div>
+                                </div>
+                                <div style={{ paddingTop: 18, borderTop: "1px solid #1a2328", marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                    {lightbox.link && (
+                                        <a href={lightbox.link} target="_blank" rel="noopener noreferrer" style={{ flex: 1, minWidth: 160, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 18px", background: "#1877F2", color: "#fff", textDecoration: "none", fontFamily: "'Saira Semi Condensed', sans-serif", fontWeight: 700, fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "0.06em", borderRadius: 2 }}>
+                                            <FacebookIcon size={14} />
+                                            View on Facebook ↗
+                                        </a>
+                                    )}
+                                    <button onClick={closeLightbox} style={{ border: "1px solid #1a2328", background: "#07090b", color: "#8d9ea6", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.8rem", padding: "10px 16px", borderRadius: 2, cursor: "pointer" }}>
+                                        Close
+                                    </button>
+                                </div>
                             </div>
-                        ))}
+                        )}
                     </div>
-                </div>
-            </section>
-
-            {/* 6. MAGNETIC CTA */}
-            <section className="py-32 px-6 bg-[#121214] border-t border-white/5 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[60vh]">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#16acd4]/10 via-[#09090b] to-[#09090b]" />
-                
-                <motion.div 
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    whileInView={{ scale: 1, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.8 }}
-                    className="relative z-10 max-w-3xl mx-auto flex flex-col items-center"
-                >
-                    <h2 className="text-5xl md:text-7xl font-bold tracking-tighter mb-8 font-display">
-                        Reserve Your <br /> <span className="text-[#16acd4] italic">Masterpiece</span>
-                    </h2>
-                    <p className="text-lg text-zinc-400 mb-12 max-w-xl font-light">
-                        Due to the extensive time dedicated to each vehicle, we operate strictly by appointment and accept a limited volume.
-                    </p>
-                    
-                    <button className="relative group overflow-hidden rounded-full p-[1px]">
-                        <span className="absolute inset-0 bg-gradient-to-r from-[#16acd4] via-[#e8f6fa] to-[#16acd4] rounded-full animate-[spin_3s_linear_infinite]" />
-                        <div className="px-12 py-5 bg-[#09090b] rounded-full relative z-10 group-hover:bg-transparent transition-colors duration-500">
-                            <span className="font-bold uppercase tracking-widest text-sm text-[#16acd4] group-hover:text-black transition-colors duration-500">
-                                Apply for Booking
-                            </span>
-                        </div>
+                    <button onClick={closeLightbox} style={{ position: "absolute", top: 20, right: 24, border: "1px solid rgba(238,244,246,.25)", color: "#eef4f6", background: "rgba(7,9,11,.8)", fontFamily: "'Saira Semi Condensed', sans-serif", fontWeight: 700, fontSize: "1rem", padding: "10px 20px", borderRadius: 2, cursor: "pointer" }}>
+                        Close ✕
                     </button>
-                </motion.div>
-            </section>
-
-            <HomeFooter />
-
-            <style dangerouslySetInnerHTML={{__html: `
-                @keyframes marquee {
-                    0% { transform: translateX(0%); }
-                    100% { transform: translateX(-100%); }
-                }
-                @keyframes marquee2 {
-                    0% { transform: translateX(100%); }
-                    100% { transform: translateX(0%); }
-                }
-                .animate-marquee {
-                    animation: marquee 25s linear infinite;
-                }
-                .animate-marquee2 {
-                    animation: marquee2 25s linear infinite;
-                }
-                @keyframes storiesScroll {
-                    0% { transform: translateX(0); }
-                    100% { transform: translateX(-50%); }
-                }
-                .animate-stories-scroll {
-                    animation: storiesScroll 55s linear infinite;
-                    will-change: transform;
-                }
-                .animate-stories-scroll:hover {
-                    animation-play-state: paused;
-                }
-            `}} />
+                </div>
+            )}
         </div>
     )
 }

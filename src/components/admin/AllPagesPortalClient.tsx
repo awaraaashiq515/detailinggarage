@@ -286,6 +286,13 @@ export function AllPagesPortalClient({ counts = {} }: AllPagesPortalClientProps)
                     tags: ["pending approvals", "kyc", "new registrations"],
                 },
                 {
+                    id: "social-broadcast",
+                    title: "SOCIAL BROADCAST",
+                    href: "/admin/social",
+                    icon: Share2,
+                    tags: ["social", "broadcast", "instagram", "facebook", "multi post", "auto share"],
+                },
+                {
                     id: "social-showcase",
                     title: "SOCIAL SHOWCASE",
                     href: "/admin/posts",

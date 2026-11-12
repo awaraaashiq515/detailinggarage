@@ -54,13 +54,13 @@ export default async function PDIPage() {
                                     <Shield className="w-4 h-4" />
                                     <span>Premium Car Care Services</span>
                                 </div>
-                                <h1 className="text-4xl md:text-6xl font-display font-extrabold text-white tracking-tight leading-[1.1]">
+                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-white tracking-tight leading-[1.15]">
                                     Protect Your <br className="hidden md:block lg:hidden" /> Investment.<br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-accent-light to-accent-hover">
                                         Detailing Perfection.
                                     </span>
                                 </h1>
-                                <p className="text-xl text-gray-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                                <p className="text-base md:text-lg text-gray-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
                                     From rigorous Pre-Delivery Inspections to flawless Ceramic Coatings, we ensure your vehicle stays pristine. Never buy a lemon.
                                 </p>
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
@@ -117,13 +117,13 @@ export default async function PDIPage() {
                             <div className="flex-1 space-y-8">
                                 <div className="space-y-4">
                                     <h2 className="text-accent font-semibold tracking-wider uppercase text-sm">About Us</h2>
-                                    <h3 className="text-3xl md:text-4xl font-bold text-white">{content.about.title}</h3>
+                                    <h3 className="text-3xl md:text-4xl font-bold text-white">{content.about?.title}</h3>
                                 </div>
                                 <p className="text-lg text-gray-400 leading-relaxed">
-                                    {content.about.description}
+                                    {content.about?.description}
                                 </p>
                                 <div className="grid grid-cols-3 gap-6 pt-6 border-t border-white/10">
-                                    {content.about.stats.map((stat, i) => (
+                                    {content.about?.stats?.map((stat, i) => (
                                         <div key={i} className="space-y-2">
                                             <div className="text-3xl font-bold text-white">{stat.value}</div>
                                             <div className="text-sm text-gray-500 font-medium">{stat.label}</div>
@@ -133,7 +133,7 @@ export default async function PDIPage() {
                             </div>
                             <div className="flex-1 relative">
                                 <div className="absolute inset-0 bg-gradient-to-tr from-accent/20 to-transparent rounded-2xl transform translate-x-4 translate-y-4" />
-                                <img src={content.about.image} alt="About Us" className="w-full h-[400px] object-cover rounded-2xl relative z-10 border border-white/10 shadow-2xl" />
+                                <img src={content.about?.image} alt="About Us" className="w-full h-[400px] object-cover rounded-2xl relative z-10 border border-white/10 shadow-2xl" />
                             </div>
                         </div>
                     </div>
@@ -146,7 +146,7 @@ export default async function PDIPage() {
                         <h3 className="text-3xl md:text-4xl font-bold text-white">Premium Services</h3>
                     </div>
                     <div className="grid md:grid-cols-3 gap-8">
-                        {content.services.filter(s => s.isActive).map((service) => (
+                        {(Array.isArray(content.services) ? content.services : content.services.primaryList || []).filter((s: any) => s.isActive).map((service: any) => (
                             <div key={service.id} className="group p-8 rounded-3xl bg-[#111318] border border-white/5 hover:border-accent/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
                                 <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                                     {service.icon === 'Search' && <Search className="w-7 h-7 text-accent" />}
@@ -332,9 +332,9 @@ export default async function PDIPage() {
                                     </Link>
                                 ))}
                             </div>
-                        ) : content.gallery.filter(g => g.isActive).length > 0 ? (
+                        ) : (content.gallery || []).filter(g => g.isActive).length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {content.gallery.filter(g => g.isActive).map((img) => (
+                                {(content.gallery || []).filter(g => g.isActive).map((img) => (
                                     <div key={img.id} className="group relative rounded-2xl overflow-hidden aspect-video bg-gray-900 border border-white/10">
                                         <img src={img.url} alt={img.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100" />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
@@ -361,14 +361,14 @@ export default async function PDIPage() {
                 </div>
 
                 {/* Testimonials Section */}
-                {content.testimonials.filter(t => t.isActive).length > 0 && (
+                {(content.testimonials || []).filter(t => t.isActive).length > 0 && (
                     <div id="testimonials" className="py-16 max-w-7xl mx-auto px-6 lg:px-8">
                         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
                             <h2 className="text-accent font-semibold tracking-wider uppercase text-sm">Testimonials</h2>
                             <h3 className="text-3xl md:text-4xl font-bold text-white">Client Stories</h3>
                         </div>
                         <div className="grid md:grid-cols-2 gap-8">
-                            {content.testimonials.filter(t => t.isActive).map((test) => (
+                            {(content.testimonials || []).filter(t => t.isActive).map((test) => (
                                 <div key={test.id} className="bg-[#111318] p-8 rounded-3xl border border-white/5 relative">
                                     <div className="absolute top-8 right-8 text-accent/20">
                                         <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -395,7 +395,7 @@ export default async function PDIPage() {
                 )}
 
                 {/* Social Integration */}
-                {(content.social.instagramUrl || content.social.facebookUrl) && (
+                {(content.social?.instagramUrl || content.social?.facebookUrl) && (
                     <div id="social" className="py-16 bg-[#111318] border-y border-white/5">
                         <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
                             <div className="max-w-3xl mx-auto mb-12 space-y-4">
@@ -404,19 +404,19 @@ export default async function PDIPage() {
                             </div>
                             
                             {/* If an elfsight widget ID is provided, embed it, else show a button */}
-                            {content.social.widgetId && content.social.widgetId !== 'YOUR_ELFSIGHT_WIDGET_ID' ? (
+                            {content.social?.widgetId && content.social?.widgetId !== 'YOUR_ELFSIGHT_WIDGET_ID' ? (
                                 <div className="elfsight-app-wrapper min-h-[300px] flex items-center justify-center border border-white/10 rounded-3xl bg-black/20 p-8">
-                                    <div className={`elfsight-app-${content.social.widgetId}`}></div>
+                                    <div className={`elfsight-app-${content.social?.widgetId}`}></div>
                                 </div>
                             ) : (
                                 <div className="flex flex-wrap justify-center gap-6">
-                                    {content.social.instagramUrl && (
-                                        <a href={content.social.instagramUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] rounded-full text-white font-bold hover:scale-105 transition-transform shadow-lg">
+                                    {content.social?.instagramUrl && (
+                                        <a href={content.social?.instagramUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] rounded-full text-white font-bold hover:scale-105 transition-transform shadow-lg">
                                             Instagram
                                         </a>
                                     )}
-                                    {content.social.facebookUrl && (
-                                        <a href={content.social.facebookUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-8 py-4 bg-[#1877F2] rounded-full text-white font-bold hover:scale-105 transition-transform shadow-lg">
+                                    {content.social?.facebookUrl && (
+                                        <a href={content.social?.facebookUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-8 py-4 bg-[#1877F2] rounded-full text-white font-bold hover:scale-105 transition-transform shadow-lg">
                                             Facebook
                                         </a>
                                     )}
@@ -455,7 +455,7 @@ export default async function PDIPage() {
                                     </div>
                                     <div>
                                         <h4 className="text-lg font-bold text-white">Phone</h4>
-                                        <p className="text-gray-400 mt-1">{content.contact.phone}</p>
+                                        <p className="text-gray-400 mt-1">{(content.contact as any).phone || content.contact.phones?.[0]}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-4 items-start">
@@ -485,7 +485,7 @@ export default async function PDIPage() {
                 </div>
 
             </div>
-            {content.social.widgetId && content.social.widgetId !== 'YOUR_ELFSIGHT_WIDGET_ID' && (
+            {content.social?.widgetId && content.social?.widgetId !== 'YOUR_ELFSIGHT_WIDGET_ID' && (
                 <script src="https://static.elfsight.com/platform/platform.js" data-use-service-core defer></script>
             )}
             <Footer />

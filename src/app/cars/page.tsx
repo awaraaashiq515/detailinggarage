@@ -66,11 +66,11 @@ export default function CarsPage() {
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="flex flex-col items-center text-center mb-8">
                         <div className="text-[#ff4b55] text-[12px] font-bold uppercase tracking-[0.4em] mb-6">EXPLORE OUR INVENTORY</div>
-                        <h1 className="font-display text-[clamp(40px,7vw,70px)] text-gray-900 leading-[1.1] mb-8 uppercase tracking-tight">
+                        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl text-gray-900 leading-[1.15] mb-5 uppercase tracking-tight font-bold">
                             Cars <span className="text-[#ff4b55]">Marketplace</span>
                         </h1>
-                        <div className="w-16 h-1 bg-[#ff4b55] rounded-full mb-8 shadow-[0_0_10px_rgba(255,75,85,0.3)]" />
-                        <p className="text-gray-500 text-lg max-w-2xl font-normal leading-relaxed opacity-90">
+                        <div className="w-12 h-1 bg-[#ff4b55] rounded-full mb-6 shadow-[0_0_10px_rgba(255,75,85,0.3)]" />
+                        <p className="text-gray-600 text-sm md:text-base max-w-2xl font-normal leading-relaxed">
                             Navigate through our curated selection of high-performance vehicles, meticulously verified for complete transparency and quality.
                         </p>
                     </div>

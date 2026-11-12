@@ -3,6 +3,7 @@
 import Link from "next/link"
 
 const MENU_ITEMS = [
+    { href: "/super-admin/social", icon: "📢", label: "Social Broadcast" },
     { href: "/super-admin/invoices", icon: "🧾", label: "Invoices" },
     { href: "/super-admin/invoices/new", icon: "📄", label: "New Invoice" },
     { href: "/admin/clients", icon: "👥", label: "Clients" },

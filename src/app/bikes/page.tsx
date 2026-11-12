@@ -61,7 +61,7 @@ export default function BikesPage() {
                         <div className="w-10 h-1 h-0.5 bg-[#60a5fa]"></div>
                         <span className="text-xs font-black uppercase tracking-[0.4em] text-[#60a5fa]">Two-Wheeler Elite</span>
                     </div>
-                    <h1 className="font-display text-[clamp(48px,8vw,80px)] font-extrabold tracking-tight uppercase italic leading-none text-white">
+                    <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight uppercase italic leading-tight text-white">
                         Ride Into The <br /> <span className="text-gray-500 text-transparent bg-clip-text bg-gradient-to-r from-gray-500 to-blue-300">New Horizon</span>
                     </h1>
                 </div>
@@ -173,6 +173,14 @@ export default function BikesPage() {
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 text-[#444]">
                     <div className="font-display text-xl font-black italic uppercase tracking-widest text-white">
                         Listing<span className="text-[#60a5fa]">Garage</span>
+                    </div>
+                    <div className="flex items-center gap-6 text-xs text-zinc-500 font-semibold tracking-wider uppercase">
+                        <Link href="/privacy-policy" className="hover:text-white transition-colors">
+                            Privacy Policy
+                        </Link>
+                        <Link href="/terms" className="hover:text-white transition-colors">
+                            Terms of Service
+                        </Link>
                     </div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.3em]">© 2026 Premium Bike Portal</p>
                 </div>

@@ -115,10 +115,10 @@ export default function GoogleReviewsSection() {
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                         </div>
 
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4 font-display text-white">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-3 font-display text-white">
                             {settings.homeSectionTitle || "Google Reviews & Client Stories"}
                         </h2>
-                        <p className="text-zinc-400 max-w-2xl text-sm md:text-base font-light leading-relaxed">
+                        <p className="text-zinc-400 max-w-2xl text-xs sm:text-sm md:text-base font-normal leading-relaxed">
                             {settings.homeSectionDesc ||
                                 "Real, unfiltered experiences from car owners across Himachal who trusted our studio with their vehicles."}
                         </p>

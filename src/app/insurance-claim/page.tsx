@@ -40,9 +40,9 @@ export default function InsuranceClaimPage() {
                     <span className="text-[13px] font-semibold tracking-[0.8px] uppercase" style={{ color: '#fb923c' }}>Insurance & Claim Services</span>
                 </div>
 
-                <h1 className="font-display text-[clamp(42px,7vw,72px)] leading-[1] tracking-[3px] text-white max-w-4xl mx-auto">
+                <h1 className="font-display text-3xl sm:text-5xl md:text-6xl leading-[1.1] tracking-tight text-white max-w-3xl mx-auto font-bold">
                     Insurance Claim<br />
-                    <span className="font-['Playfair_Display'] italic font-bold bg-gradient-to-r from-[#fb923c] via-[#16acd4] to-[#16acd4] bg-clip-text text-transparent">
+                    <span className="italic font-bold bg-gradient-to-r from-[#fb923c] via-[#16acd4] to-[#16acd4] bg-clip-text text-transparent">
                         Made Simple
                     </span>
                 </h1>
@@ -365,9 +365,9 @@ export default function InsuranceClaimPage() {
                 </div>
                 <p className="text-[13px]" style={{ color: '#6b7080' }}>© 2026 DetailingGarage. All rights reserved.</p>
                 <div className="flex gap-6">
-                    <a href="#" className="text-[13px] hover:text-[#16acd4] transition-colors" style={{ color: '#6b7080' }}>Privacy</a>
-                    <a href="#" className="text-[13px] hover:text-[#16acd4] transition-colors" style={{ color: '#6b7080' }}>Terms</a>
-                    <a href="#" className="text-[13px] hover:text-[#16acd4] transition-colors" style={{ color: '#6b7080' }}>Contact</a>
+                    <Link href="/privacy-policy" className="text-[13px] hover:text-[#16acd4] transition-colors" style={{ color: '#6b7080' }}>Privacy Policy</Link>
+                    <Link href="/terms" className="text-[13px] hover:text-[#16acd4] transition-colors" style={{ color: '#6b7080' }}>Terms of Service</Link>
+                    <a href="mailto:info@detailinggarage.in" className="text-[13px] hover:text-[#16acd4] transition-colors" style={{ color: '#6b7080' }}>Contact</a>
                 </div>
             </footer>
         </div>

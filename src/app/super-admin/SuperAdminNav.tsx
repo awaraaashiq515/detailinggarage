@@ -10,6 +10,7 @@ const NAV_ITEMS = [
     { href: "/super-admin/proformas", label: "📑 Proformas" },
     { href: "/super-admin/challans", label: "📦 Challans" },
     { href: "/super-admin/invoices/new", label: "📄 New Invoice" },
+    { href: "/super-admin/social", label: "📢 Social Broadcast" },
     { href: "/super-admin/website", label: "🌐 Website Content" },
     { href: "/super-admin/settings/billing", label: "⚙️ Billing Settings" },
     { href: "/admin", label: "🛠 Admin Panel" },

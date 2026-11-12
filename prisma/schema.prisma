@@ -2205,3 +2205,57 @@ model StaffAdvance {
   @@index([status])
 }
 
+
+
+// ─── Social Media Broadcast & Cross-Posting ─────────────────────────────────
+model SocialAccount {
+  id           String    @id @default(cuid())
+  platform     String    // FACEBOOK, INSTAGRAM, GOOGLE_BUSINESS, LINKEDIN, TWITTER, YOUTUBE, TELEGRAM
+  accountName  String?   // e.g. "Detailing Garage Official"
+  accountId    String?   // Page ID, Channel ID, Handle
+  accessToken  String?
+  refreshToken String?
+  apiKey       String?
+  apiSecret    String?
+  tokenExpires DateTime?
+  isActive     Boolean   @default(true)
+  metadata     String?   // JSON string of avatar, follower count, config
+  lastStatus   String?   @default("DISCONNECTED") // CONNECTED, ERROR, EXPIRED, DISCONNECTED
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([platform, accountId])
+}
+
+model BroadcastPost {
+  id           String                 @id @default(cuid())
+  caption      String?
+  mediaUrl     String?                // Primary image or video URL
+  mediaUrls    String?                // JSON string of additional URLs if carousel
+  mediaType    String                 @default("IMAGE") // IMAGE, VIDEO, REEL, CAROUSEL, TEXT
+  linkUrl      String?                // CTA link or website url
+  targetList   String?                // Comma separated: "FACEBOOK,INSTAGRAM,LINKEDIN,..."
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  status       String                 @default("PUBLISHED") // DRAFT, SCHEDULED, PUBLISHED, PARTIAL, FAILED
+  authorName   String?                @default("Super Admin")
+  logs         BroadcastPlatformLog[]
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+}
+
+model BroadcastPlatformLog {
+  id              String        @id @default(cuid())
+  broadcastPostId String
+  post            BroadcastPost @relation(fields: [broadcastPostId], references: [id], onDelete: Cascade)
+  platform        String        // FACEBOOK, INSTAGRAM, GOOGLE_BUSINESS, LINKEDIN, TWITTER, YOUTUBE, TELEGRAM
+  status          String        // SUCCESS, FAILED, PENDING, SKIPPED
+  externalPostId  String?       // ID returned from Meta/LinkedIn/etc.
+  externalUrl     String?       // Clickable link to view post live on the platform
+  errorMessage    String?
+  attemptedAt     DateTime      @default(now())
+
+  @@index([broadcastPostId])
+  @@index([platform])
+}

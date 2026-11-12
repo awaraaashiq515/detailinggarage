@@ -33,9 +33,19 @@ export function Footer() {
                     </div>
                 </div>
 
-                <p className="text-[12px] text-zinc-600">
-                    © {new Date().getFullYear()} DetailingGarage. All rights reserved.
-                </p>
+                <div className="flex flex-wrap items-center gap-4 text-[12px]">
+                    <Link href="/privacy-policy" className="text-zinc-500 hover:text-white transition-colors">
+                        Privacy Policy
+                    </Link>
+                    <span className="text-zinc-700">•</span>
+                    <Link href="/terms" className="text-zinc-500 hover:text-white transition-colors">
+                        Terms of Service
+                    </Link>
+                    <span className="text-zinc-700">•</span>
+                    <p className="text-zinc-600">
+                        © {new Date().getFullYear()} DetailingGarage. All rights reserved.
+                    </p>
+                </div>
             </div>
         </footer>
     )

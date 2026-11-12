@@ -54,10 +54,18 @@ export default function PackagesLayout({ children }: { children: ReactNode }) {
                 className="mt-auto py-8"
                 style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
             >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
                     <p className="text-sm" style={{ color: "#6b7080" }}>
                         © 2026 DetailingGarage. All rights reserved.
                     </p>
+                    <div className="flex items-center gap-6 text-xs text-zinc-500">
+                        <Link href="/privacy-policy" className="hover:text-white transition-colors">
+                            Privacy Policy
+                        </Link>
+                        <Link href="/terms" className="hover:text-white transition-colors">
+                            Terms of Service
+                        </Link>
+                    </div>
                 </div>
             </footer>
         </div>

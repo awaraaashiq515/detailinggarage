@@ -6,7 +6,7 @@ import {
     RefreshCw, Play, Check, ChevronLeft, ChevronRight,
     Sparkles, MapPin, Radio, LocateFixed, Download, Printer,
     FileSpreadsheet, Filter, CalendarDays, ArrowDownToLine,
-    Timer, User, Building2, ChevronDown
+    Timer, User, Building2, ChevronDown, Shield, Info
 } from "lucide-react"
 import { calculateDistanceMeters, formatDistance } from "@/lib/geo"
 
@@ -87,68 +87,101 @@ export default function StaffAttendancePage() {
         return null
     }, [filterMode, selectedYear, customStartDate, customEndDate, currentMonth])
 
-    // Geolocation check and auto punch
+    const [isInsecureOrigin, setIsInsecureOrigin] = useState(false)
+
+    // Detect insecure origin (e.g. mobile phone on http://192.168.x.x:3001)
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+            if (!window.isSecureContext && !isLocal) {
+                setIsInsecureOrigin(true)
+            }
+        }
+    }, [])
+
+    // Geolocation check and auto punch with robust 2-stage fallback
     const checkLocationAndAutoPunch = useCallback((shopLat?: number | null, shopLng?: number | null, radius = 150, autoEnabled = true, alreadyPunched = false) => {
         if (typeof window === "undefined" || !navigator.geolocation) {
-            setGeoStatus(prev => ({ ...prev, error: "Geolocation not supported" }))
+            setGeoStatus(prev => ({ ...prev, isDetecting: false, error: "Geolocation is not supported by your device or browser." }))
             return
         }
 
         setGeoStatus(prev => ({ ...prev, isDetecting: true, error: null }))
 
-        navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-                const staffLat = pos.coords.latitude
-                const staffLng = pos.coords.longitude
-                let dist: number | null = null
-                let inside = false
+        const handleSuccess = async (pos: GeolocationPosition) => {
+            const staffLat = pos.coords.latitude
+            const staffLng = pos.coords.longitude
+            let dist: number | null = null
+            let inside = false
 
-                if (shopLat && shopLng) {
-                    dist = calculateDistanceMeters(staffLat, staffLng, shopLat, shopLng)
-                    inside = dist <= radius
-                }
+            if (shopLat && shopLng) {
+                dist = calculateDistanceMeters(staffLat, staffLng, shopLat, shopLng)
+                inside = dist <= radius
+            }
 
-                setGeoStatus(prev => ({
-                    ...prev,
-                    latitude: staffLat,
-                    longitude: staffLng,
-                    distanceMeters: dist,
-                    isInside: inside,
-                    isDetecting: false,
-                    error: null
-                }))
+            setGeoStatus(prev => ({
+                ...prev,
+                latitude: staffLat,
+                longitude: staffLng,
+                distanceMeters: dist,
+                isInside: inside,
+                isDetecting: false,
+                error: null
+            }))
 
-                // If inside perimeter & auto attendance enabled & not checked in yet today:
-                if (inside && autoEnabled && !alreadyPunched) {
-                    try {
-                        const res = await fetch("/api/staff/punch", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                action: "PUNCH_IN",
-                                latitude: staffLat,
-                                longitude: staffLng,
-                                isAuto: true
-                            })
+            // If inside perimeter & auto attendance enabled & not checked in yet today:
+            if (inside && autoEnabled && !alreadyPunched) {
+                try {
+                    const res = await fetch("/api/staff/punch", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            action: "PUNCH_IN",
+                            latitude: staffLat,
+                            longitude: staffLng,
+                            isAuto: true
                         })
-                        const resData = await res.json()
-                        if (resData.success && !resData.skipped) {
-                            setGeoStatus(prev => ({ ...prev, autoPunchedSuccess: true }))
-                            fetchAttendance()
-                        }
-                    } catch (err) {
-                        console.error("Auto punch error:", err)
+                    })
+                    const resData = await res.json()
+                    if (resData.success && !resData.skipped) {
+                        setGeoStatus(prev => ({ ...prev, autoPunchedSuccess: true }))
+                        fetchAttendance()
                     }
+                } catch (err) {
+                    console.error("Auto punch error:", err)
                 }
+            }
+        }
+
+        const handleError = (err: GeolocationPositionError) => {
+            let errorMsg = "Unable to acquire GPS coordinates."
+            if (err.code === 1) {
+                errorMsg = "Location permission denied or blocked by browser."
+            } else if (err.code === 2) {
+                errorMsg = "GPS signal unavailable. Please ensure phone Location is ON."
+            } else if (err.code === 3) {
+                errorMsg = "GPS request timed out. Please tap 'Detect GPS' again."
+            }
+            setGeoStatus(prev => ({
+                ...prev,
+                isDetecting: false,
+                error: errorMsg
+            }))
+        }
+
+        // Stage 1: Try high accuracy (satellite) with 7s timeout
+        navigator.geolocation.getCurrentPosition(
+            handleSuccess,
+            (err1) => {
+                console.warn("High accuracy GPS failed in attendance, falling back to network/cell location:", err1)
+                // Stage 2: Standard accuracy (cellular/WiFi) - works indoors inside workshop!
+                navigator.geolocation.getCurrentPosition(
+                    handleSuccess,
+                    handleError,
+                    { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 }
+                )
             },
-            (err) => {
-                setGeoStatus(prev => ({
-                    ...prev,
-                    isDetecting: false,
-                    error: err.code === 1 ? "Location permission denied" : "Unable to acquire GPS"
-                }))
-            },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+            { enableHighAccuracy: true, timeout: 7000, maximumAge: 10000 }
         )
     }, [fetchAttendance])
 
@@ -517,6 +550,97 @@ export default function StaffAttendancePage() {
                     </span>
                 </div>
             )}
+
+            {/* Insecure Origin Alert for Mobile Phones (HTTP vs HTTPS) */}
+            {isInsecureOrigin && (
+                <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs shadow-xl print:hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                        <Shield className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                            <span className="font-bold text-amber-300 block">Mobile Browser GPS Notice</span>
+                            <span className="text-zinc-400">Mobile browsers block the GPS popup on plain HTTP. Switch to HTTPS to prompt for location.</span>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => {
+                            if (typeof window !== "undefined") {
+                                window.location.href = `https://${window.location.hostname}:3001/staff/attendance`
+                            }
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-500 text-black hover:bg-emerald-400 transition-colors shrink-0"
+                    >
+                        Switch to HTTPS
+                    </button>
+                </div>
+            )}
+
+            {/* Geofence Radar Card with User-Gesture Trigger */}
+            <div className="p-4 sm:p-5 rounded-3xl bg-[#121216] border border-white/10 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
+                <div className="flex items-center gap-3.5">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
+                        geoStatus.isInside
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                            : geoStatus.distanceMeters !== null
+                            ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
+                            : "bg-[#16acd4]/15 border-[#16acd4]/30 text-[#16acd4]"
+                    }`}>
+                        <Radio className={`w-5 h-5 ${geoStatus.isDetecting ? "animate-spin" : "animate-pulse"}`} />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-xs font-black text-white">Workshop Geofence Radar</h4>
+                            {shopLocationConfigured ? (
+                                geoStatus.isInside ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                        ● Inside Perimeter
+                                    </span>
+                                ) : geoStatus.distanceMeters !== null ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                        Outside Workshop
+                                    </span>
+                                ) : (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-800 text-zinc-400 border border-white/10">
+                                        {geoStatus.isDetecting ? "Detecting GPS..." : "GPS Ready"}
+                                    </span>
+                                )
+                            ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-zinc-800 text-zinc-400">
+                                    Shop GPS Not Set
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                            {geoStatus.distanceMeters !== null
+                                ? `Live distance: ${formatDistance(geoStatus.distanceMeters)} from workshop (${data?.shopGeofence?.radius || 150}m radius)`
+                                : geoStatus.error
+                                ? <span className="text-amber-400">{geoStatus.error}</span>
+                                : "Tap below to request mobile GPS and calculate workshop distance."
+                            }
+                        </p>
+                    </div>
+                </div>
+
+                <button
+                    onClick={() => {
+                        if (data?.shopGeofence?.latitude && data?.shopGeofence?.longitude) {
+                            checkLocationAndAutoPunch(
+                                data.shopGeofence.latitude,
+                                data.shopGeofence.longitude,
+                                data.shopGeofence.radius || 150,
+                                true,
+                                isPunchedIn
+                            )
+                        } else {
+                            checkLocationAndAutoPunch()
+                        }
+                    }}
+                    disabled={geoStatus.isDetecting}
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 transition-colors flex items-center justify-center gap-1.5 shrink-0"
+                >
+                    <LocateFixed className={`w-3.5 h-3.5 text-[#16acd4] ${geoStatus.isDetecting ? "animate-spin" : ""}`} />
+                    <span>{geoStatus.isDetecting ? "Detecting GPS..." : "📍 Allow Location / Detect GPS"}</span>
+                </button>
+            </div>
 
             {/* Quick Punch Bar (Today's check-in / check-out) */}
             <div className="p-5 rounded-3xl bg-[#121216] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl print:hidden">
