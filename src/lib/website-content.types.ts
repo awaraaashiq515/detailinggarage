@@ -83,20 +83,26 @@ export interface WebsiteContent {
     description: string;
     primaryList: {
       id: string;
+      emoji?: string;
       title: string;
       description: string;
       items: string[];
+      ctaLink?: string;
       isActive: boolean;
     }[];
     solutionsHeading: string;
     solutionsList: {
       id: string;
+      emoji?: string;
       title: string;
       description: string;
       fine?: string;
       items?: string[];
+      ctaLink?: string;
       isActive: boolean;
     }[];
+    brandsHeading?: string;
+    brands?: string[];
     poster: {
       imageUrl: string;
       eyebrow: string;
@@ -278,20 +284,20 @@ export const defaultWebsiteContent: WebsiteContent = {
     ]
   },
   hero: {
-    eyebrow: "Complete Car Care Under One Roof",
-    titleLine1: "Inspect.",
-    titleLine2: "Protect.",
-    titleLine3: "Restore.",
-    description: "Mandi's car care studio for 100+ point Pre-Delivery Inspection, ceramic and graphene coating, PPF, detailing and denting & painting. We come to your dealership anywhere in Himachal Pradesh, so you can inspect before you accept.",
-    primaryCtaText: "Book your PDI",
+    eyebrow: "Detailing That Defines Luxury",
+    titleLine1: "INSPECT BEFORE",
+    titleLine2: "YOU ACCEPT.",
+    titleLine3: "",
+    description: "Professional 100+ point PDI, ceramic & graphene coating, PPF, accessories, insurance claims and complete car care – across Himachal, Punjab, Chandigarh Tricity, Haryana & Dehradun.",
+    primaryCtaText: "Book a PDI",
     primaryCtaLink: "#contact",
-    secondaryCtaText: "All services",
-    secondaryCtaLink: "#services",
-    bgImageUrl: "/images/studio/storefront-night.jpg",
+    secondaryCtaText: "Download PDI Report",
+    secondaryCtaLink: "/report-warranty",
+    bgImageUrl: "",
     stats: [
-      { value: "100+", label: "PDI checkpoints" },
-      { value: "1000+", label: "Customers served" },
-      { value: "Petrol · Diesel · EV", label: "Every fuel type" }
+      { value: "100+", label: "Point Check" },
+      { value: "13 Panels", label: "Paint Gauge" },
+      { value: "OBD Scan", label: "Diagnostic" }
     ]
   },
   ticker: {
@@ -427,86 +433,110 @@ export const defaultWebsiteContent: WebsiteContent = {
     primaryList: [
       {
         id: "1",
-        title: "Ceramic coating",
-        description: "A hard, glossy layer bonded to the clear coat. Water beads straight off and the car stays cleaner for longer.",
-        items: ["9H multi-layer systems", "UV & weather protection", "Easy maintenance"],
+        emoji: "🔎",
+        title: "PDI – 100+ Point",
+        description: "New car, used car, EV, bike, truck & bus inspections at the dealership with a digital report.",
+        items: ["Paint & tyre gauge", "Full OBD scan", "Underbody check", "Digital report"],
+        ctaLink: "/pdi",
         isActive: true
       },
       {
         id: "2",
-        title: "Graphene coating",
-        description: "The next step up from ceramic. Better heat dissipation, lower water spotting and a deep, long-lasting shine.",
-        items: ["Anti-water-spot formula", "Long lasting gloss", "Ideal for dark colours"],
+        emoji: "💎",
+        title: "Ceramic Coating",
+        description: "Multi-layer ceramic protection with paint correction before coating.",
+        items: ["Deep gloss", "Hydrophobic", "UV protection", "Easy washing"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "3",
-        title: "Paint protection film",
-        description: "Clear, self-healing film that takes the stone chips from hill roads so your paint never has to.",
-        items: ["Self-healing technology", "Scratch resistant", "Colour & finish wrapping"],
+        emoji: "🧴",
+        title: "Graphene Coating",
+        description: "Next-gen coating with better water beading and less water spotting.",
+        items: ["Low water spots", "Heat resistance", "Slick finish", "Long life"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "4",
-        title: "Paint correction",
-        description: "Machine polishing that removes swirl marks, haze and light scratches for a clear, mirror-flat reflection.",
-        items: ["Single or multi-stage polish", "Swirl & hologram removal", "Prep for coating or PPF"],
+        emoji: "🛡️",
+        title: "PPF",
+        description: "Self-healing TPU paint protection film – gloss, matte or colour.",
+        items: ["Stone-chip protection", "Self-healing", "Anti-yellowing", "Full or partial"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "5",
-        title: "Interior detailing",
-        description: "Seats, carpets, roof lining, vents and seams deep-cleaned. Leather cleaned and conditioned, odours removed.",
-        items: ["Steam & extraction clean", "Leather conditioning", "Sanitisation & odour removal"],
+        emoji: "🔊",
+        title: "Music Systems & Dash Cams",
+        description: "Sony, JBL, Morel, Infinity, Bose, JL Audio, Harman Kardon, Philips.",
+        items: ["Head units", "Speakers & subs", "DSP tuning", "Dash cams"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "6",
-        title: "Engine bay cleaning",
-        description: "Safe degreasing and dressing of the engine bay, with electricals protected. Easier to spot leaks later.",
-        items: ["Low-pressure wash", "Plastic & rubber dressing", "Leak-friendly finish"],
+        emoji: "🚙",
+        title: "Accessories",
+        description: "GFX Mats, Proman, Parad 4x4, Autostylin and more – expert fitting.",
+        items: ["Floor mats", "Seat covers", "Lighting", "Parking aids"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "7",
-        title: "Glass & alloy protection",
-        description: "Hydrophobic glass coating for clear vision in rain and snow, and alloy coating that keeps brake dust off.",
-        items: ["Rain-repellent glass", "Alloy & caliper coating", "Headlight restoration"],
+        emoji: "🔧",
+        title: "4x4 & Modification",
+        description: "Road-legal styling and off-road upgrades for Thar, Jimny, Scorpio-N & more.",
+        items: ["Wheels & tyres", "Roof racks", "Side steps", "Body kits"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "8",
-        title: "Exterior detailing",
-        description: "Foam pre-wash, hand wash, iron and tar removal, clay bar and a sealant finish. Wheels and arches included.",
-        items: ["Decontamination wash", "Clay bar treatment", "Sealant finish"],
+        emoji: "🎨",
+        title: "Denting & Painting",
+        description: "Computerised colour matching and panel repair.",
+        items: ["Colour match", "Dent repair", "Bumper repair", "Full body paint"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "9",
-        title: "Denting & painting",
-        description: "Expert dent repair and colour-matched paint in a paint booth, finished to a showroom standard.",
-        items: ["Dent repair", "Paint booth finish", "Accident repair"],
+        emoji: "📋",
+        title: "Insurance Claims",
+        description: "Cashless & reimbursement claims handled end-to-end.",
+        items: ["Claim intimation", "Surveyor coordination", "Genuine parts", "WhatsApp updates"],
+        ctaLink: "/insurance-claim",
         isActive: true
       },
       {
         id: "10",
-        title: "Underbody coating",
-        description: "A protective layer under the car against rust from wet, salted and snowy hill roads, plus less road noise in the cabin.",
-        items: ["Anti-rust protection", "Stone chip resistance", "Quieter cabin"],
+        emoji: "🛡️",
+        title: "24×7 Roadside Assistance",
+        description: "Breakdown, battery jump-start, puncture, towing – day or night.",
+        items: ["Jump-start", "Flat tyre", "Towing", "Accident support"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "11",
-        title: "Leather & trim coating",
-        description: "Coatings for leather seats, plastic trims and rims that resist stains, fading and brake dust, and keep the cabin looking new.",
-        items: ["Leather coating", "Trim & rim coating", "Engine bay coating"],
+        emoji: "⚙️",
+        title: "Spare Parts",
+        description: "Genuine OEM, OES & quality aftermarket parts for all brands.",
+        items: ["All brands", "Garage supply", "Fast ordering", "Fitting available"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "12",
-        title: "Doorstep detailing",
-        description: "No time to visit the studio? Our team brings the equipment to your home or office for washes and detailing.",
-        items: ["At home or office", "Interior & exterior", "Book on WhatsApp"],
+        emoji: "🤝",
+        title: "Franchise",
+        description: "4 models – PDI Basic, PDI + Detailing, full Detailing Garage, Used Car & Software.",
+        items: ["Brand & training", "Equipment list", "App & software", "Marketing & leads"],
+        ctaLink: "/#contact",
         isActive: true
       }
     ],
@@ -514,43 +544,57 @@ export const defaultWebsiteContent: WebsiteContent = {
     solutionsList: [
       {
         id: "s1",
+        emoji: "📋",
         title: "Insurance claim assistance",
         description: "Accident ke baad paperwork ki tension? We help with damage inspection, documentation and coordination with your insurer during repair.",
         fine: "Claim approval is always the insurer's decision. Detailing Garage is not an insurer.",
+        ctaLink: "/insurance-claim",
         isActive: true
       },
       {
         id: "s2",
+        emoji: "🚨",
         title: "24×7 roadside assistance",
         description: "Battery discharge, puncture, towing or emergency help. Call us any time and we will do our best to reach you.",
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "s3",
+        emoji: "🏔️",
         title: "Leh-Ladakh rescue support",
         description: "Remote area support for road trips through Lahaul-Spiti and Ladakh, coordinated with our rescue response team.",
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "s4",
+        emoji: "🔧",
         title: "Parts & accessories",
         description: "Genuine spare parts plus an in-studio accessories store, sourced and delivered quickly.",
         items: ["LED lights & sound systems", "Thar, Jimny & Hilux modifications", "LS2, Axor & SMK helmets"],
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "s5",
+        emoji: "🏠",
         title: "On-site vehicle support",
         description: "Our technician comes to your location for inspections and minor fixes, so you don't lose a day at the workshop.",
+        ctaLink: "/#contact",
         isActive: true
       },
       {
         id: "s6",
+        emoji: "🚗",
         title: "Dealer delivery support",
         description: "We stand with you at the dealership on delivery day, explain what we found and help you get it fixed before accepting the car.",
+        ctaLink: "/pdi",
         isActive: true
       }
     ],
+    brandsHeading: "Brands We Offer",
+    brands: ["GFX Mats", "Proman", "Parad 4x4", "Autostylin", "Sony", "JBL", "Morel", "Infinity", "Bose", "JL Audio", "Harman Kardon", "Philips"],
     poster: {
       imageUrl: "/images/services-poster.jpg",
       eyebrow: "Mountains to remote roads",

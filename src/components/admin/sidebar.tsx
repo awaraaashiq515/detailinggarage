@@ -30,6 +30,9 @@ import {
     Facebook,
     LayoutGrid,
     Share2,
+    Wrench,
+    MapPin,
+    ShoppingBag,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 
@@ -57,7 +60,9 @@ const menuGroups: MenuGroup[] = [
         label: "Management",
         items: [
             { name: "Users", href: "/admin/users", icon: Users },
-
+            { name: "Website Services", href: "/admin/services", icon: Wrench },
+            { name: "Near Me Directory", href: "/admin/near-me", icon: MapPin },
+            { name: "Marketplace", href: "/admin/marketplace", icon: ShoppingBag },
             { name: "PDI Packages", href: "/admin/packages", icon: FileText },
             { name: "Payments", href: "/admin/payments", icon: CreditCard },
             { name: "Social Broadcast", href: "/admin/social", icon: Share2 },
@@ -72,6 +77,7 @@ const menuGroups: MenuGroup[] = [
             { name: "PDI Inspections", href: "/admin/pdi", icon: ShieldCheck },
             { name: "Insurance Requests", href: "/admin/insurance-requests", icon: FileText },
             { name: "Insurance", href: "/admin/insurance", icon: Shield },
+            { name: "Warranties", href: "/admin/warranties", icon: ShieldCheck },
             { name: "Vehicle Inquiries", href: "/admin/vehicle-inquiries", icon: Car },
             { name: "Service Inquiries", href: "/admin/service-inquiries", icon: MessageSquare },
             { name: "Scrap Cars", href: "/admin/scrap-cars", icon: Trash2 },

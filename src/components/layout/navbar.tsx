@@ -39,14 +39,26 @@ export function Navbar() {
     }, [])
 
     const navLinks = [
-        { label: "Studio", href: "/#studio" },
-        { label: "Services", href: "/#services" },
-        { label: "PDI Inspection", href: "/pdi" },
-        { label: "Portfolio", href: "/#customers" },
-        { label: "The Process", href: "/#pdi" },
+        { label: "Home", href: "/" },
+        { label: "Services", href: "/services" },
+        { label: "PDI", href: "/pdi" },
+        { label: "Near Me", href: "/near-me" },
+        { label: "Marketplace", href: "/marketplace" },
+        { label: "Blog", href: "/blog" },
+        { label: "About", href: "/about" },
+        { label: "Contact", href: "/contact" },
+        { label: "Report & Warranty", href: "/report-warranty" },
+        { label: "24×7 Help", href: "/help" },
     ]
 
+    // Show first 6 in nav, rest in "More" dropdown
+    const primaryLinks = navLinks.slice(0, 6)
+    const overflowLinks = navLinks.slice(6)
+
     const moreLinks = [
+        { label: "Become a Dealer", href: "/dealer", icon: "🤝" },
+        { label: "Near Me Directory", href: "/near-me", icon: "📍" },
+        { label: "Report & Warranty", href: "/report-warranty", icon: "📋" },
         { label: "Marketplace", href: "/marketplace", icon: "🛒" },
         { label: "Cars", href: "/cars", icon: "🚗" },
         { label: "Bikes", href: "/bikes", icon: "🏍️" },
@@ -64,9 +76,16 @@ export function Navbar() {
             initial={{ y: -80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className={`fixed top-0 left-0 right-0 z-50 flex justify-center w-full px-4 sm:px-6 transition-all duration-300 ${scrolled ? 'py-3' : 'py-5'}`}
+            className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center w-full pointer-events-none"
         >
-            <div className="flex items-center justify-between w-full max-w-7xl mx-auto bg-[#18181b]/85 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-2xl px-5 sm:px-6 py-2.5 sm:py-3 transition-all duration-300 relative">
+            {/* Top Announcement Bar */}
+            <div className="w-full bg-[#16acd4] text-[#07090b] text-[11px] sm:text-xs md:text-[12.5px] font-bold py-1.5 px-3 sm:px-4 text-center tracking-wide shadow-sm flex items-center justify-center gap-1.5 pointer-events-auto">
+                <span>🚗 New car PDI from ₹2,999 in Chandigarh Tricity • Kangra region package ₹6,000 • Call <a href="tel:+918679800074" className="underline font-extrabold hover:text-black">+91-86798-00074</a></span>
+            </div>
+
+            {/* Floating Navbar Pill */}
+            <div className={`flex justify-center w-full px-4 sm:px-6 transition-all duration-300 pointer-events-auto ${scrolled ? 'py-2 sm:py-2.5' : 'py-3 sm:py-3.5'}`}>
+                <div className="flex items-center justify-between w-full max-w-7xl mx-auto bg-[#18181b]/85 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-2xl px-5 sm:px-6 py-2.5 sm:py-3 transition-all duration-300 relative">
                 
                 {/* Brand / Logo */}
                 <Link href="/" className="flex items-center group flex-shrink-0">
@@ -86,14 +105,14 @@ export function Navbar() {
                 </Link>
 
                 {/* Desktop Capsule Nav Pill */}
-                <nav className="hidden md:flex items-center gap-5 lg:gap-7 bg-black/40 px-6 lg:px-7 py-2 rounded-full border border-white/10 backdrop-blur-md">
-                    {navLinks.map((link, index) => {
+                <nav className="hidden md:flex items-center gap-4 lg:gap-5 bg-black/40 px-5 lg:px-6 py-2 rounded-full border border-white/10 backdrop-blur-md">
+                    {primaryLinks.map((link, index) => {
                         const isActive = pathname === link.href || (pathname === "/pdi" && link.href === "/pdi")
                         return (
                             <Link
                                 key={index}
                                 href={link.href}
-                                className={`text-[11px] font-semibold tracking-wider uppercase transition-all duration-200 hover:text-white ${
+                                className={`text-[11px] font-semibold tracking-wider uppercase transition-all duration-200 hover:text-white whitespace-nowrap ${
                                     isActive ? 'text-white font-bold' : 'text-zinc-400'
                                 }`}
                             >
@@ -102,8 +121,8 @@ export function Navbar() {
                         )
                     })}
 
-                    {/* More Dropdown hidden for now as requested */}
-                    {false && (
+                    {/* More Dropdown for overflow links */}
+                    {overflowLinks.length > 0 && (
                     <div 
                         className="relative"
                         onMouseEnter={() => setMoreOpen(true)}
@@ -111,7 +130,7 @@ export function Navbar() {
                     >
                         <button 
                             onClick={() => setMoreOpen(!moreOpen)}
-                            className="text-[11px] font-semibold tracking-wider uppercase text-zinc-400 hover:text-white flex items-center gap-1 transition-colors"
+                            className="text-[11px] font-semibold tracking-wider uppercase text-zinc-400 hover:text-white flex items-center gap-1 transition-colors whitespace-nowrap"
                         >
                             More <span className={`text-[9px] opacity-70 transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`}>▾</span>
                         </button>
@@ -125,14 +144,13 @@ export function Navbar() {
                                     transition={{ duration: 0.15 }}
                                     className="absolute top-full right-0 mt-3 w-52 bg-[#0e1316]/95 border border-white/10 rounded-xl shadow-2xl p-2 flex flex-col gap-1 backdrop-blur-xl z-50"
                                 >
-                                    {moreLinks.map((m, idx) => (
+                                    {overflowLinks.map((m, idx) => (
                                         <Link 
                                             key={idx}
                                             href={m.href}
                                             onClick={() => setMoreOpen(false)}
                                             className="px-3 py-2 rounded-lg text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
                                         >
-                                            <span className="text-sm">{m.icon}</span>
                                             <span>{m.label}</span>
                                         </Link>
                                     ))}
@@ -149,17 +167,19 @@ export function Navbar() {
                         user ? (
                             <Link
                                 href={user.role === "SUPER_ADMIN" ? "/super-admin/website" : "/admin"}
-                                className="bg-white text-black px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] font-bold tracking-wider uppercase hover:scale-105 hover:bg-[#16acd4] hover:text-black transition-all shadow-md"
+                                style={{ backgroundColor: "#ffffff", color: "#07090b" }}
+                                className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] font-black tracking-wider uppercase hover:scale-105 hover:!bg-[#16acd4] hover:!text-[#07090b] transition-all shadow-md !text-[#07090b]"
                             >
                                 {user.role === "SUPER_ADMIN" ? "Admin CMS" : "Admin Access"}
                             </Link>
                         ) : (
                             <div className="flex items-center gap-2">
                                 <Link
-                                    href="/pdi#book"
-                                    className="bg-white text-black px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] font-bold tracking-wider uppercase hover:scale-105 hover:bg-[#16acd4] hover:text-black transition-all shadow-md"
+                                    href="/book"
+                                    style={{ backgroundColor: "#16acd4", color: "#07090b" }}
+                                    className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] font-black tracking-wider uppercase hover:scale-105 hover:!bg-white hover:!text-[#07090b] transition-all shadow-[0_0_20px_rgba(22,172,212,0.3)] !text-[#07090b]"
                                 >
-                                    Book Inspection
+                                    Book Now
                                 </Link>
                                 <Link
                                     href="/login"
@@ -234,16 +254,18 @@ export function Navbar() {
                             )}
                             <div className="border-t border-white/10 my-1 pt-2">
                                 <Link
-                                    href="/pdi#book"
+                                    href="/book"
                                     onClick={() => setMobileOpen(false)}
-                                    className="block text-center w-full py-2.5 bg-white text-black font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-[#16acd4] transition-colors"
+                                    style={{ backgroundColor: "#16acd4", color: "#07090b" }}
+                                    className="block text-center w-full py-2.5 font-black text-xs uppercase tracking-wider rounded-xl hover:bg-white transition-colors !text-[#07090b]"
                                 >
-                                    Book Inspection
+                                    Book Now
                                 </Link>
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
+            </div>
             </div>
         </motion.header>
     )

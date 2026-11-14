@@ -685,9 +685,11 @@ export default function SuperAdminWebsitePage() {
                                     onClick={() => {
                                         const newSvc = {
                                             id: `svc_${Date.now()}`,
+                                            emoji: "✨",
                                             title: "New Service",
                                             description: "Service description here.",
                                             items: ["Point 1", "Point 2"],
+                                            ctaLink: "/#contact",
                                             isActive: true
                                         }
                                         setContent({ ...content, services: { ...content.services, primaryList: [...content.services.primaryList, newSvc] } })
@@ -713,17 +715,30 @@ export default function SuperAdminWebsitePage() {
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
-                                        <input 
-                                            type="text" 
-                                            value={svc.title}
-                                            placeholder="Service Title"
-                                            onChange={(e) => {
-                                                const updated = [...content.services.primaryList]
-                                                updated[idx].title = e.target.value
-                                                setContent({ ...content, services: { ...content.services, primaryList: updated } })
-                                            }}
-                                            className="w-full bg-black/40 border border-white/10 rounded px-3 py-1.5 text-sm font-bold text-white"
-                                        />
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={svc.emoji || ""}
+                                                placeholder="Icon"
+                                                onChange={(e) => {
+                                                    const updated = [...content.services.primaryList]
+                                                    updated[idx].emoji = e.target.value
+                                                    setContent({ ...content, services: { ...content.services, primaryList: updated } })
+                                                }}
+                                                className="w-14 text-center bg-black/40 border border-white/10 rounded px-2 py-1.5 text-base font-bold text-white"
+                                            />
+                                            <input 
+                                                type="text" 
+                                                value={svc.title}
+                                                placeholder="Service Title"
+                                                onChange={(e) => {
+                                                    const updated = [...content.services.primaryList]
+                                                    updated[idx].title = e.target.value
+                                                    setContent({ ...content, services: { ...content.services, primaryList: updated } })
+                                                }}
+                                                className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-1.5 text-sm font-bold text-white"
+                                            />
+                                        </div>
                                         <textarea 
                                             rows={2}
                                             value={svc.description}
@@ -746,6 +761,20 @@ export default function SuperAdminWebsitePage() {
                                                     setContent({ ...content, services: { ...content.services, primaryList: updated } })
                                                 }}
                                                 className="w-full bg-black/40 border border-white/10 rounded px-3 py-1.5 text-xs text-zinc-300"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-mono text-zinc-500 mb-1">Button Link / Action</label>
+                                            <input 
+                                                type="text" 
+                                                value={svc.ctaLink || ""}
+                                                placeholder="/pdi or /#contact (empty for WhatsApp)"
+                                                onChange={(e) => {
+                                                    const updated = [...content.services.primaryList]
+                                                    updated[idx].ctaLink = e.target.value
+                                                    setContent({ ...content, services: { ...content.services, primaryList: updated } })
+                                                }}
+                                                className="w-full bg-black/40 border border-white/10 rounded px-3 py-1.5 text-xs text-zinc-300 font-mono"
                                             />
                                         </div>
                                     </div>

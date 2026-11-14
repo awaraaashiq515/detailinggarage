@@ -1656,6 +1656,7 @@ model Shop {
   pdiInspections       PDIInspection[]
   evPdiInspections     EVPDIInspection[]
   insuranceClaims      InsuranceClaim[]
+  warranties           Warranty[]
 
   @@index([ownerUserId])
   @@index([status])
@@ -2258,4 +2259,95 @@ model BroadcastPlatformLog {
 
   @@index([broadcastPostId])
   @@index([platform])
+}
+
+model Warranty {
+  id                       String               @id @default(cuid())
+  certificateNumber        String               @unique
+  type                     String               // Ceramic Coating, Graphene Coating, PPF, Accessories, 4x4 & Modification, Other
+  productPackage           String?              // e.g. "Ceramic – 3 layer (sample)"
+  coverageArea             String?              // e.g. "Full Body"
+  customerName             String
+  customerPhone            String
+  vin                      String?              // VIN / Chassis Number
+  vehicleReg               String?              // Vehicle Reg. No. (e.g. HP-33-X-0000)
+  invoiceNo                String?
+  startDate                DateTime             @default(now())
+  endDate                  DateTime
+  years                    Int                  @default(1)
+  requiresAnnualInspection Boolean              @default(true)
+  nextInspectionDate       DateTime?
+  status                   String               @default("Active") // Active, Expired, Void
+  terms                    String?              // Terms & exclusions text
+  notes                    String?
+
+  shopId                   String?
+  shop                     Shop?                @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
+  inspections              WarrantyInspection[]
+
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+
+  @@index([certificateNumber])
+  @@index([vin])
+  @@index([vehicleReg])
+  @@index([customerPhone])
+  @@index([shopId])
+}
+
+model WarrantyInspection {
+  id          String   @id @default(cuid())
+  warrantyId  String
+  warranty    Warranty @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  inspector   String?
+  notes       String?
+  status      String   @default("PASSED") // PASSED, ATTENTION_NEEDED
+  createdAt   DateTime @default(now())
+
+  @@index([warrantyId])
+}
+
+model NearMeListing {
+  id            String   @id @default(cuid())
+  name          String
+  category      String   // 'garages', 'best-garages', 'mechanics', 'rsa', 'towing', 'car-wash', 'detailing', 'used-cars', 'spare-parts', 'spare-parts-wholesale', 'oem-dealers', 'accessories', 'battery', 'tyre', 'ev-service', 'denting-painting'
+  categoryLabel String?
+  city          String   // 'Mandi', 'Sundernagar', 'Kullu', etc.
+  area          String?
+  address       String?
+  phone         String
+  whatsapp      String?
+  mapsUrl       String?
+  rating        Float    @default(4.8)
+  reviewsCount  Int      @default(0)
+  isVerified    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  services      String?  // Description or comma-separated services
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category, city])
+  @@index([city])
+  @@index([category])
+}
+
+
+model MarketplaceListing {
+  id          String   @id @default(cuid())
+  title       String
+  seller      String
+  category    String
+  description String?
+  price       String?
+  imageUrl    String?
+  city        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
 }

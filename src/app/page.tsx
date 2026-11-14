@@ -1,5 +1,8 @@
 import HomeClient from "./HomeClient"
 
+// Revalidate on access
+export const dynamic = "force-dynamic"
+
 export const metadata = {
   title: "Detailing Garage | Premium Auto Protection Studio",
   description: "Expert ceramic coating, paint protection film (PPF), paint correction and full auto detailing services. Your vehicle deserves the best treatment.",

@@ -1,353 +1,582 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Navbar } from "@/components/layout/navbar"
-import {
-    Car, Fuel, Settings, MapPin, Tag, Gavel, ClipboardList,
-    Star, ArrowRight, Loader2, ShoppingBag, Clock, Zap,
-    Search, SlidersHorizontal, ChevronDown, Check, X,
-    Calendar, Gauge, IndianRupee, Filter, LayoutGrid, List
-} from "lucide-react"
-import Link from "next/link"
+import { Search, ShoppingCart, ChevronDown, X, Package, CheckCircle, Loader2 } from "lucide-react"
 
-const CRIMSON = "#991b1b"
-const CRIMSON_LIGHT = "#dc2626"
+const CATEGORIES = [
+  { id: "all", label: "All" },
+  { id: "coatings", label: "Coatings & care" },
+  { id: "floor-mats", label: "Floor mats" },
+  { id: "accessories", label: "Accessories" },
+  { id: "4x4", label: "4x4 & off-road" },
+  { id: "audio", label: "Audio & dash cams" },
+  { id: "spare-parts", label: "Spare parts" },
+  { id: "engine", label: "Engine & service parts" },
+  { id: "body", label: "Body parts" },
+  { id: "tyres", label: "Tyres & batteries" },
+  { id: "detailing-tools", label: "Detailing tools" },
+  { id: "services", label: "Services" },
+]
 
-export default function PublicMarketplacePage() {
-    const [vehicles, setVehicles] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [searchQuery, setSearchQuery] = useState("")
-    const [showFilters, setShowFilters] = useState(false)
-    const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+const CITIES = ["All cities", "Chandigarh", "Panchkula", "Mohali", "Mandi", "Shimla", "Kullu", "Dharamshala", "Dehradun"]
 
-    // Filter states
-    const [filters, setFilters] = useState({
-        make: "",
-        fuelType: "",
-        transmission: "",
-        sellingMode: "",
-        priceRange: [0, 10000000],
-        year: ""
-    })
+const SECTION_TABS = [
+  { id: "parts", label: "Parts, accessories & products", icon: "🔧" },
+  { id: "used-cars", label: "Used cars", icon: "🚗" },
+  { id: "sellers", label: "Sellers & distributors", icon: "🏪" },
+]
 
-    useEffect(() => {
-        const fetchStock = async () => {
-            try {
-                const res = await fetch("/api/public/company-stock")
-                const data = await res.json()
-                if (data.vehicles) setVehicles(data.vehicles)
-            } catch (err) {
-                console.error(err)
-            } finally {
-                setLoading(false)
+const BUSINESS_TYPES = [
+  { icon: "🔧", title: "Garage / wash / detailing centre", desc: "List your workshop on Near Me & get customers" },
+  { icon: "🚛", title: "Towing truck operator", desc: "Flatbed, wheel-lift & crane operators for our 24×7 network" },
+  { icon: "🚨", title: "RSA / mobile mechanic", desc: "Battery, puncture, fuel, lockout & on-spot repair partners" },
+  { icon: "⚙️", title: "Spare parts, accessories & scrap dealer", desc: "Retailers, distributors, OEM parts, tyres, lubricants, kabadi/recyclers" },
+  { icon: "🚗", title: "Used car dealer", desc: "Use our used-car software, PDI & listings" },
+]
+
+const CATEGORY_ICONS: Record<string, string> = {
+  audio: "🎵",
+  coatings: "✨",
+  "floor-mats": "🟫",
+  accessories: "🔩",
+  "4x4": "🏔️",
+  "spare-parts": "⚙️",
+  engine: "🔨",
+  body: "🚙",
+  tyres: "🔄",
+  "detailing-tools": "🧹",
+  services: "🛠️",
+  default: "📦",
+}
+
+interface Listing {
+  id: string
+  title: string
+  seller: string
+  category: string
+  description: string | null
+  price: string | null
+  imageUrl: string | null
+  city: string | null
+  isActive: boolean
+}
+
+export default function MarketplacePage() {
+  const [listings, setListings] = useState<Listing[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeCategory, setActiveCategory] = useState("all")
+  const [activeTab, setActiveTab] = useState("parts")
+  const [selectedCity, setSelectedCity] = useState("All cities")
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [showSellModal, setShowSellModal] = useState(false)
+  const [enquiryItem, setEnquiryItem] = useState<Listing | null>(null)
+  const [cartItems, setCartItems] = useState<Listing[]>([])
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400)
+    return () => clearTimeout(t)
+  }, [search])
+
+  const fetchListings = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (activeCategory !== "all") params.set("category", activeCategory)
+      if (selectedCity !== "All cities") params.set("city", selectedCity)
+      if (debouncedSearch) params.set("search", debouncedSearch)
+      const res = await fetch(`/api/marketplace?${params}`)
+      const data = await res.json()
+      if (data.listings) setListings(data.listings)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCategory, selectedCity, debouncedSearch])
+
+  useEffect(() => {
+    fetchListings()
+  }, [fetchListings])
+
+  const addToCart = (item: Listing) => {
+    setCartItems(prev => prev.find(i => i.id === item.id) ? prev : [...prev, item])
+  }
+
+  return (
+    <div className="min-h-screen bg-[#07090b] text-white">
+      <Navbar />
+
+      {/* ── HERO ── */}
+      <div
+        className="pt-28 pb-10 px-6"
+        style={{ background: "radial-gradient(ellipse at 60% 0%, rgba(22,172,212,0.08) 0%, transparent 60%), #07090b" }}
+      >
+        <div className="max-w-7xl mx-auto">
+          <h1
+            className="text-5xl md:text-7xl font-black tracking-tight leading-none mb-3"
+            style={{ fontFamily: "'Saira Semi Condensed', sans-serif" }}
+          >
+            DG <span style={{ color: "#16acd4" }}>MARKETPLACE</span>
+          </h1>
+          <p className="text-zinc-400 text-base mb-8" style={{ fontFamily: "Manrope, sans-serif" }}>
+            Genuine detailing products, accessories &amp; parts – fitted by our experts.
+          </p>
+
+          {/* Search + Cart */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="relative flex-1 max-w-xl">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search products, brands..."
+                className="w-full bg-[#0e1316] border border-[#1a2328] rounded-lg pl-11 pr-4 py-3 text-sm text-white placeholder-zinc-500 outline-none focus:border-[#16acd4] transition-colors"
+              />
+            </div>
+            <button
+              onClick={() => cartItems.length > 0 && setEnquiryItem(null)}
+              className="flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold transition-all relative"
+              style={{ background: "#16acd4", color: "#07090b" }}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              Cart {cartItems.length > 0 && `(${cartItems.length})`}
+            </button>
+          </div>
+
+          {/* Category Pills */}
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className="px-4 py-1.5 rounded-full text-sm font-medium border transition-all"
+                style={
+                  activeCategory === cat.id
+                    ? { background: "#16acd4", borderColor: "#16acd4", color: "#07090b" }
+                    : { background: "transparent", borderColor: "#1a2328", color: "#a1a1aa" }
+                }
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── SECTION TABS ── */}
+      <div className="px-6 border-b border-[#1a2328]">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 flex-wrap py-2">
+          {SECTION_TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
+              style={
+                activeTab === tab.id
+                  ? { background: "#16acd4", color: "#07090b" }
+                  : { background: "transparent", color: "#a1a1aa", border: "1px solid #1a2328" }
+              }
+            >
+              <span>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+
+          {/* City Dropdown */}
+          <div className="relative ml-auto">
+            <select
+              value={selectedCity}
+              onChange={e => setSelectedCity(e.target.value)}
+              className="appearance-none bg-[#0e1316] border border-[#1a2328] text-zinc-300 text-sm pl-4 pr-9 py-2.5 rounded-lg outline-none focus:border-[#16acd4] cursor-pointer"
+            >
+              {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+          </div>
+
+          {/* Sell button */}
+          <button
+            onClick={() => setShowSellModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border border-[#16acd4] transition-all hover:bg-[#16acd4]/10 whitespace-nowrap"
+            style={{ color: "#16acd4" }}
+          >
+            + Sell on DG Marketplace
+          </button>
+        </div>
+      </div>
+
+      {/* ── PRODUCT GRID ── */}
+      <div className="px-6 py-10">
+        <div className="max-w-7xl mx-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-24">
+              <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#16acd4" }} />
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="text-center py-24 text-zinc-500">
+              <Package className="w-14 h-14 mx-auto mb-4 opacity-20" />
+              <p className="text-lg font-semibold">No products found</p>
+              <p className="text-sm mt-1">Try a different category or search term</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-zinc-500 text-sm mb-6" style={{ fontFamily: "Manrope, sans-serif" }}>
+                {listings.length} product{listings.length !== 1 ? "s" : ""} found
+                {activeCategory !== "all" && ` in ${CATEGORIES.find(c => c.id === activeCategory)?.label}`}
+                {debouncedSearch && ` for "${debouncedSearch}"`}
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {listings.map(item => (
+                  <ProductCard
+                    key={item.id}
+                    item={item}
+                    onEnquire={() => setEnquiryItem(item)}
+                    onAddToCart={() => addToCart(item)}
+                    inCart={cartItems.some(i => i.id === item.id)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── SELL MODAL ── */}
+      {showSellModal && <SellModal onClose={() => setShowSellModal(false)} />}
+
+      {/* ── ENQUIRY MODAL ── */}
+      {enquiryItem && <EnquiryModal item={enquiryItem} onClose={() => setEnquiryItem(null)} />}
+    </div>
+  )
+}
+
+/* ─── Product Card ─── */
+function ProductCard({
+  item,
+  onEnquire,
+  onAddToCart,
+  inCart,
+}: {
+  item: Listing
+  onEnquire: () => void
+  onAddToCart: () => void
+  inCart: boolean
+}) {
+  const icon = CATEGORY_ICONS[item.category] || CATEGORY_ICONS.default
+
+  return (
+    <div
+      className="rounded-xl border flex flex-col overflow-hidden group transition-all hover:border-[#16acd4]/50 hover:shadow-[0_0_20px_rgba(22,172,212,0.08)]"
+      style={{ background: "#0e1316", borderColor: "#1a2328" }}
+    >
+      {/* Image Area */}
+      <div
+        className="h-36 flex items-center justify-center relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #0d1a1f 0%, #0e1316 100%)" }}
+      >
+        {item.imageUrl ? (
+          <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <span className="text-5xl opacity-70 group-hover:scale-110 transition-transform duration-300 select-none">{icon}</span>
+        )}
+        {/* Category badge */}
+        <div
+          className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
+          style={{ background: "rgba(22,172,212,0.15)", color: "#16acd4", border: "1px solid rgba(22,172,212,0.3)" }}
+        >
+          {CATEGORIES.find(c => c.id === item.category)?.label || item.category}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-3 flex flex-col flex-1">
+        <p className="text-xs text-zinc-500 mb-1 truncate" style={{ fontFamily: "Manrope, sans-serif" }}>
+          {item.seller}
+        </p>
+        <h3
+          className="text-sm font-black uppercase tracking-tight text-white leading-tight mb-1.5 line-clamp-2"
+          style={{ fontFamily: "'Saira Semi Condensed', sans-serif" }}
+        >
+          {item.title}
+        </h3>
+        <p
+          className="text-xs text-zinc-500 leading-relaxed line-clamp-2 flex-1 mb-3"
+          style={{ fontFamily: "Manrope, sans-serif" }}
+        >
+          {item.description}
+        </p>
+
+        <p className="text-sm font-bold mb-2.5" style={{ color: "#16acd4" }}>
+          {item.price || "Price on request"}
+        </p>
+
+        <div className="flex gap-1.5">
+          <button
+            onClick={onEnquire}
+            className="flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all hover:opacity-90 active:scale-95"
+            style={{ background: "#16acd4", color: "#07090b" }}
+          >
+            Enquire
+          </button>
+          <button
+            onClick={onAddToCart}
+            className="px-2.5 py-2 rounded-lg text-xs font-bold border transition-all"
+            style={
+              inCart
+                ? { background: "rgba(22,172,212,0.15)", borderColor: "#16acd4", color: "#16acd4" }
+                : { background: "transparent", borderColor: "#1a2328", color: "#71717a" }
             }
-        }
-        fetchStock()
-    }, [])
-
-    const filteredVehicles = useMemo(() => {
-        return vehicles.filter(v => {
-            const matchesSearch = v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                v.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                v.model.toLowerCase().includes(searchQuery.toLowerCase())
-
-            const matchesMake = !filters.make || v.make === filters.make
-            const matchesFuel = !filters.fuelType || v.fuelType === filters.fuelType
-            const matchesTrans = !filters.transmission || v.transmission === filters.transmission
-            const matchesMode = !filters.sellingMode || v.sellingMode === filters.sellingMode
-            const matchesYear = !filters.year || v.year.toString() === filters.year
-
-            const price = v.fixedPrice || v.basePrice || 0
-            const matchesPrice = price >= filters.priceRange[0] && price <= filters.priceRange[1]
-
-            return matchesSearch && matchesMake && matchesFuel && matchesTrans && matchesMode && matchesPrice && matchesYear
-        })
-    }, [vehicles, searchQuery, filters])
-
-    const makes = Array.from(new Set(vehicles.map(v => v.make))).sort()
-    const fuelTypes = Array.from(new Set(vehicles.map(v => v.fuelType))).filter(Boolean)
-    const transmissions = Array.from(new Set(vehicles.map(v => v.transmission))).filter(Boolean)
-
-    const images = (v: any) => {
-        try { return JSON.parse(v.images || "[]") } catch { return [] }
-    }
-
-    const clearFilters = () => {
-        setFilters({
-            make: "",
-            fuelType: "",
-            transmission: "",
-            sellingMode: "",
-            priceRange: [0, 10000000],
-            year: ""
-        })
-        setSearchQuery("")
-    }
-
-    return (
-        <div className="min-h-screen bg-[#09090b] text-white">
-            <Navbar />
-
-            {/* ── Enhanced Hero ── */}
-            <div className="pt-32 pb-40 px-6 relative overflow-hidden">
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-red-900/10 rounded-full blur-[120px] -mr-96 -mt-96 animate-pulse" />
-                    <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-red-800/5 rounded-full blur-[100px] -ml-40 -mb-40" />
-                </div>
-
-                <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="flex flex-col items-center text-center space-y-8 mb-16">
-                        <div className="inline-flex items-center gap-2.5 px-6 py-2 rounded-full border border-slate-800 bg-slate-900/40 backdrop-blur-md shadow-[0_0_20px_rgba(148,163,184,0.05)]">
-                            <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
-                            <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Elite Automotive Collection</span>
-                        </div>
-                        <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-none max-w-4xl text-white">
-                            THE PINNACLE OF <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-200 via-white to-slate-400">AUTOMOTIVE EXCELLENCE</span>
-                        </h1>
-                        <p className="text-zinc-500 text-lg md:text-xl max-w-2xl font-medium">
-                            Explore our meticulously curated selection of premium company stock. Engineered for transparency, performance, and seamless acquisition.
-                        </p>
-                    </div>
-
-                    {/* Integrated Search Bar */}
-                    <div className="max-w-4xl mx-auto relative p-2 rounded-[2.5rem] bg-white/[0.03] border border-white/5 backdrop-blur-2xl shadow-2xl">
-                        <div className="flex flex-col md:flex-row gap-2">
-                            <div className="flex-1 relative">
-                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                                <input
-                                    type="text"
-                                    placeholder="Search by make, model, or keywords..."
-                                    className="w-full bg-transparent border-none py-5 pl-16 pr-8 text-white focus:ring-0 placeholder:text-zinc-600 text-lg font-medium"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                            <button
-                                onClick={() => setShowFilters(!showFilters)}
-                                className={`flex items-center gap-3 px-8 py-5 rounded-[1.8rem] text-sm font-black uppercase tracking-widest transition-all ${showFilters ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:bg-white/10'}`}
-                            >
-                                <SlidersHorizontal className="w-4 h-4" />
-                                {showFilters ? 'Hide Filters' : 'Advanced Filters'}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Advanced Filters Panel */}
-                    {showFilters && (
-                        <div className="max-w-4xl mx-auto mt-6 p-8 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-2xl animate-in fade-in slide-in-from-top-4 duration-500 grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-red-500 uppercase tracking-widest pl-1">Manufacturer</label>
-                                <select
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm focus:border-red-600 focus:ring-0 cursor-pointer"
-                                    value={filters.make}
-                                    onChange={(e) => setFilters({ ...filters, make: e.target.value })}
-                                >
-                                    <option value="">All Makes</option>
-                                    {makes.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-red-500 uppercase tracking-widest pl-1">Fuel Type</label>
-                                <select
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm focus:border-red-600 focus:ring-0 cursor-pointer"
-                                    value={filters.fuelType}
-                                    onChange={(e) => setFilters({ ...filters, fuelType: e.target.value })}
-                                >
-                                    <option value="">All Fuel Types</option>
-                                    {fuelTypes.map(f => <option key={f} value={f}>{f}</option>)}
-                                </select>
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-red-500 uppercase tracking-widest pl-1">Purchase Mode</label>
-                                <select
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm focus:border-red-600 focus:ring-0 cursor-pointer"
-                                    value={filters.sellingMode}
-                                    onChange={(e) => setFilters({ ...filters, sellingMode: e.target.value })}
-                                >
-                                    <option value="">Any Mode</option>
-                                    <option value="AUCTION">Live Auction</option>
-                                    <option value="FIXED">Direct Buy</option>
-                                    <option value="RATE_REQUEST">Price Inquiry</option>
-                                </select>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* ── Content Grid ── */}
-            <main className="max-w-7xl mx-auto px-6 -mt-20 pb-40">
-                <div className="flex items-center justify-between mb-12">
-                    <div className="flex items-center gap-4">
-                        <div className="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5">
-                            <span className="text-xl font-black">{filteredVehicles.length}</span>
-                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-3">Results found</span>
-                        </div>
-                        {Object.values(filters).some(v => v !== "" && (Array.isArray(v) ? (v[0] !== 0 || v[1] !== 10000000) : true)) && (
-                            <button
-                                onClick={clearFilters}
-                                className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors flex items-center gap-2"
-                            >
-                                <X className="w-3 h-3" /> Clear Filters
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-40 gap-6">
-                        <div className="relative">
-                            <Loader2 className="w-16 h-16 animate-spin text-red-600" />
-                            <div className="absolute inset-0 bg-red-600 blur-[20px] opacity-20" />
-                        </div>
-                        <span className="text-sm font-black uppercase tracking-widest text-zinc-600">Syncing Exclusive Inventory...</span>
-                    </div>
-                ) : filteredVehicles.length === 0 ? (
-                    <div className="text-center py-40 rounded-[3rem] bg-white/[0.02] border border-dashed border-white/10">
-                        <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6">
-                            <Search className="w-8 h-8 text-zinc-600" />
-                        </div>
-                        <h3 className="text-2xl font-black mb-2">No Matching Vehicles</h3>
-                        <p className="text-zinc-500 mb-8 max-w-sm mx-auto">Try adjusting your filters or search keywords to find your perfect match.</p>
-                        <button onClick={clearFilters} className="px-8 py-4 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-xs hover:bg-zinc-200 transition-all">Reset All Filters</button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {filteredVehicles.map((v, idx) => (
-                            <VehicleCard key={v.id} v={v} images={images(v)} index={idx} />
-                        ))}
-                    </div>
-                )}
-            </main>
-
-            {/* ── Dealer Footer ── */}
-            <div className="mx-6 mb-20 rounded-[4rem] bg-gradient-to-br from-[#1a0f0f] to-[#09090b] border border-red-950/30 overflow-hidden relative">
-                <div className="absolute inset-0 pointer-events-none opacity-20">
-                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(153,27,27,0.1),transparent)]" />
-                </div>
-                <div className="max-w-4xl mx-auto px-6 py-24 flex flex-col items-center text-center space-y-10 relative z-10">
-                    <div className="w-20 h-20 rounded-3xl bg-red-900/10 border border-red-800/20 flex items-center justify-center shadow-2xl">
-                        <Star className="w-10 h-10 text-red-600" />
-                    </div>
-                    <div className="space-y-4">
-                        <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">PARTNER WITH<br /><span className="text-red-600">THE BEST IN THE BUSINESS</span></h2>
-                        <p className="text-zinc-500 text-lg max-w-xl mx-auto">Authorized dealers gain access to premium auctions, direct buy opportunities, and advanced fleet management tools.</p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-                        <Link href="/dealer/marketplace" className="px-10 py-5 rounded-2xl bg-red-600 text-white font-black uppercase tracking-widest text-sm hover:bg-red-700 transition-all shadow-xl shadow-red-900/20 active:scale-95 flex items-center justify-center gap-3">
-                            Apply for Dealer Access <ArrowRight className="w-5 h-5" />
-                        </Link>
-                        <Link href="/company-stock" className="px-10 py-5 rounded-2xl bg-white/5 border border-white/10 text-zinc-400 font-black uppercase tracking-widest text-sm hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-3">
-                            Public Inventory
-                        </Link>
-                    </div>
-                </div>
-            </div>
+            title={inCart ? "Added to cart" : "Add to cart"}
+          >
+            {inCart ? <CheckCircle className="w-3.5 h-3.5" /> : <ShoppingCart className="w-3.5 h-3.5" />}
+          </button>
         </div>
-    )
+      </div>
+    </div>
+  )
 }
 
-function VehicleCard({ v, images, index }: any) {
-    const mainImg = images[0]
-    const price = v.fixedPrice || v.basePrice || 0
+/* ─── Enquiry Modal ─── */
+function EnquiryModal({ item, onClose }: { item: Listing; onClose: () => void }) {
+  const [form, setForm] = useState({ name: "", phone: "", message: "" })
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
 
-    return (
-        <div className="group relative flex flex-col rounded-[2.5rem] bg-[#121214] border border-white/5 overflow-hidden transition-all duration-500 hover:border-red-600/30 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
-            {/* Top Badge Overlay */}
-            <div className="absolute top-5 left-5 right-5 z-20 flex justify-between items-start pointer-events-none">
-                <div className="flex flex-col gap-2">
-                    {v.sellingMode === "AUCTION" && (
-                        <div className="px-3 py-1.5 rounded-full bg-red-600 text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1.5">
-                            <Zap className="w-3 h-3 fill-white" /> Live Auction
-                        </div>
-                    )}
-                    {v.sellingMode === "FIXED" && (
-                        <div className="px-3 py-1.5 rounded-full bg-emerald-600 text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1.5">
-                            <Tag className="w-3 h-3 fill-white" /> Direct Buy
-                        </div>
-                    )}
-                </div>
-                {v.isFeatured && (
-                    <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center">
-                        <Star className="w-4 h-4 text-red-500 fill-red-500" />
-                    </div>
-                )}
-            </div>
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.name || !form.phone) return
+    setSending(true)
+    try {
+      await fetch("/api/marketplace/enquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, productId: item.id, productTitle: item.title, seller: item.seller }),
+      })
+      setSent(true)
+    } finally {
+      setSending(false)
+    }
+  }
 
-            {/* Image Area */}
-            <Link href={`/marketplace/${v.id}`} className="relative h-64 overflow-hidden block">
-                {mainImg ? (
-                    <img
-                        src={mainImg}
-                        alt={v.title}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                ) : (
-                    <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
-                        <Car className="w-20 h-20 text-white/5" />
-                    </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#121214] via-transparent to-transparent opacity-60" />
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div
+        className="relative w-full max-w-md rounded-2xl p-6"
+        style={{ background: "#0e1316", border: "1px solid #1a2328" }}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+        >
+          <X className="w-4 h-4 text-zinc-400" />
+        </button>
 
-                {/* Visual Details Overlay */}
-                <div className="absolute bottom-5 left-5 right-5 flex justify-between items-end">
-                    <div className="flex flex-col gap-1">
-                        <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">{v.make}</p>
-                        <h3 className="text-xl font-black text-white leading-none tracking-tight uppercase">{v.model}</h3>
-                    </div>
-                    {v.bidDeadline && (
-                        <div className="px-3 py-1.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center gap-2">
-                            <Clock className="w-3 h-3 text-red-500" />
-                            <span className="text-[9px] font-black text-white/80">{new Date(v.bidDeadline).toLocaleDateString()}</span>
-                        </div>
-                    )}
-                </div>
-            </Link>
+        {sent ? (
+          <div className="text-center py-8">
+            <CheckCircle className="w-14 h-14 mx-auto mb-4" style={{ color: "#16acd4" }} />
+            <h3 className="text-xl font-black mb-2" style={{ fontFamily: "'Saira Semi Condensed', sans-serif" }}>
+              ENQUIRY SENT!
+            </h3>
+            <p className="text-zinc-400 text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>
+              We will contact you shortly on {form.phone}
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-6 px-6 py-2.5 rounded-lg text-sm font-bold w-full"
+              style={{ background: "#16acd4", color: "#07090b" }}
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-xl font-black mb-1" style={{ fontFamily: "'Saira Semi Condensed', sans-serif" }}>
+              ENQUIRE NOW
+            </h2>
+            <p className="text-zinc-500 text-xs mb-5" style={{ fontFamily: "Manrope, sans-serif" }}>
+              {item.title} · {item.seller}
+            </p>
 
-            {/* Stats Area */}
-            <div className="px-8 py-6 space-y-6">
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                        <Calendar className="w-4 h-4 text-red-600" />
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase">Year</p>
-                        <p className="text-xs font-black text-white tracking-widest">{v.year}</p>
-                    </div>
-                    <div className="space-y-1">
-                        <Gauge className="w-4 h-4 text-red-600" />
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase">Mileage</p>
-                        <p className="text-xs font-black text-white tracking-widest">{(v.mileage || 0).toLocaleString()} KM</p>
-                    </div>
-                    <div className="space-y-1">
-                        <Fuel className="w-4 h-4 text-red-600" />
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase">Fuel</p>
-                        <p className="text-xs font-black text-white tracking-widest">{v.fuelType}</p>
-                    </div>
-                </div>
+            <form onSubmit={submit} className="flex flex-col gap-3">
+              <input
+                required
+                placeholder="Your name *"
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                className="w-full bg-[#07090b] border border-[#1a2328] rounded-lg px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#16acd4] transition-colors"
+              />
+              <input
+                required
+                placeholder="Phone / WhatsApp *"
+                value={form.phone}
+                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                className="w-full bg-[#07090b] border border-[#1a2328] rounded-lg px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#16acd4] transition-colors"
+              />
+              <textarea
+                placeholder="Message (optional)"
+                rows={3}
+                value={form.message}
+                onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                className="w-full bg-[#07090b] border border-[#1a2328] rounded-lg px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#16acd4] transition-colors resize-none"
+              />
+              <button
+                type="submit"
+                disabled={sending}
+                className="w-full py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-60"
+                style={{ background: "#16acd4", color: "#07090b" }}
+              >
+                {sending && <Loader2 className="w-4 h-4 animate-spin" />}
+                {sending ? "Sending..." : "Send Enquiry"}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
-                <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                    <div>
-                        <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">
-                            {v.sellingMode === "AUCTION" ? "Current Bid" : "Listing Price"}
-                        </p>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-sm font-black text-red-600">₹</span>
-                            <span className="text-2xl font-black text-white tracking-tighter">{price.toLocaleString('en-IN')}</span>
-                        </div>
-                    </div>
-                    <Link
-                        href="/dealer/marketplace"
-                        className="px-6 py-3 rounded-xl bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 shadow-lg"
+/* ─── Sell Modal ─── */
+function SellModal({ onClose }: { onClose: () => void }) {
+  const [selected, setSelected] = useState<number | null>(null)
+  const [form, setForm] = useState({ name: "", phone: "", business: "" })
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (selected === null) return
+    setSending(true)
+    try {
+      await fetch("/api/marketplace/enquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          businessType: BUSINESS_TYPES[selected].title,
+          type: "sell-request",
+        }),
+      })
+      setSent(true)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div
+        className="relative w-full max-w-2xl rounded-2xl p-8 max-h-[90vh] overflow-y-auto"
+        style={{ background: "#0e1316", border: "1px solid #1a2328" }}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+        >
+          <X className="w-4 h-4 text-zinc-400" />
+        </button>
+
+        {sent ? (
+          <div className="text-center py-10">
+            <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: "#16acd4" }} />
+            <h2 className="text-2xl font-black mb-2" style={{ fontFamily: "'Saira Semi Condensed', sans-serif" }}>
+              REQUEST RECEIVED!
+            </h2>
+            <p className="text-zinc-400 text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>
+              Our team will verify and activate your listing shortly.
+            </p>
+            <button onClick={onClose} className="mt-6 px-8 py-3 rounded-xl text-sm font-bold" style={{ background: "#16acd4", color: "#07090b" }}>
+              Close
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-2xl font-black mb-1" style={{ fontFamily: "'Saira Semi Condensed', sans-serif" }}>
+              LIST YOUR BUSINESS <span style={{ color: "#16acd4" }}>– FREE</span>
+            </h2>
+            <p className="text-zinc-400 text-sm mb-6" style={{ fontFamily: "Manrope, sans-serif" }}>
+              Create a verified partner account – your listing goes live on Near Me after verification.
+            </p>
+
+            {/* Business Type Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              {BUSINESS_TYPES.map((bt, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelected(i)}
+                  className="flex items-start gap-4 p-4 rounded-xl border text-left transition-all"
+                  style={
+                    selected === i
+                      ? { borderColor: "#16acd4", background: "rgba(22,172,212,0.08)" }
+                      : { borderColor: "#1a2328", background: "#07090b" }
+                  }
+                >
+                  <span className="text-2xl mt-0.5">{bt.icon}</span>
+                  <div>
+                    <p
+                      className="text-sm font-bold leading-snug mb-1"
+                      style={{ fontFamily: "'Saira Semi Condensed', sans-serif", color: selected === i ? "#16acd4" : "#fff" }}
                     >
-                        {v.sellingMode === "AUCTION" ? "Place Bid" : "Acquire"}
-                    </Link>
-                </div>
+                      {bt.title}
+                    </p>
+                    <p className="text-xs text-zinc-500 leading-relaxed" style={{ fontFamily: "Manrope, sans-serif" }}>
+                      {bt.desc}
+                    </p>
+                  </div>
+                  {selected === i && <CheckCircle className="w-5 h-5 ml-auto flex-shrink-0 mt-0.5" style={{ color: "#16acd4" }} />}
+                </button>
+              ))}
             </div>
 
-            {/* Hover Accent */}
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
-        </div>
-    )
+            {/* Contact Form */}
+            {selected !== null && (
+              <form onSubmit={submit} className="flex flex-col gap-3 border-t border-[#1a2328] pt-6">
+                <p className="text-xs font-semibold text-zinc-400 mb-1">Your contact details</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    required
+                    placeholder="Your name *"
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    className="bg-[#07090b] border border-[#1a2328] rounded-lg px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#16acd4] transition-colors"
+                  />
+                  <input
+                    required
+                    placeholder="Phone / WhatsApp *"
+                    value={form.phone}
+                    onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                    className="bg-[#07090b] border border-[#1a2328] rounded-lg px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#16acd4] transition-colors"
+                  />
+                </div>
+                <input
+                  placeholder="Business / shop name"
+                  value={form.business}
+                  onChange={e => setForm(f => ({ ...f, business: e.target.value }))}
+                  className="bg-[#07090b] border border-[#1a2328] rounded-lg px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-[#16acd4] transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 mt-1"
+                  style={{ background: "#16acd4", color: "#07090b" }}
+                >
+                  {sending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {sending ? "Submitting..." : "Submit & Get Listed"}
+                </button>
+              </form>
+            )}
+
+            {selected === null && (
+              <button onClick={onClose} className="mt-2 w-full py-3 rounded-xl text-sm text-zinc-500 border border-[#1a2328] hover:bg-white/5 transition-colors">
+                Close
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
 }
-
-

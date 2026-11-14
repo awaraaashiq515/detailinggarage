@@ -83,6 +83,19 @@ export async function POST(request: Request) {
             })
         }
 
+        // If updating FACEBOOK token, auto-sync to INSTAGRAM since both share the same Meta permissions/Graph API token
+        if (platform === "FACEBOOK" && accessToken?.trim()) {
+            const igAccount = await db.socialAccount.findFirst({ where: { platform: "INSTAGRAM" } })
+            if (igAccount) {
+                await db.socialAccount
+                    .update({
+                        where: { id: igAccount.id },
+                        data: { accessToken: accessToken.trim(), lastStatus: "CONNECTED" }
+                    })
+                    .catch(() => {})
+            }
+        }
+
         return NextResponse.json({ success: true, account })
     } catch (error: any) {
         console.error("Save social account error:", error)

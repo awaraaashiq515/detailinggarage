@@ -72,7 +72,7 @@ export async function executeBroadcast(request: BroadcastRequest): Promise<Broad
         // Check if this platform is configured at all — if not, mark as SKIPPED
         const hasConfig = (() => {
             if (platform === "FACEBOOK") return !!(account?.accountId || fbLegacySettings?.pageId) && !!(account?.accessToken || fbLegacySettings?.pageAccessToken)
-            if (platform === "INSTAGRAM") return !!(account?.accountId) && !!(account?.accessToken || fbLegacySettings?.pageAccessToken)
+            if (platform === "INSTAGRAM") return !!(account?.accountId || fbLegacySettings?.pageId) && !!(account?.accessToken || fbLegacySettings?.pageAccessToken)
             return !!(account?.accessToken || account?.apiKey)
         })()
 
@@ -112,8 +112,9 @@ export async function executeBroadcast(request: BroadcastRequest): Promise<Broad
                 }
 
                 case "INSTAGRAM": {
-                    const igAccountId = account?.accountId
-                    const accessToken = account?.accessToken || fbLegacySettings?.pageAccessToken
+                    const fbAccount = socialAccounts.find((a) => a.platform === "FACEBOOK")
+                    const igAccountId = account?.accountId || fbLegacySettings?.pageId
+                    let accessToken = account?.accessToken || fbAccount?.accessToken || fbLegacySettings?.pageAccessToken
 
                     if (igAccountId && accessToken) {
                         result = await publishToInstagram({
@@ -124,6 +125,45 @@ export async function executeBroadcast(request: BroadcastRequest): Promise<Broad
                             mediaType,
                             linkUrl
                         })
+
+                        // If Instagram failed due to an expired/invalid token and Facebook has a fresh token, retry with Facebook's token
+                        if (
+                            !result.success &&
+                            result.error &&
+                            fbAccount?.accessToken &&
+                            fbAccount.accessToken !== accessToken
+                        ) {
+                            const errLower = result.error.toLowerCase()
+                            if (
+                                errLower.includes("access token") ||
+                                errLower.includes("session has expired") ||
+                                errLower.includes("oauth") ||
+                                errLower.includes("unauthorized")
+                            ) {
+                                console.log("[SocialBroadcast] Instagram token expired, retrying with Facebook Meta token...")
+                                const retryResult = await publishToInstagram({
+                                    instagramAccountId: igAccountId,
+                                    accessToken: fbAccount.accessToken,
+                                    caption,
+                                    mediaUrl: mediaUrl || (mediaUrls && mediaUrls[0]),
+                                    mediaType,
+                                    linkUrl
+                                })
+
+                                if (retryResult.success) {
+                                    result = retryResult
+                                    // Auto-sync working token to Instagram account in database
+                                    if (account?.id) {
+                                        await db.socialAccount
+                                            .update({
+                                                where: { id: account.id },
+                                                data: { accessToken: fbAccount.accessToken, lastStatus: "CONNECTED" }
+                                            })
+                                            .catch(() => {})
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         result.error = "Instagram Business Account ID or Token is missing. Configure in Social Settings."
                     }

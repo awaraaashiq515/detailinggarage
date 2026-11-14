@@ -18,29 +18,6 @@
       }
     ]
   },
-  "services": [
-    {
-      "id": "1",
-      "title": "Pre-Delivery Inspection (PDI)",
-      "description": "Comprehensive 50+ point check before you accept delivery of your new car.",
-      "icon": "Search",
-      "isActive": true
-    },
-    {
-      "id": "2",
-      "title": "Paint Protection Film (PPF)",
-      "description": "Keep your car's paint looking brand new with our self-healing invisible shield.",
-      "icon": "Shield",
-      "isActive": true
-    },
-    {
-      "id": "3",
-      "title": "Ceramic Coating",
-      "description": "Long-lasting gloss and hydrophobic protection for your vehicle's exterior.",
-      "icon": "Sparkles",
-      "isActive": true
-    }
-  ],
   "gallery": [
     {
       "id": "1",

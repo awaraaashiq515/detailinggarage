@@ -19,7 +19,7 @@ export async function getWebsiteContent(): Promise<WebsiteContent> {
       hero: { ...defaultWebsiteContent.hero, ...(parsed.hero || {}) },
       ticker: { ...defaultWebsiteContent.ticker, ...(parsed.ticker || {}) },
       pdi: { ...defaultWebsiteContent.pdi, ...(parsed.pdi || {}) },
-      services: { ...defaultWebsiteContent.services, ...(parsed.services || {}) },
+      services: { ...defaultWebsiteContent.services, ...(parsed.services || {}), primaryList: parsed.services?.primaryList || defaultWebsiteContent.services.primaryList, solutionsList: parsed.services?.solutionsList || defaultWebsiteContent.services.solutionsList, brands: parsed.services?.brands || defaultWebsiteContent.services.brands },
       packages: { ...defaultWebsiteContent.packages, ...(parsed.packages || {}) },
       customers: { ...defaultWebsiteContent.customers, ...(parsed.customers || {}) },
       videos: { ...defaultWebsiteContent.videos, ...(parsed.videos || {}) },

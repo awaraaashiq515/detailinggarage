@@ -43,6 +43,8 @@ import {
     Compass,
     SlidersHorizontal,
     Star,
+    MapPin,
+    Wrench,
 } from "lucide-react"
 
 export interface PageBoxItem {
@@ -228,6 +230,13 @@ export function AllPagesPortalClient({ counts = {} }: AllPagesPortalClientProps)
                     tags: ["insurance requests", "quotes", "leads"],
                 },
                 {
+                    id: "warranties-management",
+                    title: "WARRANTIES",
+                    href: "/admin/warranties",
+                    icon: ShieldCheck,
+                    tags: ["warranties", "ceramic coating", "ppf", "certificate", "issue warranty", "annual inspection"],
+                },
+                {
                     id: "vehicle-inquiries",
                     title: "VEHICLE INQUIRIES",
                     href: "/admin/vehicle-inquiries",
@@ -291,6 +300,27 @@ export function AllPagesPortalClient({ counts = {} }: AllPagesPortalClientProps)
                     href: "/admin/social",
                     icon: Share2,
                     tags: ["social", "broadcast", "instagram", "facebook", "multi post", "auto share"],
+                },
+                {
+                    id: "website-services",
+                    title: "WEBSITE SERVICES",
+                    href: "/admin/services",
+                    icon: Wrench,
+                    tags: ["services", "website", "cards", "brands", "editor", "customization"],
+                },
+                {
+                    id: "near-me-directory",
+                    title: "NEAR ME DIRECTORY",
+                    href: "/admin/near-me",
+                    icon: MapPin,
+                    tags: ["near me", "directory", "garages", "mechanics", "towing", "car wash", "rsa", "workshops", "services"],
+                },
+                {
+                    id: "marketplace-listings",
+                    title: "MARKETPLACE",
+                    href: "/admin/marketplace",
+                    icon: Package,
+                    tags: ["marketplace", "products", "accessories", "coatings", "parts", "audio", "mats", "store"],
                 },
                 {
                     id: "social-showcase",
